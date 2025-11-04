@@ -67,6 +67,13 @@ FourCC CodecToFourCC(Codec codec, H26xStreamFormat h26x_stream_format) {
                      H26xStreamFormat::kNalUnitStreamWithParameterSetNalus
                  ? FOURCC_dvhe
                  : FOURCC_dvh1;
+    case kCodecVVC:
+      //return FOURCC_vvc1;
+      // FIX ME: Not sure  to be tested.
+      return h26x_stream_format ==
+                     H26xStreamFormat::kNalUnitStreamWithParameterSetNalus
+                 ? FOURCC_vvc1
+                 : FOURCC_vvi1;
     case kCodecVP8:
       return FOURCC_vp08;
     case kCodecVP9:

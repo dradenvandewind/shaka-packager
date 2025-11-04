@@ -80,10 +80,14 @@ bool Nalu::Initialize(CodecType type,
                       uint64_t size) {
   if (type == Nalu::kH264) {
     return InitializeFromH264(data, size);
-  } else {
+  } else if (type == Nalu::kH265){
     DCHECK_EQ(Nalu::kH265, type);
     return InitializeFromH265(data, size);
+  } else {
+	  DCHECK_EQ(Nalu::kH266, type);
+	  return InitializeFromH266(data, size);
   }
+   
 }
 
 // ITU-T H.264 (02/2014) 7.4.1 NAL unit semantics
@@ -211,6 +215,241 @@ bool Nalu::InitializeFromH265(const uint8_t* data, uint64_t size) {
        type_ == Nalu::H265_PREFIX_SEI ||
        (type_ >= Nalu::H265_RSV_NVCL41 && type_ <= Nalu::H265_RSV_NVCL44) ||
        (type_ >= Nalu::H265_UNSPEC48 && type_ <= Nalu::H265_UNSPEC55));
+  return true;
+}
+
+// ITU-T H.266 (09/2023) 7.4.2.2 NAL unit header semantics
+bool Nalu::InitializeFromH266(const uint8_t* data, uint64_t size) {
+  DCHECK(data);
+  if (size < 2)
+    return false;
+  
+  const uint16_t header = (data[0] << 8) | data[1];
+  
+  // H.266: forbidden_zero_bit (1 bit) - shall be 0
+  if ((header & 0x8000) != 0) {
+    LOG(WARNING) << "forbidden_zero_bit shall be equal to 0 (header 0x"
+                 << std::hex << header << ").";
+    return false;
+  }
+
+  // H.266: nuh_reserved_zero_bit (1 bit) - shall be 0
+  if ((header & 0x4000) != 0) {
+    LOG(WARNING) << "nuh_reserved_zero_bit shall be equal to 0 (header 0x"
+                 << std::hex << header << ").";
+    return false;
+  }
+
+  data_ = data;
+  header_size_ = 2;
+  payload_size_ = size - header_size_;
+
+  // H.266 header structure:
+  // forbidden_zero_bit (1) | nuh_reserved_zero_bit (1) | nuh_layer_id (6) | nal_unit_type (5) | nuh_temporal_id_plus1 (3)
+  nuh_layer_id_ = (header >> 8) & 0x3F;  // Bits 8-13
+  type_ = (header >> 3) & 0x1F;          // Bits 3-7
+  const int nuh_temporal_id_plus1 = header & 0x7;  // Bits 0-2
+
+  // H.266: nuh_temporal_id_plus1 shall be in range 1-7
+  if (nuh_temporal_id_plus1 == 0) {
+    LOG(WARNING) << "nuh_temporal_id_plus1 shall not be equal to 0 (header 0x"
+                 << std::hex << header << ").";
+    return false;
+  }
+  nuh_temporal_id_ = nuh_temporal_id_plus1 - 1;
+
+  // H.266 specific constraints
+
+  // For EOB_NUT and EOS_NUT, nuh_layer_id shall be equal to 0
+  if ((type_ == H266_EOB_NUT || type_ == H266_EOS_NUT) && nuh_layer_id_ != 0) {
+    LOG(WARNING) << "nuh_layer_id shall be equal to 0 for nalu type " << type_
+                 << " (header 0x" << std::hex << header << ").";
+    return false;
+  }
+
+  // For FD_NUT, nuh_layer_id shall be equal to 0
+  if (type_ == H266_FD_NUT && nuh_layer_id_ != 0) {
+    LOG(WARNING) << "nuh_layer_id shall be equal to 0 for nalu type " << type_
+                 << " (header 0x" << std::hex << header << ").";
+    return false;
+  }
+
+  // Reserved NAL units handling
+  if ((type_ >= H266_RSV_VCL_4 && type_ <= H266_RSV_VCL_6) ||
+      (type_ >= H266_RSV_IRAP_11 && type_ <= H266_RSV_IRAP_11) ||
+      (type_ >= H266_RSV_NVCL_26 && type_ <= H266_RSV_NVCL_27) ||
+      (type_ >= H266_UNSPEC_28 && type_ <= H266_UNSPEC_31)) {
+    VLOG(1) << "Unspecified or reserved nal_unit_type " << type_
+            << " (header 0x" << std::hex << header << ").";
+    // Allow reserved NAL units for extended codecs and private data
+  }
+
+  // NAL units with TemporalId equal to 0 constraints
+  if ((type_ >= H266_IDR_W_RADL && type_ <= H266_RSV_IRAP_11) ||
+      type_ == H266_VPS_NUT || type_ == H266_SPS_NUT || 
+      type_ == H266_PPS_NUT || type_ == H266_EOS_NUT || 
+      type_ == H266_EOB_NUT || type_ == H266_DCI_NUT ||
+      type_ == H266_OPI_NUT) {
+    if (nuh_temporal_id_ != 0) {
+      LOG(WARNING) << "TemporalId shall be equal to 0 for nalu type " << type_
+                   << " (header 0x" << std::hex << header << ").";
+      return false;
+    }
+  }
+
+  // For PH_NUT, when nuh_layer_id is 0, TemporalId shall be equal to 0
+  if (type_ == H266_PH_NUT && nuh_layer_id_ == 0 && nuh_temporal_id_ != 0) {
+    LOG(WARNING) << "When nuh_layer_id is 0, TemporalId shall be equal to 0 for PH_NUT"
+                 << " (header 0x" << std::hex << header << ").";
+    return false;
+  }
+
+  // For AUD_NUT, when nuh_layer_id is 0, TemporalId shall be equal to 0
+  if (type_ == H266_AUD_NUT && nuh_layer_id_ == 0 && nuh_temporal_id_ != 0) {
+    LOG(WARNING) << "When nuh_layer_id is 0, TemporalId shall be equal to 0 for AUD_NUT"
+                 << " (header 0x" << std::hex << header << ").";
+    return false;
+  }
+
+  // Set NALU properties
+  is_aud_ = type_ == H266_AUD_NUT;
+  is_vcl_ = (type_ >= H266_TRAIL_NUT && type_ <= H266_RSV_VCL_6) ||
+            (type_ >= H266_IDR_W_RADL && type_ <= H266_GDR_NUT);
+  is_video_slice_ = is_vcl_;
+  
+  // Determine if this NALU can start an access unit
+  // According to H.266, base layer (nuh_layer_id = 0) specific NALUs can start AU
+  can_start_access_unit_ =
+      nuh_layer_id_ == 0 &&
+      (is_vcl_ || 
+       type_ == H266_AUD_NUT || 
+       type_ == H266_VPS_NUT || 
+       type_ == H266_SPS_NUT || 
+       type_ == H266_PPS_NUT ||
+       type_ == H266_PREFIX_SEI_NUT ||
+       type_ == H266_SUFFIX_SEI_NUT ||
+       type_ == H266_DCI_NUT ||
+       type_ == H266_OPI_NUT ||
+       type_ == H266_PH_NUT ||
+       (type_ >= H266_RSV_NVCL_26 && type_ <= H266_RSV_NVCL_27) ||
+       (type_ >= H266_UNSPEC_28 && type_ <= H266_UNSPEC_31));
+
+  return true;
+}(const uint8_t* data, uint64_t size) {
+  DCHECK(data);
+  if (size < 2)
+    return false;
+  
+  const uint16_t header = (data[0] << 8) | data[1];
+  
+  // H.266: forbidden_zero_bit (1 bit) - shall be 0
+  if ((header & 0x8000) != 0) {
+    LOG(WARNING) << "forbidden_zero_bit shall be equal to 0 (header 0x"
+                 << std::hex << header << ").";
+    return false;
+  }
+
+  // H.266: nuh_reserved_zero_bit (1 bit) - shall be 0
+  if ((header & 0x4000) != 0) {
+    LOG(WARNING) << "nuh_reserved_zero_bit shall be equal to 0 (header 0x"
+                 << std::hex << header << ").";
+    return false;
+  }
+
+  data_ = data;
+  header_size_ = 2;
+  payload_size_ = size - header_size_;
+
+  // H.266 header structure:
+  // forbidden_zero_bit (1) | nuh_reserved_zero_bit (1) | nuh_layer_id (6) | nal_unit_type (5) | nuh_temporal_id_plus1 (3)
+  nuh_layer_id_ = (header >> 8) & 0x3F;  // Bits 8-13
+  type_ = (header >> 3) & 0x1F;          // Bits 3-7
+  const int nuh_temporal_id_plus1 = header & 0x7;  // Bits 0-2
+
+  // H.266: nuh_temporal_id_plus1 shall be in range 1-7
+  if (nuh_temporal_id_plus1 == 0) {
+    LOG(WARNING) << "nuh_temporal_id_plus1 shall not be equal to 0 (header 0x"
+                 << std::hex << header << ").";
+    return false;
+  }
+  nuh_temporal_id_ = nuh_temporal_id_plus1 - 1;
+
+  // H.266 specific constraints
+
+  // For EOB_NUT and EOS_NUT, nuh_layer_id shall be equal to 0
+  if ((type_ == H266_EOB_NUT || type_ == H266_EOS_NUT) && nuh_layer_id_ != 0) {
+    LOG(WARNING) << "nuh_layer_id shall be equal to 0 for nalu type " << type_
+                 << " (header 0x" << std::hex << header << ").";
+    return false;
+  }
+
+  // For FD_NUT, nuh_layer_id shall be equal to 0
+  if (type_ == H266_FD_NUT && nuh_layer_id_ != 0) {
+    LOG(WARNING) << "nuh_layer_id shall be equal to 0 for nalu type " << type_
+                 << " (header 0x" << std::hex << header << ").";
+    return false;
+  }
+
+  // Reserved NAL units handling
+  if ((type_ >= H266_RSV_VCL_4 && type_ <= H266_RSV_VCL_6) ||
+      (type_ >= H266_RSV_IRAP_11 && type_ <= H266_RSV_IRAP_11) ||
+      (type_ >= H266_RSV_NVCL_26 && type_ <= H266_RSV_NVCL_27) ||
+      (type_ >= H266_UNSPEC_28 && type_ <= H266_UNSPEC_31)) {
+    VLOG(1) << "Unspecified or reserved nal_unit_type " << type_
+            << " (header 0x" << std::hex << header << ").";
+    // Allow reserved NAL units for extended codecs and private data
+  }
+
+  // NAL units with TemporalId equal to 0 constraints
+  if ((type_ >= H266_IDR_W_RADL && type_ <= H266_RSV_IRAP_11) ||
+      type_ == H266_VPS_NUT || type_ == H266_SPS_NUT || 
+      type_ == H266_PPS_NUT || type_ == H266_EOS_NUT || 
+      type_ == H266_EOB_NUT || type_ == H266_DCI_NUT ||
+      type_ == H266_OPI_NUT) {
+    if (nuh_temporal_id_ != 0) {
+      LOG(WARNING) << "TemporalId shall be equal to 0 for nalu type " << type_
+                   << " (header 0x" << std::hex << header << ").";
+      return false;
+    }
+  }
+
+  // For PH_NUT, when nuh_layer_id is 0, TemporalId shall be equal to 0
+  if (type_ == H266_PH_NUT && nuh_layer_id_ == 0 && nuh_temporal_id_ != 0) {
+    LOG(WARNING) << "When nuh_layer_id is 0, TemporalId shall be equal to 0 for PH_NUT"
+                 << " (header 0x" << std::hex << header << ").";
+    return false;
+  }
+
+  // For AUD_NUT, when nuh_layer_id is 0, TemporalId shall be equal to 0
+  if (type_ == H266_AUD_NUT && nuh_layer_id_ == 0 && nuh_temporal_id_ != 0) {
+    LOG(WARNING) << "When nuh_layer_id is 0, TemporalId shall be equal to 0 for AUD_NUT"
+                 << " (header 0x" << std::hex << header << ").";
+    return false;
+  }
+
+  // Set NALU properties
+  is_aud_ = type_ == H266_AUD_NUT;
+  is_vcl_ = (type_ >= H266_TRAIL_NUT && type_ <= H266_RSV_VCL_6) ||
+            (type_ >= H266_IDR_W_RADL && type_ <= H266_GDR_NUT);
+  is_video_slice_ = is_vcl_;
+  
+  // Determine if this NALU can start an access unit
+  // According to H.266, base layer (nuh_layer_id = 0) specific NALUs can start AU
+  can_start_access_unit_ =
+      nuh_layer_id_ == 0 &&
+      (is_vcl_ || 
+       type_ == H266_AUD_NUT || 
+       type_ == H266_VPS_NUT || 
+       type_ == H266_SPS_NUT || 
+       type_ == H266_PPS_NUT ||
+       type_ == H266_PREFIX_SEI_NUT ||
+       type_ == H266_SUFFIX_SEI_NUT ||
+       type_ == H266_DCI_NUT ||
+       type_ == H266_OPI_NUT ||
+       type_ == H266_PH_NUT ||
+       (type_ >= H266_RSV_NVCL_26 && type_ <= H266_RSV_NVCL_27) ||
+       (type_ >= H266_UNSPEC_28 && type_ <= H266_UNSPEC_31));
+
   return true;
 }
 

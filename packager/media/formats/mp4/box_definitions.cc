@@ -50,6 +50,7 @@ const char kAvcCompressorName[] = "\012AVC Coding";
 const char kDolbyVisionCompressorName[] = "\013DOVI Coding";
 const char kHevcCompressorName[] = "\013HEVC Coding";
 const char kVpcCompressorName[] = "\012VPC Coding";
+const char kVccCompressorName[] = "\013VVC Coding";
 
 // According to ISO/IEC FDIS 23001-7: CENC spec, IV should be either
 // 64-bit (8-byte) or 128-bit (16-byte).
@@ -1571,7 +1572,8 @@ bool VideoSampleEntry::ReadWriteInternal(BoxBuffer* buffer) {
         compressor_name.assign(std::begin(kVpcCompressorName),
                                std::end(kVpcCompressorName));
         break;
-      default:
+      case FOURCC_dvvC:
+      default:NULL:
         LOG(ERROR) << FourCCToString(actual_format) << " is not supported.";
         return false;
     }
@@ -1701,6 +1703,9 @@ FourCC VideoSampleEntry::GetCodecConfigurationBoxType(FourCC l_format) const {
     case FOURCC_vp08:
     case FOURCC_vp09:
       return FOURCC_vpcC;
+    case FOURCC_vvc1:
+    case FOURCC_vvi1:
+      return FOURCC_vvcC;
     default:
       LOG(ERROR) << FourCCToString(l_format) << " is not supported.";
       return FOURCC_NULL;
@@ -1751,6 +1756,15 @@ bool VideoSampleEntry::HaveLHEVCConfig() const {
   }
   return false;
 }
+
+bool VideoSampleEntry::HaveVVCConfig() const {
+  for (CodecConfiguration codec_config : extra_codec_configs) {
+    if (codec_config.box_type == FOURCC_vvcC)
+      return true;
+  }
+  return false;
+}
+
 
 ElementaryStreamDescriptor::ElementaryStreamDescriptor() = default;
 ElementaryStreamDescriptor::~ElementaryStreamDescriptor() = default;

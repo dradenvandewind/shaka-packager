@@ -32,6 +32,7 @@
 #include <packager/media/codecs/ec3_audio_util.h>
 #include <packager/media/codecs/es_descriptor.h>
 #include <packager/media/codecs/hevc_decoder_configuration_record.h>
+#include <packager/media/codecs/vvc_decoder_configuration_record.h>
 #include <packager/media/codecs/iamf_audio_util.h>
 #include <packager/media/codecs/vp_codec_configuration_record.h>
 #include <packager/media/formats/mp4/box_definitions.h>
@@ -65,8 +66,10 @@ H26xStreamFormat GetH26xStreamFormat(FourCC fourcc) {
     case FOURCC_avc3:
     case FOURCC_dvhe:
     case FOURCC_hev1:
+    case FOURCC_vvi1:
+    case FOURCC_vvc1:
       return H26xStreamFormat::kNalUnitStreamWithParameterSetNalus;
-    default:
+          default:
       return H26xStreamFormat::kUnSpecified;
   }
 }
@@ -84,6 +87,9 @@ Codec FourCCToCodec(FourCC fourcc) {
     case FOURCC_hev1:
     case FOURCC_hvc1:
       return kCodecH265;
+    case FOURCC_vvc1:
+    case FOURCC_vvi1:
+      return kCodecVVC;
     case FOURCC_vp08:
       return kCodecVP8;
     case FOURCC_vp09:
@@ -122,6 +128,7 @@ Codec FourCCToCodec(FourCC fourcc) {
       return kCodecMha1;
     case FOURCC_mhm1:
       return kCodecMhm1;
+      
     default:
       return kUnknownCodec;
   }
@@ -855,6 +862,17 @@ bool MP4MediaParser::ParseMoov(BoxReader* reader) {
             vp_config.WriteMP4(&codec_configuration_data);
           }
           codec_string = vp_config.GetCodecString(video_codec);
+          break;
+        }
+        case FOURCC_vvc1:
+        case FOURCC_vvi1: {
+          VVCDecoderConfigurationRecord vvc_config;
+          if (!vvc_config.Parse(codec_configuration_data)) {
+            LOG(ERROR) << "Failed to parse vvcC.";
+            return false;
+          }
+          codec_string = vvc_config.GetCodecString(actual_format);
+          nalu_length_size = vvc_config.nalu_length_size();
           break;
         }
         default:

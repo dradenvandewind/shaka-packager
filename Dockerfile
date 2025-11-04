@@ -1,18 +1,31 @@
+FROM alpine:3.19 as submodules
+
+# Install git seulement pour ce stage
+RUN apk add --no-cache git
+
+WORKDIR /shaka-packager
+COPY . .
+
+# Initialiser les submodules une seule fois dans un stage séparé
+RUN git submodule update --init --recursive
+
 FROM alpine:3.19 as builder
 
 # Install utilities, libraries, and dev tools.
 RUN apk add --no-cache \
         bash curl \
         bsd-compat-headers linux-headers \
-        build-base cmake git ninja python3
+        build-base cmake git ninja python3 curl bash unzip 
 
-# Build shaka-packager from the current directory, rather than what has been
-# merged.
-WORKDIR shaka-packager
-COPY . /shaka-packager/
-RUN rm -rf build
-RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -G Ninja
-RUN cmake --build build/ --config Debug --parallel
+WORKDIR /shaka-packager
+
+# Copier seulement les sources avec les submodules déjà initialisés
+COPY --from=submodules /shaka-packager .
+
+# Étape de build sans avoir à refaire les submodules
+RUN rm -rf build && \
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -G Ninja
+RUN  cmake --build build/ --config Debug --parallel
 
 # Copy only result binaries to our final image.
 FROM alpine:3.19
@@ -22,8 +35,6 @@ COPY --from=builder /shaka-packager/build/packager/packager \
                     /shaka-packager/build/packager/pssh-box.py \
                     /usr/bin/
 
-# Copy pyproto directory, which is needed by pssh-box.py script. This line
-# cannot be combined with the line above as Docker's copy command skips the
-# directory itself. See https://github.com/moby/moby/issues/15858 for details.
+# Copy pyproto directory, which is needed by pssh-box.py script.
 COPY --from=builder /shaka-packager/build/packager/pssh-box-protos \
                     /usr/bin/pssh-box-protos

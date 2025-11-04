@@ -91,12 +91,30 @@ bool EsParserH26x::Flush() {
   if (type_ == Nalu::kH264) {
     const uint8_t aud[] = {0x00, 0x00, 0x01, 0x09, 0x00, 0x00, 0x01, 0x09};
     es_queue_->Push(aud, sizeof(aud));
-  } else {
+  } else if (type == Nalu::kH266){
+    // VVC AUD NAL unit: nuh_layer_id=0, nal_unit_type=20 (AUD_NUT)
+      // Structure: forbidden_zero_bit(1) | nuh_reserved_zero_bit(1) | nuh_layer_id(6) | nal_unit_type(5)
+      // Pour AUD: nuh_layer_id=0, nal_unit_type=20 -> 0x00 0x50 (en little endian)
+      const uint8_t aud[] = {
+        0x00, 0x00, 0x01,  // Start code
+        0x50,              // NAL header: nuh_layer_id=0, nal_unit_type=20 (AUD_NUT)
+        0x00,              // AUD payload: pic_type=0 (I-frame)
+        0x00, 0x00, 0x01,  // Start code suivant
+        0x50,              // NAL header identique
+        0x00               // AUD payload identique
+      };
+    es_queue_->Push(aud, sizeof(aud));
+  }  else {
     DCHECK_EQ(Nalu::kH265, type_);
     const uint8_t aud[] = {0x00, 0x00, 0x01, 0x46, 0x01,
                            0x00, 0x00, 0x01, 0x46, 0x01};
     es_queue_->Push(aud, sizeof(aud));
   }
+  /*
+
+  
+  
+  */
 
   RCHECK(ParseInternal());
 
@@ -250,6 +268,7 @@ bool EsParserH26x::ParseInternal() {
       next_access_unit_position_set_ = false;
       continue;
     }
+    // check for VVC
 
     DCHECK(next_access_unit_position_set_);
     RCHECK(EmitCurrentAccessUnit());

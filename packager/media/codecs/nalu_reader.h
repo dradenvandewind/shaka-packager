@@ -81,9 +81,48 @@ class Nalu {
     H265_UNSPEC48 = 48,
     H265_UNSPEC55 = 55,
   };
+  // H.266 NAL Unit Types (Table 5-1 in H.266)
+    enum H266NaluType {
+		// VCL NAL units
+	    H266_TRAIL_NUT = 0,
+		H266_STSA_NUT = 1,
+		H266_RADL_NUT = 2,
+		H266_RASL_NUT = 3,
+		H266_RSV_VCL_4 = 4,
+		H266_RSV_VCL_5 = 5,
+		H266_RSV_VCL_6 = 6,
+		H266_IDR_W_RADL = 7,
+		H266_IDR_N_LP = 8,
+		H266_CRA_NUT = 9,
+		H266_GDR_NUT = 10,
+		H266_RSV_IRAP_11 = 11,
+		// Non-VCL NAL units
+		H266_OPI_NUT = 12,
+		H266_DCI_NUT = 13,
+		H266_VPS_NUT = 14,
+		H266_SPS_NUT = 15,
+		H266_PPS_NUT = 16,
+		H266_PREFIX_APS_NUT = 17,
+		H266_SUFFIX_APS_NUT = 18,
+		H266_PH_NUT = 19,
+		H266_AUD_NUT = 20,
+		H266_EOS_NUT = 21,
+		H266_EOB_NUT = 22,
+		H266_FD_NUT = 23,
+		H266_PREFIX_SEI_NUT = 24,
+		H266_SUFFIX_SEI_NUT = 25,
+		H266_RSV_NVCL_26 = 26,
+		H266_RSV_NVCL_27 = 27,
+		H266_UNSPEC_28 = 28,
+		H266_UNSPEC_29 = 29,
+		H266_UNSPEC_30 = 30,
+		H266_UNSPEC_31 = 31,
+   };
+  
   enum CodecType {
     kH264,
     kH265,
+    kH266,
   };
 
   Nalu();
@@ -106,6 +145,10 @@ class Nalu {
   // H.265 Specific:
   int nuh_layer_id() const { return nuh_layer_id_; }
   int nuh_temporal_id() const { return nuh_temporal_id_; }
+  // H.266 Specific:   fix  not sure for this
+  //int nuh_layer_id() const { return nuh_layer_id_; }
+  //int nuh_temporal_id() const { return nuh_temporal_id_; }
+
 
   /// H264NaluType and H265NaluType enums may be used to compare against the
   /// return value.
@@ -119,6 +162,7 @@ class Nalu {
  private:
   bool InitializeFromH264(const uint8_t* data, uint64_t size);
   bool InitializeFromH265(const uint8_t* data, uint64_t size);
+  bool InitializeFromH266(const uint8_t* data, uint64_t size);
 
   // A pointer to the NALU (i.e. points to the header).  This pointer is not
   // owned by this instance.

@@ -31,6 +31,9 @@ add_library(media_codecs STATIC
     vp_codec_configuration_record.cc
     vp8_parser.cc
     vp9_parser.cc
+    vvc_decoder_configuration_record.cc
+    h266_parser.cc
+    h266_byte_to_unit_stream_converter.cc
 )
 
 target_link_libraries(media_codecs
@@ -60,6 +63,7 @@ add_executable(media_codecs_unittest
     vp_codec_configuration_record_unittest.cc
     vp8_parser_unittest.cc
     vp9_parser_unittest.cc
+    vvc_parser_unittest.cc
 )
 
 target_link_libraries(media_codecs_unittest

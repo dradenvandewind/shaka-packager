@@ -56,7 +56,9 @@ std::string AdjustVideoCodec(const std::string& codec) {
     adjusted_codec = "hvc1" + codec.substr(4);
   else if (fourcc == "dvhe")
     adjusted_codec = "dvh1" + codec.substr(4);
-  if (adjusted_codec != codec) {
+  else if (fourcc == "vvc1")
+    adjusted_codec = "vvi1" + codec.substr(4);
+      if (adjusted_codec != codec) {
     VLOG(1) << "Adusting video codec string from " << codec << " to "
             << adjusted_codec;
   }

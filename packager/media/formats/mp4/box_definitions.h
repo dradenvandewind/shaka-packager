@@ -13,6 +13,8 @@
 #include <packager/media/codecs/aac_audio_specific_config.h>
 #include <packager/media/codecs/es_descriptor.h>
 #include <packager/media/formats/mp4/box.h>
+//no sure
+#include "packager/media/formats/mp4/vvc.h"
 
 namespace shaka {
 namespace media {
@@ -305,6 +307,8 @@ struct VideoSampleEntry : Box {
   // and/or Multiview.
   bool HaveDolbyVisionConfig() const;
   bool HaveLHEVCConfig() const;
+  bool HaveVVCConfig() const;
+
 
   FourCC format = FOURCC_NULL;
   // data_reference_index is 1-based and "dref" box is mandatory so it is

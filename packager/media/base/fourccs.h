@@ -29,6 +29,9 @@ enum FourCC : uint32_t {
   FOURCC_av1C = 0x61763143,
   FOURCC_avc1 = 0x61766331,
   FOURCC_avc3 = 0x61766333,
+  FOURCC_vvc1 = 0x76766331,  // 'vvc1' - VVC/H.266 video
+  FOURCC_vvi1 = 0x76766931,  // 'vvi1' - VVC/H.266 still image
+  FOURCC_vvcC = 0x76766343,  // 'vvcC' - VVC configuration
   FOURCC_avcC = 0x61766343,
   FOURCC_bloc = 0x626C6F63,
   FOURCC_cbc1 = 0x63626331,
