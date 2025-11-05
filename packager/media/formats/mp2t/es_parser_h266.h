@@ -61,6 +61,8 @@ class EsParserH266 : public EsParserH26x {
   int previous_nalu_type_ = -1;
 
   std::unique_ptr<H266Parser> h266_parser_;
+  std::unique_ptr<H266Parser> parser_;
+
 };
 
 }  // namespace mp2t

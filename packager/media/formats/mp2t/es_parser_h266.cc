@@ -38,13 +38,13 @@ constexpr int kH266StartCodeSize = 2;
 EsParserH266::EsParserH266(uint32_t pid,
                            const NewStreamInfoCB& new_stream_info_cb,
                            const EmitSampleCB& emit_sample_cb,
-                           bool sbr_in_mimetype)
+                           )
     : EsParserH26x(Nalu::kH266,
                    kH266StartCodeSize,
                    pid,
                    new_stream_info_cb,
-                   emit_sample_cb,
-                   sbr_in_mimetype) {}
+                   emit_sample_cb) {}
+                   //sbr_in_mimetype
 
 EsParserH266::~EsParserH266() {}
 
@@ -112,9 +112,9 @@ void EsParserH266::ProcessVclNalu(const Nalu& nalu,
   video_slice_info->nal_ref_idc = nalu.nuh_layer_id(); // Use layer ID as reference indicator
 
   // Update decoder configuration if needed
-  if (video_slice_info->pps_id >= 0) {
-    UpdateVideoDecoderConfig(video_slice_info->pps_id);
-  }
+  //if (video_slice_info->pps_id >= 0) {
+  //  UpdateVideoDecoderConfig(video_slice_info->pps_id);
+  //}
 }
 
 void EsParserH266::ProcessOtherNonVclNalu(const Nalu& nalu) {
@@ -171,12 +171,17 @@ bool EsParserH266::UpdateVideoDecoderConfig(int pps_id) {
   std::vector<uint8_t> vps_data;
   std::vector<uint8_t> sps_data;
   std::vector<uint8_t> pps_data;
-
+  
+  std::vector<uint8_t> config_data;
   // Create decoder configuration record
   VvcDecoderConfigurationRecord decoder_config;
-  if (!decoder_config.Parse(sps_data, pps_data, vps_data)) {
+  //if (!decoder_config.Parse(sps_data, pps_data, vps_data)) {
+  //  return false;
+  //}
+  if (!decoder_config.Parse(config_data)) {  // Use single parameter
     return false;
   }
+
 
   // Update stream info
   const int64_t kTimescale = 90000;
@@ -187,11 +192,11 @@ bool EsParserH266::UpdateVideoDecoderConfig(int pps_id) {
   // Create video stream info
   std::shared_ptr<VideoStreamInfo> video_stream_info(new VideoStreamInfo(
       pid(), kTimescale, kInfiniteDuration, kCodecVVC, codec_string,
-      decoder_config.CodecConfigurationRecord(), 0, sps->pic_width_max_in_luma_samples,
+      decoder_config.DecoderConfigurationRecord(), 0, sps->pic_width_max_in_luma_samples,
       sps->pic_height_max_in_luma_samples, 0, 1, sps->bit_depth_luma_minus8 + 8,
       sps->chroma_format_idc, nullptr, false));
 
-  return UpdateVideoStreamInfo(video_stream_info);
+  return EsParserH26x::UpdateVideoStreamInfo(video_stream_info);
 }
 
 }  // namespace mp2t

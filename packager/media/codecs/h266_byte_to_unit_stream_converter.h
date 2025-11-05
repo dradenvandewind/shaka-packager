@@ -25,7 +25,6 @@ class H266ByteToUnitStreamConverter : public H26xByteToUnitStreamConverter {
       std::vector<uint8_t>* decoder_config) const override;
   /// @}
 
-  bool ProcessNalu(const Nalu& nalu) override;
 
  private:
   bool ProcessNalu(const Nalu& nalu) override;
