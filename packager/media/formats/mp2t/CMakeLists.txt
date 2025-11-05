@@ -20,6 +20,8 @@ add_library(mp2t STATIC
   es_parser_h264.h
   es_parser_h265.cc
   es_parser_h265.h
+  es_parser_h266.cc
+  es_parser_h266.h
   es_parser_h26x.cc
   es_parser_h26x.h
   es_parser_teletext.cc

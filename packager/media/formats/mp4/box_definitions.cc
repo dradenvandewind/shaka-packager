@@ -1572,8 +1572,12 @@ bool VideoSampleEntry::ReadWriteInternal(BoxBuffer* buffer) {
         compressor_name.assign(std::begin(kVpcCompressorName),
                                std::end(kVpcCompressorName));
         break;
-      case FOURCC_dvvC:
-      default:NULL:
+      case FOURCC_vvc1:
+      case FOURCC_vvi1:
+        compressor_name.assign(std::begin(kVccCompressorName),
+                               std::end(kVccCompressorName));
+        break;
+      default:
         LOG(ERROR) << FourCCToString(actual_format) << " is not supported.";
         return false;
     }

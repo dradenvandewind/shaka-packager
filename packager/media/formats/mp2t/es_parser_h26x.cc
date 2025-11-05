@@ -91,7 +91,7 @@ bool EsParserH26x::Flush() {
   if (type_ == Nalu::kH264) {
     const uint8_t aud[] = {0x00, 0x00, 0x01, 0x09, 0x00, 0x00, 0x01, 0x09};
     es_queue_->Push(aud, sizeof(aud));
-  } else if (type == Nalu::kH266){
+  } else if (type_ == Nalu::kH266){
     // VVC AUD NAL unit: nuh_layer_id=0, nal_unit_type=20 (AUD_NUT)
       // Structure: forbidden_zero_bit(1) | nuh_reserved_zero_bit(1) | nuh_layer_id(6) | nal_unit_type(5)
       // Pour AUD: nuh_layer_id=0, nal_unit_type=20 -> 0x00 0x50 (en little endian)

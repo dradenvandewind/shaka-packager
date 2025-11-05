@@ -12,7 +12,6 @@
 #include <absl/log/check.h>
 #include <absl/log/log.h>
 
-#include <packager/media/codecs/hevc_decoder_configuration_record.h>
 #include <packager/media/codecs/vvc_decoder_configuration_record.h>
 
 namespace shaka {

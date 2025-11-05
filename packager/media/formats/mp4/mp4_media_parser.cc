@@ -866,7 +866,7 @@ bool MP4MediaParser::ParseMoov(BoxReader* reader) {
         }
         case FOURCC_vvc1:
         case FOURCC_vvi1: {
-          VVCDecoderConfigurationRecord vvc_config;
+          VvcDecoderConfigurationRecord vvc_config;
           if (!vvc_config.Parse(codec_configuration_data)) {
             LOG(ERROR) << "Failed to parse vvcC.";
             return false;
