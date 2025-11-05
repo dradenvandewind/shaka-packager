@@ -35,6 +35,15 @@ class EsParserH266 : public EsParserH26x {
   void Reset() override;
 
  private:
+  EsParserH266(const EsParserH266&) = delete;
+  EsParserH266& operator=(const EsParserH266&) = delete;
+
+  // Processes VCL NALUs and updates video slice info.
+  void ProcessVclNalu(const Nalu& nalu, VideoSliceInfo* video_slice_info);
+
+  // Processes non-VCL NALUs (SPS, PPS, VPS, etc.).
+  void ProcessOtherNonVclNalu(const Nalu& nalu);
+
   // Processes a NAL unit found in ParseInternal.
   bool ProcessNalu(const Nalu& nalu, VideoSliceInfo* video_slice_info) override;
 
@@ -49,6 +58,7 @@ class EsParserH266 : public EsParserH26x {
   // Last video decoder config.
   std::shared_ptr<StreamInfo> last_video_decoder_config_;
   bool decoder_config_check_pending_;
+  int previous_nalu_type_ = -1;
 
   std::unique_ptr<H266Parser> h266_parser_;
 };

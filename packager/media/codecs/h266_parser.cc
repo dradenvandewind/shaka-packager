@@ -658,11 +658,13 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
   // Implementation would use picture_header context
   return ParseSliceHeader(nalu, slice_header);
 }
-
+#if 0
+//future update perhaps
 H266Parser::Result H266Parser::ParseDci(const Nalu& nalu, H266DecodingCapabilityInfo* dci) {
   // Stub implementation
   return kOk;
 }
+
 
 H266Parser::Result H266Parser::ParseOpi(const Nalu& nalu, H266OperatingPointInfo* opi) {
   // Stub implementation
@@ -673,7 +675,9 @@ H266Parser::Result H266Parser::ParseSei(const Nalu& nalu, H266SEIMessage* sei_ms
   // Stub implementation
   return kOk;
 }
-
+#endif
+#if 0   
+//future update perhaps
 H266Parser::Result H266Parser::ParseReferencePictureList(const H266Sps& sps,
                                                         const H266Pps& pps,
                                                         H26xBitReader* br,
@@ -708,6 +712,7 @@ H266Parser::Result H266Parser::ParseGeneralConstraintsInfo(H26xBitReader* br) {
   // Stub implementation
   return kOk;
 }
+#endif 
 
 }  // namespace media
 }  // namespace shaka

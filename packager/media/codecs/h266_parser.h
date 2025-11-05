@@ -375,10 +375,12 @@ class H266Parser {
   
   /// Parses an APS element.
   Result ParseAps(const Nalu& nalu, int* aps_id, int* aps_type);
-  
+
   /// Parses a Picture Header.
   Result ParsePictureHeader(const Nalu& nalu, H266PictureHeader* picture_header);
-  
+
+#if 0   
+//future update perhaps 
   /// Parses a DCI (Decoding Capability Information) element.
   Result ParseDci(const Nalu& nalu, H266DecodingCapabilityInfo* dci);
   
@@ -387,6 +389,8 @@ class H266Parser {
   
   /// Parses an SEI message.
   Result ParseSei(const Nalu& nalu, H266SEIMessage* sei_msg);
+
+#endif 
 
   /// @return a pointer to the PPS with the given ID, or NULL if none exists.
   const H266Pps* GetPps(int pps_id);
@@ -408,26 +412,33 @@ class H266Parser {
   Result ParseProfileTierLevel(bool profile_tier_present,
                               int max_num_sub_layers_minus1,
                               H26xBitReader* br);
-
+#if 0   
+//future update perhaps
   Result ParseReferencePictureList(const H266Sps& sps,
                                   const H266Pps& pps,
                                   H26xBitReader* br,
                                   H266SliceHeader* slice_header);
+#endif
 
   Result SkipScalingListData(H26xBitReader* br);
-
+#if 0   
+//future update perhaps
   Result SkipAlfData(H26xBitReader* br);
-
+ 
   Result SkipLmcsData(H26xBitReader* br);
+#endif
 
   Result ByteAlignment(H26xBitReader* br);
-
+#if 0   
+//future update perhaps
   // H.266 specific parsing helpers
   Result ParseOlsIds(H26xBitReader* br, std::vector<int>* ols_ids);
   Result ParseDpbParameters(int max_sublayers_minus1,
                            bool sublayer_info_flag,
                            H26xBitReader* br);
   Result ParseGeneralConstraintsInfo(H26xBitReader* br);
+#endif
+
 
   typedef std::map<int, std::unique_ptr<H266Vps>> VpsById;
   typedef std::map<int, std::unique_ptr<H266Sps>> SpsById;

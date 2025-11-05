@@ -36,15 +36,27 @@ enum VvcNalUnitType {
 // Helper pour lire Exp-Golomb unsigned
 uint32_t ReadUE(BitReader* reader) {
   int leading_zeros = 0;
-  while (reader->bits_available() > 0 && !reader->ReadBits(1)) {
+  uint32_t bit;
+  
+  while (reader->bits_available() > 0) {
+    if (!reader->ReadBits(1, &bit)) {
+      return 0;
+    }
+    if (bit != 0) {
+      break;
+    }
     leading_zeros++;
     if (leading_zeros >= 32) return 0;
   }
+  
   if (leading_zeros == 0) return 0;
-  if (reader->bits_available() < leading_zeros) return 0;
+  if (reader->bits_available() < static_cast<size_t>(leading_zeros)) return 0;
   
   uint32_t value = (1u << leading_zeros) - 1;
-  value += reader->ReadBits(leading_zeros);
+  if (!reader->ReadBits(leading_zeros, &bit)) {
+    return 0;
+  }
+  value += bit;
   return value;
 }
 
@@ -233,7 +245,7 @@ void VvcPTLRecord::Write(BufferWriter* writer, uint8_t max_sublayers_minus1) con
       }
       bit_pos--;
 
-      if (bit_pos < 0 || i == max_sublayers_minus1 - 1) {
+      if (bit_pos < 0 || i == static_cast<size_t>(max_sublayers_minus1 - 1)) {
         writer->AppendInt(current_byte);
         current_byte = 0;
         bit_pos = 7;
@@ -699,17 +711,17 @@ VvcChromaSubsampling::ChromaSubsampling
 VvcDecoderConfigurationRecord::GetChromaSubsampling() const {
   switch (chroma_format_idc_) {
     case 0:
-      return VideoStreamInfo::kMonochrome;f
+      return VvcChromaSubsampling::kMonochrome;f
     case 1:
-      return VideoStreamInfo::k420;
+      return VvcChromaSubsampling::k420;
     case 2:
-      return VideoStreamInfo::k422;
+      return VvcChromaSubsampling::k422;
     case 3:
-      return VideoStreamInfo::k444;
+      return VvcChromaSubsampling::k444;
     default:
       LOG(WARNING) << "Unknown chroma_format_idc: "
                    << static_cast<int>(chroma_format_idc_);
-      return VideoStreamInfo::kUnknownChromaSubsampling;
+      return VvcChromaSubsampling::kUnknownChromaSubsampling;
   }
 }
 
