@@ -39,7 +39,7 @@ class EsParserH266 : public EsParserH26x {
   EsParserH266& operator=(const EsParserH266&) = delete;
 
   // Processes VCL NALUs and updates video slice info.
-  void ProcessVclNalu(const Nalu& nalu, VideoSliceInfo* video_slice_info);
+  bool ProcessVclNalu(const Nalu& nalu, VideoSliceInfo* video_slice_info);
 
   // Processes non-VCL NALUs (SPS, PPS, VPS, etc.).
   void ProcessOtherNonVclNalu(const Nalu& nalu);

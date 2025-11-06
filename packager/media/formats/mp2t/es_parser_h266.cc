@@ -103,7 +103,7 @@ bool EsParserH266::ProcessNalu(const Nalu& nalu,
 
     default:
       // Reserved and unspecified NALUs
-      VLOG(1) << "Unhandled NALU type: " << nalu_type;
+      DVLOG(1) << "Unhandled NALU type: " << nalu_type;
       break;
   }
 
@@ -111,12 +111,12 @@ bool EsParserH266::ProcessNalu(const Nalu& nalu,
   return true;
 }
 
-void EsParserH266::ProcessVclNalu(const Nalu& nalu,
+bool EsParserH266::ProcessVclNalu(const Nalu& nalu,
                                   VideoSliceInfo* video_slice_info) {
 
   const bool is_key_frame = (nalu.type() == Nalu::H266_IDR_W_RADL ||
                                nalu.type() == Nalu::H266_IDR_N_LP);
-  VLOG(LOG_LEVEL_ES) << "Nalu: slice KeyFrame=" << is_key_frame;
+  DVLOG(1) << "Nalu: slice KeyFrame=" << is_key_frame;
 
 
   // Parse slice header to get PPS ID and other information
@@ -124,12 +124,12 @@ void EsParserH266::ProcessVclNalu(const Nalu& nalu,
   auto status = (parser_->ParseSliceHeader(nalu, &slice_header));
 
   if ( status == H266Parser::kOk) {
-    ideo_slice_info->valid = true;
+    video_slice_info->valid = true;
     video_slice_info->is_key_frame = is_key_frame;
     video_slice_info->frame_num = 0; // frame_num is only for H264.
     video_slice_info->pps_id = slice_header.pic_parameter_set_id;
-  } else if (status == H266Parser::kUnsupportedFeature) {
-    VLOG(1) << "Unsupported feature in H.266 slice header.";
+  } else if (status == H266Parser::kUnsupportedStream) {
+    DVLOG(1) << "Unsupported feature in H.266 slice header.";
     new_stream_info_cb_(nullptr);  // Signal an error.
    
   } else {
@@ -204,7 +204,7 @@ bool EsParserH266::UpdateVideoDecoderConfig(int pps_id) {
   VvcDecoderConfigurationRecord decoder_config;
 
   if (!stream_converter()->GetDecoderConfigurationRecord(&decoder_config_record) || !decoder_config.Parse(decoder_config_record)) {
-        DLOG(ERROR) << "Failure to construct an VccDecoderConfigurationRecord";
+        DVLOG(1) << "Failure to construct an VccDecoderConfigurationRecord";
     return false;
   }
 
@@ -224,7 +224,7 @@ bool EsParserH266::UpdateVideoDecoderConfig(int pps_id) {
   uint32_t pixel_height = 0;
   if(!ExtractResolutionFromSps(*sps, &coded_width, &coded_height,
                                &pixel_width, &pixel_height)) {
-    LOG(ERROR) << "Failed to extract video resolution from SPS.";
+    DVLOG(1) << "Failed to extract video resolution from SPS.";
     return false;
   }
 
