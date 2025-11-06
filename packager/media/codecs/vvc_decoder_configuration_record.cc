@@ -59,7 +59,8 @@ uint32_t ReadUE(BitReader* reader) {
   value += bit;
   return value;
 }
-
+#if 0
+// not use
 // Helper pour lire Exp-Golomb signed
 int32_t ReadSE(BitReader* reader) {
   uint32_t code_num = ReadUE(reader);
@@ -67,6 +68,7 @@ int32_t ReadSE(BitReader* reader) {
   return (code_num & 1) ? static_cast<int32_t>((code_num + 1) / 2)
                         : -static_cast<int32_t>(code_num / 2);
 }
+#endif 
 
 // Trim leading zeros from hex string
 std::string TrimLeadingZeros(const std::string& str) {
@@ -707,11 +709,10 @@ bool VvcDecoderConfigurationRecord::GetVideoDimensions(uint32_t* width,
 //VideoStreamInfo::ChromaSubsampling
 //VvcDecoderConfigurationRecord::GetChromaSubsampling() const {
 
-VvcChromaSubsampling::ChromaSubsampling
-VvcDecoderConfigurationRecord::GetChromaSubsampling() const {
+VvcChromaSubsampling VvcDecoderConfigurationRecord::GetChromaSubsampling() const {
   switch (chroma_format_idc_) {
     case 0:
-      return VvcChromaSubsampling::kMonochrome;f
+      return VvcChromaSubsampling::kUnknown;
     case 1:
       return VvcChromaSubsampling::k420;
     case 2:
@@ -721,7 +722,7 @@ VvcDecoderConfigurationRecord::GetChromaSubsampling() const {
     default:
       LOG(WARNING) << "Unknown chroma_format_idc: "
                    << static_cast<int>(chroma_format_idc_);
-      return VvcChromaSubsampling::kUnknownChromaSubsampling;
+      return VvcChromaSubsampling::kUnknown;
   }
 }
 
