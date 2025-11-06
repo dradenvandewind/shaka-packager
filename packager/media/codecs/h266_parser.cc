@@ -129,7 +129,10 @@ bool ExtractResolutionFromSps(const H266Sps& sps,
         LOG(ERROR) << "Unexpected chroma_format_idc " << sps.chroma_format_idc;
         return false;
     }
-
+   /* 
+    croppedWidth = pic_width_in_luma_samples − SubWidthC * ( conf_win_right_offset + conf_win_left_offset ) (D-28) 
+     croppedHeight = pic_height_in_luma_samples −SubHeightC * ( conf_win_bottom_offset + conf_win_top_offset ) (D-29)
+   */
     // Formula similar to H.265 but with H.266 field names
     crop_x =
         sub_width_c * (sps.conf_win_right_offset + sps.conf_win_left_offset);

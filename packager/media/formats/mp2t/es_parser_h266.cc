@@ -23,6 +23,8 @@
 #include <packager/media/codecs/h266_byte_to_unit_stream_converter.h>
 #include <packager/media/codecs/vvc_decoder_configuration_record.h>
 #include <packager/media/codecs/h266_parser.h>
+#include <packager/media/formats/mp2t/mp2t_common.h>
+
 
 
 namespace shaka {
@@ -34,7 +36,7 @@ namespace {
 constexpr int kH266StartCodeSize = 2;
 
 }  // namespace
-
+/* 
 EsParserH266::EsParserH266(uint32_t pid,
                            const NewStreamInfoCB& new_stream_info_cb,
                            const EmitSampleCB& emit_sample_cb
@@ -47,7 +49,17 @@ EsParserH266::EsParserH266(uint32_t pid,
       new_stream_info_cb_(new_stream_info_cb),
       decoder_config_check_pending_(false),
       parser_(new H266Parser()) {}
-                   //sbr_in_mimetype
+                   //sbr_in_mimetype */
+EsParserH266::EsParserH266(uint32_t pid,
+                           const NewStreamInfoCB& new_stream_info_cb,
+                           const EmitSampleCB& emit_sample_cb)
+    : EsParserH26x(Nalu::kH266,
+                   std::make_unique<H266ByteToUnitStreamConverter>(),
+                   pid,
+                   emit_sample_cb),
+      new_stream_info_cb_(new_stream_info_cb),
+      decoder_config_check_pending_(false),
+      parser_(new H266Parser()) {}
 
 EsParserH266::~EsParserH266() {}
 
@@ -101,23 +113,34 @@ bool EsParserH266::ProcessNalu(const Nalu& nalu,
 
 void EsParserH266::ProcessVclNalu(const Nalu& nalu,
                                   VideoSliceInfo* video_slice_info) {
+
+  const bool is_key_frame = (nalu.type() == Nalu::H266_IDR_W_RADL ||
+                               nalu.type() == Nalu::H266_IDR_N_LP);
+  VLOG(LOG_LEVEL_ES) << "Nalu: slice KeyFrame=" << is_key_frame;
+
+
   // Parse slice header to get PPS ID and other information
   H266SliceHeader slice_header;
-  if (parser_->ParseSliceHeader(nalu, &slice_header) != H266Parser::kOk) {
-    return;
+  auto status = (parser_->ParseSliceHeader(nalu, &slice_header));
+
+  if ( status == H266Parser::kOk) {
+    ideo_slice_info->valid = true;
+    video_slice_info->is_key_frame = is_key_frame;
+    video_slice_info->frame_num = 0; // frame_num is only for H264.
+    video_slice_info->pps_id = slice_header.pic_parameter_set_id;
+  } else if (status == H266Parser::kUnsupportedFeature) {
+    VLOG(1) << "Unsupported feature in H.266 slice header.";
+    new_stream_info_cb_(nullptr);  // Signal an error.
+   
+  } else {
+          if(last_video_decoder_config_){
+            return false;
+          }
+            
   }
+  // nor sure to add additionnal code here 
+  return true;
 
-  // Update video slice information
-  video_slice_info->pps_id = slice_header.pic_parameter_set_id;// try fix pps_id;
-  video_slice_info->frame_num = 0; // frame_num is only for H264.
-  video_slice_info->idr_pic = (nalu.type() == Nalu::H266_IDR_W_RADL ||
-                               nalu.type() == Nalu::H266_IDR_N_LP);
-  //video_slice_info->nal_ref_idc = nalu.nuh_layer_id(); // Use layer ID as reference indicator
-
-  // Update decoder configuration if needed
-  //if (video_slice_info->pps_id >= 0) {
-  //  UpdateVideoDecoderConfig(video_slice_info->pps_id);
-  //}
 }
 
 void EsParserH266::ProcessOtherNonVclNalu(const Nalu& nalu) {
@@ -161,11 +184,12 @@ void EsParserH266::ProcessOtherNonVclNalu(const Nalu& nalu) {
 
 bool EsParserH266::UpdateVideoDecoderConfig(int pps_id) {
   const H266Pps* pps = parser_->GetPps(pps_id);
+  const H266Sps* sps;
   if (!pps) {
     return false;
   }
 
-  const H266Sps* sps = parser_->GetSps(pps->sps_seq_parameter_set_id);
+  sps = parser_->GetSps(pps->seq_parameter_set_id);
   if (!sps) {
     return false;
   }
@@ -175,36 +199,57 @@ bool EsParserH266::UpdateVideoDecoderConfig(int pps_id) {
   std::vector<uint8_t> sps_data;
   std::vector<uint8_t> pps_data;
   
-  std::vector<uint8_t> config_data;
+  std::vector<uint8_t> decoder_config_record;
   // Create decoder configuration record
   VvcDecoderConfigurationRecord decoder_config;
 
-  if (!stream_converter()->GetDecoderConfigurationRecord(&decoder_config) || !decoder_config.Parse(decoder_config)) {
+  if (!stream_converter()->GetDecoderConfigurationRecord(&decoder_config_record) || !decoder_config.Parse(decoder_config_record)) {
         DLOG(ERROR) << "Failure to construct an VccDecoderConfigurationRecord";
     return false;
   }
 
+  if (last_video_decoder_config_) {
+    // Check if the configuration has changed
+    if (last_video_decoder_config_->codec_config() != decoder_config_record){
 
-  //if (!decoder_config.Parse(sps_data, pps_data, vps_data)) {
-  //  return false;
-  //}
-  
+      LOG(WARNING) << "H.265 decoder configuration has changed.";
+      last_video_decoder_config_->set_codec_config(decoder_config_record);
+      
+    }
+    return true;
+  }
+  uint32_t coded_width = 0;
+  uint32_t coded_height = 0;
+  uint32_t pixel_width = 0;
+  uint32_t pixel_height = 0;
+  if(!ExtractResolutionFromSps(*sps, &coded_width, &coded_height,
+                               &pixel_width, &pixel_height)) {
+    LOG(ERROR) << "Failed to extract video resolution from SPS.";
+    return false;
+  }
 
+  const uint8_t nalu_length_size =
+      H26xByteToUnitStreamConverter::kUnitStreamNaluLengthSize;
+  const H26xStreamFormat stream_format = stream_converter()->stream_format();
+  const FourCC codec_fourcc =
+      stream_format == H26xStreamFormat::kNalUnitStreamWithParameterSetNalus
+          ? FOURCC_vvc1
+          : FOURCC_vvi1;
+  last_video_decoder_config_ = std::make_shared<VideoStreamInfo>(
+      pid(), kMpeg2Timescale, kInfiniteDuration, kCodecVVC, stream_format,
+      decoder_config.GetCodecString(codec_fourcc), decoder_config_record.data(),
+      decoder_config_record.size(), coded_width, coded_height, pixel_width,
+      pixel_height, sps->vui_parameters.color_primaries,
+      sps->vui_parameters.matrix_coefficients,
+      sps->vui_parameters.transfer_characteristics, 0, nalu_length_size,
+      std::string(), false);
 
-  // Update stream info
-  const int64_t kTimescale = 90000;
-  const FourCC kCodecFourcc = FOURCC_vvc1; // Use appropriate FourCC for H.266
+  // Video config notification.
+  new_stream_info_cb_(last_video_decoder_config_);
 
-  std::string codec_string = decoder_config.GetCodecString(kCodecFourcc);
-  
-  // Create video stream info
-  std::shared_ptr<VideoStreamInfo> video_stream_info(new VideoStreamInfo(
-      pid(), kTimescale, kInfiniteDuration, kCodecVVC, codec_string,
-      decoder_config.DecoderConfigurationRecord(), 0, sps->pic_width_max_in_luma_samples,
-      sps->pic_height_max_in_luma_samples, 0, 1, sps->bit_depth_luma_minus8 + 8,
-      sps->chroma_format_idc, nullptr, false));
 
   return true;
+}
 
 
 }  // namespace mp2t
