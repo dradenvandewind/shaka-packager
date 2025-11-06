@@ -135,6 +135,12 @@ struct H266Sps {
   int GetPicSizeInCtbsY() const;
   int GetChromaArrayType() const;
 
+  uint32_t GetBitDepthLuma() const;
+  uint32_t GetBitDepthChroma() const;
+  uint32_t GetQpBdOffset() const;
+  bool IsValidBitDepth() const;
+
+
   int sps_seq_parameter_set_id = 0;
   int vps_id = 0;  // H.266 uses vps_id directly in SPS
   int max_sublayers_minus1 = 0;
@@ -206,6 +212,18 @@ struct H266RepFormat {
   int conf_win_vps_bottom_offset = 0;
 };
 
+struct H266ProfileTierLevel {
+  uint8_t general_profile_idc;
+  uint8_t general_tier_flag;
+  uint8_t general_level_idc;
+  bool general_frame_only_constraint_flag;
+  bool general_non_packed_constraint_flag;
+  bool general_interlaced_source_flag;
+  bool general_progressive_source_flag;
+  // ... autres champs du profile tier level
+};
+
+
 struct H266Vps {
   H266Vps();
   ~H266Vps();
@@ -218,36 +236,57 @@ struct H266Vps {
     kNone = 16
   };
 
-  int vps_video_parameter_set_id = 0;
-  int vps_max_layers_minus1 = 0;
-  int vps_max_sublayers_minus1 = 0;
+  int vps_video_parameter_set_id;
+  int vps_max_layers_minus1;
+  int vps_max_sublayers_minus1;
 
   // Timing info in VPS (H.266 specific)
-  bool vps_timing_info_present_flag = false;
-  long vps_num_units_in_tick = 0;
-  long vps_time_scale = 0;
+  bool vps_timing_info_present_flag;
+  long vps_num_units_in_tick;
+  long vps_time_scale;
 
   // General constraints
-  bool vps_each_layer_is_an_ols_flag = false;
-  int vps_ols_mode_idc = 0;
+  bool vps_each_layer_is_an_ols_flag;
+  int vps_ols_mode_idc;
 
   // Output layer sets
-  int vps_num_output_layer_sets_minus1 = 0;
-  int vps_num_ptls_minus1 = 0;
+  int vps_num_output_layer_sets_minus1;
+  int vps_num_ptls_minus1;
 
   // Profile tier level
   int general_profile_tier_level_data[kMaxNumProfileTierLevels]
                                      [kGeneralProfileTierLevelBytes];
 
   // Layer sets
-  int vps_num_layer_sets_minus1 = 0;
-  int vps_max_layer_id = 0;
+  int vps_num_layer_sets_minus1;
+  int vps_max_layer_id;
 
   // Scalability info
   int scalability_type = kNone;
 
   // H.266 specific: OPI (Operating Point Information) support
-  bool vps_opi_present_flag = false;
+  bool vps_opi_present_flag;
+
+  /*                */
+  bool vps_default_output_layer_idc;
+  bool vps_all_independent_layers_flag;
+  std::vector<uint32_t> layer_id_included_flag;
+  
+  // Timing info
+  bool vps_poc_proportional_to_timing_flag;
+  uint32_t vps_num_ticks_poc_diff_one_minus1;
+  
+  // Output layer sets
+  uint32_t vps_num_output_layer_sets;
+  std::vector<std::vector<bool>> output_layer_flag;
+  
+  // Profile tier level
+  H266ProfileTierLevel profile_tier_level;
+  
+  // Layer dependency
+  std::vector<std::vector<bool>> direct_dependency_flag;
+  std::vector<uint32_t> max_tid_ref_present_flag;
+  
 
   // Incomplete: many more H.266 VPS specific fields...
 };

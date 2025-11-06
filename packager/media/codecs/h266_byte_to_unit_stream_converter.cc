@@ -43,6 +43,10 @@ bool H266ByteToUnitStreamConverter::GetDecoderConfigurationRecord(
   RCHECK(nalu.Initialize(Nalu::kH266, last_sps_.data(), last_sps_.size()));
   RCHECK(parser.ParseSps(nalu, &id) == H266Parser::kOk);
   const H266Sps* sps = parser.GetSps(id);
+  RCHECK(parser.ParseVps(nalu, &id) == H266Parser::kOk);
+  const H266Vps* vps = parser.GetVps(id);
+  
+
 
   // Construct an VvcDecoderConfigurationRecord containing a single SPS, PPS,
   // and VPS NALU. Please refer to ISO/IEC 14496-15 for format specifics.
@@ -55,12 +59,12 @@ bool H266ByteToUnitStreamConverter::GetDecoderConfigurationRecord(
   
   // General profile, tier and level information
   // vvc_config_general_profile_idc, general_tier_flag, etc.
-  buffer.AppendInt(static_cast<uint8_t>(sps->profile_tier_level.general_profile_idc));
-  buffer.AppendInt(static_cast<uint8_t>((sps->profile_tier_level.general_tier_flag ? 0x80 : 0x00) | 
-                                        sps->profile_tier_level.general_level_idc));
+  buffer.AppendInt(static_cast<uint8_t>(vps->profile_tier_level));
+  buffer.AppendInt(static_cast<uint8_t>((vps->general_profile_tier_level_data ? 0x80 : 0x00) | 
+                                        vps->general_profile_tier_level_data));
   
   // Bit depth and chroma format
-  uint8_t bit_depth_info = ((sps->bit_depth_minus8 & 0x07) << 4) | 
+  uint8_t bit_depth_info = ((sps->bit_depth_luma_minus8 & 0x07) << 4) | 
                            ((sps->bit_depth_chroma_minus8 & 0x07) << 1) |
                            (sps->chroma_format_idc & 0x03);
   buffer.AppendInt(bit_depth_info);

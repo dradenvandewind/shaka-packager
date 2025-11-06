@@ -181,6 +181,24 @@ int H266Sps::GetChromaArrayType() const {
   return chroma_format_idc;  // H.266 doesn't have separate_colour_plane_flag
 }
 
+uint32_t H266Sps::GetBitDepthLuma() const {
+    return 8 + bit_depth_luma_minus8;
+  }
+  
+  uint32_t H266Sps::GetBitDepthChroma() const {
+    return 8 + bit_depth_chroma_minus8;
+  }
+  
+  uint32_t H266Sps::GetQpBdOffset() const {
+    return qp_bd_offset;
+  }
+  
+  // Vérification des plages valides
+  bool H266Sps::IsValidBitDepth() const {
+    return (bit_depth_luma_minus8 <= 8) && (bit_depth_chroma_minus8 <= 8);
+  }
+
+
 H266Parser::H266Parser() {}
 H266Parser::~H266Parser() {}
 
@@ -528,7 +546,45 @@ const H266Sps* H266Parser::GetSps(int sps_id) {
 }
 
 const H266Vps* H266Parser::GetVps(int vps_id) {
-  return active_vpses_[vps_id].get();
+  //return active_vpses_[vps_id].get();
+  auto it = active_vpses_.find(vps_id);
+  return it != active_vpses_.end() ? it->second.get() : nullptr;
+}
+
+bool H266Parser::GetVpsTimingInfo(int vps_id, uint32_t* num_units_in_tick, 
+                                 uint32_t* time_scale) {
+  const H266Vps* vps = GetVps(vps_id);
+  if (!vps || !vps->vps_timing_info_present_flag) {
+    return false;
+  }
+  
+  *num_units_in_tick = vps->vps_num_units_in_tick;
+  *time_scale = vps->vps_time_scale;
+  return true;
+}
+
+uint32_t H266Parser::GetMaxLayers(int vps_id) {
+  const H266Vps* vps = GetVps(vps_id);
+  return vps ? (vps->vps_max_layers_minus1 + 1) : 1;
+}
+
+bool H266Parser::IsLayerIndependent(int vps_id, uint32_t layer_id) {
+  const H266Vps* vps = GetVps(vps_id);
+  if (!vps || layer_id > vps->vps_max_layers_minus1) {
+    return false;
+  }
+  
+  if (vps->vps_all_independent_layers_flag) {
+    return true;
+  }
+  
+  // Check if this layer has no dependencies
+  for (uint32_t i = 0; i < layer_id; i++) {
+    if (vps->direct_dependency_flag[layer_id][i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 const H266Aps* H266Parser::GetAps(int aps_id) {
@@ -716,6 +772,130 @@ H266Parser::Result H266Parser::ParseGeneralConstraintsInfo(H26xBitReader* br) {
   return kOk;
 }
 #endif 
+H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
+  DCHECK_EQ(Nalu::H266_VPS_NUT, nalu.type());
+
+  H26xBitReader reader;
+  reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
+  H26xBitReader* br = &reader;
+
+  *vps_id = -1;
+  std::unique_ptr<H266Vps> vps(new H266Vps);
+
+  // VPS header
+  TRUE_OR_RETURN(br->ReadUE(&vps->vps_video_parameter_set_id));
+  TRUE_OR_RETURN(br->ReadBits(6, &vps->vps_max_layers_minus1));
+  TRUE_OR_RETURN(br->ReadBits(3, &vps->vps_max_sublayers_minus1));
+  
+  // VPS base layer info
+  TRUE_OR_RETURN(br->ReadBool(&vps->vps_all_independent_layers_flag));
+  TRUE_OR_RETURN(br->ReadBool(&vps->vps_default_output_layer_idc));
+
+  // Layer IDs
+  vps->layer_id_included_flag.resize(vps->vps_max_layers_minus1 + 1, false);
+  for (uint32_t i = 1; i <= vps->vps_max_layers_minus1; i++) {
+    TRUE_OR_RETURN(br->ReadBool(&vps->layer_id_included_flag[i]));
+  }
+
+  // Timing info
+  TRUE_OR_RETURN(br->ReadBool(&vps->vps_timing_info_present_flag));
+  if (vps->vps_timing_info_present_flag) {
+    READ_LONG_OR_RETURN(&vps->vps_num_units_in_tick);
+    READ_LONG_OR_RETURN(&vps->vps_time_scale);
+    
+    TRUE_OR_RETURN(br->ReadBool(&vps->vps_poc_proportional_to_timing_flag));
+    if (vps->vps_poc_proportional_to_timing_flag) {
+      TRUE_OR_RETURN(br->ReadUE(&vps->vps_num_ticks_poc_diff_one_minus1));
+    }
+  }
+
+  // Output layer sets
+  TRUE_OR_RETURN(br->ReadUE(&vps->vps_num_output_layer_sets));
+  
+  // Allocate and parse output layer flags
+  vps->output_layer_flag.resize(vps->vps_num_output_layer_sets);
+  for (uint32_t i = 1; i <= vps->vps_num_output_layer_sets; i++) {
+    vps->output_layer_flag[i].resize(vps->vps_max_layers_minus1 + 1, false);
+    for (uint32_t j = 0; j <= vps->vps_max_layers_minus1; j++) {
+      TRUE_OR_RETURN(br->ReadBool(&vps->output_layer_flag[i][j]));
+    }
+  }
+
+  // Profile Tier Level parsing
+  OK_OR_RETURN(ParseProfileTierLevel(true, vps->vps_max_sublayers_minus1, br, 
+                                    &vps->profile_tier_level));
+
+  // Layer dependency information
+  if (!vps->vps_all_independent_layers_flag) {
+    vps->direct_dependency_flag.resize(vps->vps_max_layers_minus1 + 1);
+    vps->max_tid_ref_present_flag.resize(vps->vps_max_layers_minus1 + 1, false);
+    
+    for (uint32_t i = 1; i <= vps->vps_max_layers_minus1; i++) {
+      vps->direct_dependency_flag[i].resize(vps->vps_max_layers_minus1 + 1, false);
+      for (uint32_t j = 0; j < i; j++) {
+        TRUE_OR_RETURN(br->ReadBool(&vps->direct_dependency_flag[i][j]));
+      }
+    }
+
+    for (uint32_t i = 1; i <= vps->vps_max_layers_minus1; i++) {
+      TRUE_OR_RETURN(br->ReadBool(&vps->max_tid_ref_present_flag[i]));
+    }
+  }
+
+  // Byte alignment
+  OK_OR_RETURN(ByteAlignment(br));
+
+  // Store the VPS
+  *vps_id = vps->vps_video_parameter_set_id;
+  active_vpses_[*vps_id] = std::move(vps);
+
+  DVLOG(3) << "Successfully parsed VPS ID: " << *vps_id 
+           << " with " << (vps->vps_max_layers_minus1 + 1) << " layers";
+
+  return kOk;
+}
+H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
+                                                     int max_num_sub_layers_minus1,
+                                                     H26xBitReader* br,
+                                                     H266ProfileTierLevel* ptl) {
+  if (profile_tier_present) {
+    // General profile tier level
+    TRUE_OR_RETURN(br->ReadBits(7, &ptl->general_profile_idc));
+    TRUE_OR_RETURN(br->ReadBool(&ptl->general_tier_flag));
+    TRUE_OR_RETURN(br->ReadBits(8, &ptl->general_level_idc));
+    
+    // Constraints flags
+    uint32_t constraint_flags;
+    TRUE_OR_RETURN(br->ReadBits(32, &constraint_flags));
+    
+    // Extra constraint flags for H.266
+    uint32_t general_constraints_info;
+    TRUE_OR_RETURN(br->ReadBits(43, &general_constraints_info));
+    
+    // Multi-layer info
+    TRUE_OR_RETURN(br->ReadBool(&ptl->general_frame_only_constraint_flag));
+    TRUE_OR_RETURN(br->ReadBool(&ptl->general_non_packed_constraint_flag));
+    TRUE_OR_RETURN(br->ReadBool(&ptl->general_interlaced_source_flag));
+    TRUE_OR_RETURN(br->ReadBool(&ptl->general_progressive_source_flag));
+  }
+
+  // Sub-layer profile tier level info
+  for (int i = 0; i < max_num_sub_layers_minus1; i++) {
+    bool sublayer_profile_present_flag, sublayer_level_present_flag;
+    TRUE_OR_RETURN(br->ReadBool(&sublayer_profile_present_flag));
+    TRUE_OR_RETURN(br->ReadBool(&sublayer_level_present_flag));
+    
+    if (sublayer_profile_present_flag) {
+      // Skip sub-layer profile info
+      TRUE_OR_RETURN(br->SkipBits(88)); // 7+1+8+32+43+1
+    }
+    if (sublayer_level_present_flag) {
+      TRUE_OR_RETURN(br->SkipBits(8)); // sub_layer_level_idc[i]
+    }
+  }
+
+  return kOk;
+}
 
 }  // namespace media
 }  // namespace shaka
