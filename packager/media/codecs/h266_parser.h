@@ -360,10 +360,11 @@ class H266Parser {
   Result ParseSliceHeader(const Nalu& nalu, H266SliceHeader* slice_header);
   
   /// Parses a slice header with picture header context
+  /* 
   Result ParseSliceHeader(const Nalu& nalu, 
                          H266SliceHeader* slice_header,
                          const H266PictureHeader* picture_header);
-
+ */
   /// Parses a PPS element.
   Result ParsePps(const Nalu& nalu, int* pps_id);
   

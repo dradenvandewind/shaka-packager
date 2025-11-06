@@ -58,11 +58,8 @@ class EsParserH266 : public EsParserH26x {
   // Last video decoder config.
   std::shared_ptr<StreamInfo> last_video_decoder_config_;
   bool decoder_config_check_pending_;
-  int previous_nalu_type_ = -1;
-
-  std::unique_ptr<H266Parser> h266_parser_;
   std::unique_ptr<H266Parser> parser_;
-
+  int previous_nalu_type_ = -1;
 };
 
 }  // namespace mp2t

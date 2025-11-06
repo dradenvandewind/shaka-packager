@@ -37,13 +37,16 @@ constexpr int kH266StartCodeSize = 2;
 
 EsParserH266::EsParserH266(uint32_t pid,
                            const NewStreamInfoCB& new_stream_info_cb,
-                           const EmitSampleCB& emit_sample_cb,
+                           const EmitSampleCB& emit_sample_cb
                            )
     : EsParserH26x(Nalu::kH266,
                    kH266StartCodeSize,
                    pid,
                    new_stream_info_cb,
-                   emit_sample_cb) {}
+                   emit_sample_cb),
+      new_stream_info_cb_(new_stream_info_cb),
+      decoder_config_check_pending_(false),
+      parser_(new H266Parser()) {}
                    //sbr_in_mimetype
 
 EsParserH266::~EsParserH266() {}
@@ -100,16 +103,16 @@ void EsParserH266::ProcessVclNalu(const Nalu& nalu,
                                   VideoSliceInfo* video_slice_info) {
   // Parse slice header to get PPS ID and other information
   H266SliceHeader slice_header;
-  if (parser_.ParseSliceHeader(nalu, &slice_header) != H266Parser::kOk) {
+  if (parser_->ParseSliceHeader(nalu, &slice_header) != H266Parser::kOk) {
     return;
   }
 
   // Update video slice information
-  video_slice_info->pps_id = slice_header.pps_id;
-  video_slice_info->frame_num = slice_header.slice_pic_order_cnt_lsb;
+  video_slice_info->pps_id = slice_header.pic_parameter_set_id;// try fix pps_id;
+  video_slice_info->frame_num = 0; // frame_num is only for H264.
   video_slice_info->idr_pic = (nalu.type() == Nalu::H266_IDR_W_RADL ||
                                nalu.type() == Nalu::H266_IDR_N_LP);
-  video_slice_info->nal_ref_idc = nalu.nuh_layer_id(); // Use layer ID as reference indicator
+  //video_slice_info->nal_ref_idc = nalu.nuh_layer_id(); // Use layer ID as reference indicator
 
   // Update decoder configuration if needed
   //if (video_slice_info->pps_id >= 0) {
@@ -121,21 +124,21 @@ void EsParserH266::ProcessOtherNonVclNalu(const Nalu& nalu) {
   switch (nalu.type()) {
     case Nalu::H266_VPS_NUT: {
       int vps_id;
-      if (parser_.ParseVps(nalu, &vps_id) == H266Parser::kOk) {
+      if (parser_->ParseVps(nalu, &vps_id) == H266Parser::kOk) {
         // VPS parsed successfully
       }
       break;
     }
     case Nalu::H266_SPS_NUT: {
       int sps_id;
-      if (parser_.ParseSps(nalu, &sps_id) == H266Parser::kOk) {
+      if (parser_->ParseSps(nalu, &sps_id) == H266Parser::kOk) {
         // SPS parsed successfully
       }
       break;
     }
     case Nalu::H266_PPS_NUT: {
       int pps_id;
-      if (parser_.ParsePps(nalu, &pps_id) == H266Parser::kOk) {
+      if (parser_->ParsePps(nalu, &pps_id) == H266Parser::kOk) {
         // PPS parsed successfully
       }
       break;
@@ -157,12 +160,12 @@ void EsParserH266::ProcessOtherNonVclNalu(const Nalu& nalu) {
 }
 
 bool EsParserH266::UpdateVideoDecoderConfig(int pps_id) {
-  const H266Pps* pps = parser_.GetPps(pps_id);
+  const H266Pps* pps = parser_->GetPps(pps_id);
   if (!pps) {
     return false;
   }
 
-  const H266Sps* sps = parser_.GetSps(pps->sps_id);
+  const H266Sps* sps = parser_->GetSps(pps->sps_seq_parameter_set_id);
   if (!sps) {
     return false;
   }
@@ -175,12 +178,17 @@ bool EsParserH266::UpdateVideoDecoderConfig(int pps_id) {
   std::vector<uint8_t> config_data;
   // Create decoder configuration record
   VvcDecoderConfigurationRecord decoder_config;
+
+  if (!stream_converter()->GetDecoderConfigurationRecord(&decoder_config) || !decoder_config.Parse(decoder_config)) {
+        DLOG(ERROR) << "Failure to construct an VccDecoderConfigurationRecord";
+    return false;
+  }
+
+
   //if (!decoder_config.Parse(sps_data, pps_data, vps_data)) {
   //  return false;
   //}
-  if (!decoder_config.Parse(config_data)) {  // Use single parameter
-    return false;
-  }
+  
 
 
   // Update stream info
@@ -196,8 +204,8 @@ bool EsParserH266::UpdateVideoDecoderConfig(int pps_id) {
       sps->pic_height_max_in_luma_samples, 0, 1, sps->bit_depth_luma_minus8 + 8,
       sps->chroma_format_idc, nullptr, false));
 
-  return EsParserH26x::UpdateVideoStreamInfo(video_stream_info);
-}
+  return true;
+
 
 }  // namespace mp2t
 }  // namespace media
