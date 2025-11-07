@@ -31,6 +31,7 @@ Shaka Packager supports:
 
   |      Codecs       |   ISO-BMFF   |     WebM     |   MPEG2-TS   |     WVM     | Packed Audio²|
   |:-----------------:|:------------:|:------------:|:------------:|:-----------:|:------------:|
+  |    H266 (VVC)     |    I /       |      -       |     I /      |             |       -      |
   |    H264 (AVC)     |    I / O     |      -       |     I / O    |      I      |       -      |
   |    H265 (HEVC)    |    I / O     |      -       |       I      |      -      |       -      |
   |       VP8         |    I / O     |    I / O     |       -      |      -      |       -      |
