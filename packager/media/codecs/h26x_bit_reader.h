@@ -68,6 +68,10 @@ class H26xBitReader {
   // Return the number of emulation prevention bytes already read.
   size_t NumEmulationPreventionBytesRead();
 
+  bool ReadBits(int num_bits, uint32_t* out);
+  bool ReadBool(uint8_t* out);
+  bool ReadUE(uint32_t* val);
+
  private:
   // Advance to the next byte, loading it into curr_byte_.
   // Return false on end of stream.

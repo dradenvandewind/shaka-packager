@@ -237,7 +237,9 @@ struct H266Vps {
   };
 
   int vps_video_parameter_set_id;
-  int vps_max_layers_minus1;
+  //int vps_max_layers_minus1;
+  uint32_t vps_max_layers_minus1;
+
   int vps_max_sublayers_minus1;
 
   // Timing info in VPS (H.266 specific)
@@ -270,8 +272,10 @@ struct H266Vps {
   /*                */
   bool vps_default_output_layer_idc;
   bool vps_all_independent_layers_flag;
-  std::vector<uint32_t> layer_id_included_flag;
-  
+  //std::vector<uint32_t> layer_id_included_flag;
+  std::vector<bool> layer_id_included_flag;
+
+
   // Timing info
   bool vps_poc_proportional_to_timing_flag;
   uint32_t vps_num_ticks_poc_diff_one_minus1;
@@ -395,9 +399,16 @@ class H266Parser {
   H266Parser();
   ~H266Parser();
 
+  bool GetVpsTimingInfo(int vps_id, uint32_t* num_units_in_tick, uint32_t* time_scale);
+  uint32_t GetMaxLayers(int vps_id);
+  bool IsLayerIndependent(int vps_id, uint32_t layer_id);
+
   /// Parses a video slice header.
   Result ParseSliceHeader(const Nalu& nalu, H266SliceHeader* slice_header);
-  
+  Result ParseSliceHeader(const Nalu& nalu,
+                          H266SliceHeader* slice_header,
+                          const H266PictureHeader* picture_header);
+
   /// Parses a slice header with picture header context
   /* 
   Result ParseSliceHeader(const Nalu& nalu, 
@@ -452,6 +463,11 @@ class H266Parser {
   Result ParseProfileTierLevel(bool profile_tier_present,
                               int max_num_sub_layers_minus1,
                               H26xBitReader* br);
+  Result ParseProfileTierLevel(bool profile_tier_present,
+                               int max_num_sub_layers_minus1,
+                               H26xBitReader* br,
+                               H266ProfileTierLevel* profile_tier_level);
+
 #if 0   
 //future update perhaps
   Result ParseReferencePictureList(const H266Sps& sps,

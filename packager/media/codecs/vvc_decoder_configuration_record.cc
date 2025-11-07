@@ -621,8 +621,8 @@ std::string VvcDecoderConfigurationRecord::GetCodecString(FourCC codec_fourcc) c
 }
 
 bool VvcDecoderConfigurationRecord::ParseFromNalUnits(const std::vector<uint8_t>& nal_units_data) {
-  VvcParser parser;
-  std::vector<VvcParser::NalUnit> nal_units;
+  H266Parser parser;
+  std::vector<H266Parser::NalUnit> nal_units;
 
   if (!parser.ParseNalUnits(nal_units_data.data(),
                             nal_units_data.size(),
@@ -660,11 +660,23 @@ bool VvcDecoderConfigurationRecord::ParseFromNalUnits(const std::vector<uint8_t>
     }
 
     // Save parameter sets for parsing
-    if (nal_type == kVvcNalVPS) {
+    // if (nal_type == kVvcNalVPS) {
+    //   vps_data_.assign(nalu_info.data, nalu_info.data + nalu_info.size);
+    // } else if (nal_type == kVvcNalSPS) {
+    //   sps_data_.assign(nalu_info.data, nalu_info.data + nalu_info.size);
+    // } else if (nal_type == kVvcNalPPS) {
+    //   pps_data_.assign(nalu_info.data, nalu_info.data + nalu_info.size);
+    // }
+ //quick workaround
+ constexpr uint8_t kVvcNalUnitType_VPS = 14;      // Video Parameter Set
+constexpr uint8_t kVvcNalUnitType_SPS = 15;      // Sequence Parameter Set  
+constexpr uint8_t kVvcNalUnitType_PPS = 16;      // Picture Parameter Set
+
+    if (nalu_info.type == kVvcNalUnitType_VPS) {
       vps_data_.assign(nalu_info.data, nalu_info.data + nalu_info.size);
-    } else if (nal_type == kVvcNalSPS) {
+    } else if (nalu_info.type == kVvcNalUnitType_SPS) {
       sps_data_.assign(nalu_info.data, nalu_info.data + nalu_info.size);
-    } else if (nal_type == kVvcNalPPS) {
+    } else if (nalu_info.type == kVvcNalUnitType_PPS) {
       pps_data_.assign(nalu_info.data, nalu_info.data + nalu_info.size);
     }
   }

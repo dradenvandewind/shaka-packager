@@ -22,10 +22,10 @@ const uint8_t kStartCode4[] = {0x00, 0x00, 0x00, 0x01};
 
 }  // namespace
 
-VvcParser::VvcParser() = default;
-VvcParser::~VvcParser() = default;
+H266Parser ::H266Parser () = default;
+H266Parser ::~H266Parser () = default;
 
-bool VvcParser::ParseNalUnits(const uint8_t* data,
+bool H266Parser ::ParseNalUnits(const uint8_t* data,
                               size_t size,
                               std::vector<NalUnit>* nal_units) {
   if (!data || size == 0 || !nal_units) {
@@ -96,7 +96,7 @@ bool VvcParser::ParseNalUnits(const uint8_t* data,
   return !nal_units->empty();
 }
 
-bool VvcParser::ParseNalUnit(const uint8_t* data,
+bool H266Parser ::ParseNalUnit(const uint8_t* data,
                              size_t size,
                              NalUnit* nal_unit) {
   if (!data || size < 2 || !nal_unit) {
@@ -124,7 +124,7 @@ bool VvcParser::ParseNalUnit(const uint8_t* data,
   return true;
 }
 
-bool VvcParser::ExtractNalUnitHeader(const uint8_t* data,
+bool H266Parser ::ExtractNalUnitHeader(const uint8_t* data,
                                      size_t size,
                                      uint8_t* type,
                                      uint8_t* layer_id,
@@ -174,7 +174,7 @@ bool VvcParser::ExtractNalUnitHeader(const uint8_t* data,
   return true;
 }
 
-size_t VvcParser::FindStartCodes(const uint8_t* data,
+size_t H266Parser ::FindStartCodes(const uint8_t* data,
                                  size_t size,
                                  std::vector<size_t>* start_codes) {
   if (!data || size < 3 || !start_codes) {
@@ -195,7 +195,7 @@ size_t VvcParser::FindStartCodes(const uint8_t* data,
   return start_codes->size();
 }
 
-bool VvcParser::IsStartCode(const uint8_t* data,
+bool H266Parser ::IsStartCode(const uint8_t* data,
                            size_t size,
                            size_t pos,
                            size_t* code_size) {
@@ -221,7 +221,7 @@ bool VvcParser::IsStartCode(const uint8_t* data,
   return false;
 }
 
-bool VvcParser::ConvertAnnexBToLengthPrefixed(const uint8_t* data,
+bool H266Parser ::ConvertAnnexBToLengthPrefixed(const uint8_t* data,
                                              size_t size,
                                              size_t length_size,
                                              std::vector<uint8_t>* output) {
@@ -240,7 +240,7 @@ bool VvcParser::ConvertAnnexBToLengthPrefixed(const uint8_t* data,
   output->reserve(size);  // Estimation conservatrice
 
   std::vector<NalUnit> nal_units;
-  VvcParser parser;
+  H266Parser  parser;
   if (!parser.ParseNalUnits(data, size, &nal_units)) {
     LOG(ERROR) << "Failed to parse NAL units from Annex B data";
     return false;
@@ -280,7 +280,7 @@ bool VvcParser::ConvertAnnexBToLengthPrefixed(const uint8_t* data,
   return true;
 }
 
-bool VvcParser::ConvertLengthPrefixedToAnnexB(const uint8_t* data,
+bool H266Parser ::ConvertLengthPrefixedToAnnexB(const uint8_t* data,
                                              size_t size,
                                              size_t length_size,
                                              std::vector<uint8_t>* output) {
@@ -349,7 +349,7 @@ bool VvcParser::ConvertLengthPrefixedToAnnexB(const uint8_t* data,
   return true;
 }
 
-void VvcParser::RemoveEmulationPrevention(const uint8_t* data,
+void H266Parser ::RemoveEmulationPrevention(const uint8_t* data,
                                          size_t size,
                                          std::vector<uint8_t>* output) {
   if (!data || size == 0 || !output) {
@@ -388,7 +388,7 @@ void VvcParser::RemoveEmulationPrevention(const uint8_t* data,
   }
 }
 
-void VvcParser::AddEmulationPrevention(const uint8_t* data,
+void H266Parser::AddEmulationPrevention(const uint8_t* data,
                                       size_t size,
                                       std::vector<uint8_t>* output) {
   if (!data || size == 0 || !output) {

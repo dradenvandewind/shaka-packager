@@ -273,11 +273,12 @@ bool Nalu::InitializeFromH266(const uint8_t* data, uint64_t size) {
                  << " (header 0x" << std::hex << header << ").";
     return false;
   }
+  //H266_RSV_IRAP_12 12
 
   // Reserved NAL units handling
   // Fixed the range for RSV_IRAP_11 (should be RSV_IRAP_11 to RSV_IRAP_12)
   if ((type_ >= H266_RSV_VCL_4 && type_ <= H266_RSV_VCL_6) ||
-      (type_ >= H266_RSV_IRAP_11 && type_ <= H266_RSV_IRAP_12) ||
+      (type_ >= H266_RSV_IRAP_11 && type_ <= 12 ) ||
       (type_ >= H266_RSV_NVCL_26 && type_ <= H266_RSV_NVCL_27) ||
       (type_ >= H266_UNSPEC_28 && type_ <= H266_UNSPEC_31)) {
     VLOG(1) << "Unspecified or reserved nal_unit_type " << type_
@@ -287,7 +288,7 @@ bool Nalu::InitializeFromH266(const uint8_t* data, uint64_t size) {
 
   // NAL units with TemporalId equal to 0 constraints
   // Fixed the range for IRAP pictures (should be IDR_W_RADL to RSV_IRAP_12)
-  if ((type_ >= H266_IDR_W_RADL && type_ <= H266_RSV_IRAP_12) ||
+  if ((type_ >= H266_IDR_W_RADL && type_ <= 12) ||
       type_ == H266_VPS_NUT || type_ == H266_SPS_NUT || 
       type_ == H266_PPS_NUT || type_ == H266_EOS_NUT || 
       type_ == H266_EOB_NUT || type_ == H266_DCI_NUT ||

@@ -54,6 +54,7 @@ class Nalu {
     H265_RASL_R = 9,
 
     H265_RSV_VCL_N10 = 10,
+    
     H265_RSV_VCL_R15 = 15,
 
     H265_BLA_W_LP = 16,
@@ -96,6 +97,7 @@ class Nalu {
 		H266_CRA_NUT = 9,
 		H266_GDR_NUT = 10,
 		H266_RSV_IRAP_11 = 11,
+    //H266_RSV_IRAP_12 = 12,
 		// Non-VCL NAL units
 		H266_OPI_NUT = 12,
 		H266_DCI_NUT = 13,

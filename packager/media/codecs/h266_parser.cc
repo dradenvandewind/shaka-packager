@@ -421,7 +421,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
 
   return kOk;
 }
-
+#if 0
 H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   DCHECK_EQ(Nalu::H266_VPS_NUT, nalu.type());
 
@@ -471,6 +471,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 
   return kOk;
 }
+#endif 
 
 H266Parser::Result H266Parser::ParseAps(const Nalu& nalu, int* aps_id, int* aps_type) {
   DCHECK(nalu.type() == Nalu::H266_PREFIX_APS_NUT || 
@@ -570,7 +571,7 @@ uint32_t H266Parser::GetMaxLayers(int vps_id) {
 
 bool H266Parser::IsLayerIndependent(int vps_id, uint32_t layer_id) {
   const H266Vps* vps = GetVps(vps_id);
-  if (!vps || layer_id > vps->vps_max_layers_minus1) {
+  if (!vps || layer_id > static_cast<uint32_t>(vps->vps_max_layers_minus1)) {
     return false;
   }
   
@@ -715,6 +716,8 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
                                                H266SliceHeader* slice_header,
                                                const H266PictureHeader* picture_header) {
   // Implementation would use picture_header context
+
+  //todo 
   return ParseSliceHeader(nalu, slice_header);
 }
 #if 0
@@ -793,8 +796,11 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 
   // Layer IDs
   vps->layer_id_included_flag.resize(vps->vps_max_layers_minus1 + 1, false);
-  for (uint32_t i = 1; i <= vps->vps_max_layers_minus1; i++) {
-    TRUE_OR_RETURN(br->ReadBool(&vps->layer_id_included_flag[i]));
+for (uint32_t i = 1; i <= (vps->vps_max_layers_minus1); i++) {
+       bool temp_flag;
+       TRUE_OR_RETURN(br->ReadBool(&temp_flag));
+       vps->layer_id_included_flag[i] = temp_flag;
+      //TRUE_OR_RETURN(br->ReadBool(&vps->layer_id_included_flag[i]));
   }
 
   // Timing info
@@ -805,8 +811,10 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
     
     TRUE_OR_RETURN(br->ReadBool(&vps->vps_poc_proportional_to_timing_flag));
     if (vps->vps_poc_proportional_to_timing_flag) {
-      TRUE_OR_RETURN(br->ReadUE(&vps->vps_num_ticks_poc_diff_one_minus1));
-    }
+      
+    int temp_int;
+    TRUE_OR_RETURN(br->ReadUE(&temp_int));
+    vps->vps_num_ticks_poc_diff_one_minus1 = static_cast<uint32_t>(temp_int);    }
   }
 
   // Output layer sets
@@ -817,7 +825,11 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   for (uint32_t i = 1; i <= vps->vps_num_output_layer_sets; i++) {
     vps->output_layer_flag[i].resize(vps->vps_max_layers_minus1 + 1, false);
     for (uint32_t j = 0; j <= vps->vps_max_layers_minus1; j++) {
-      TRUE_OR_RETURN(br->ReadBool(&vps->output_layer_flag[i][j]));
+
+      //TRUE_OR_RETURN(br->ReadBool(&vps->output_layer_flag[i][j]));
+      bool temp_output_bool;
+      TRUE_OR_RETURN(br->ReadBool(&temp_output_bool));
+      vps->output_layer_flag[i][j] = temp_output_bool;
     }
   }
 
@@ -833,12 +845,20 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
     for (uint32_t i = 1; i <= vps->vps_max_layers_minus1; i++) {
       vps->direct_dependency_flag[i].resize(vps->vps_max_layers_minus1 + 1, false);
       for (uint32_t j = 0; j < i; j++) {
-        TRUE_OR_RETURN(br->ReadBool(&vps->direct_dependency_flag[i][j]));
+        //TRUE_OR_RETURN(br->ReadBool(&vps->direct_dependency_flag[i][j]));
+        bool temp_dep_bool;
+        TRUE_OR_RETURN(br->ReadBool(&temp_dep_bool));
+        vps->direct_dependency_flag[i][j] = temp_dep_bool;
+
       }
     }
 
     for (uint32_t i = 1; i <= vps->vps_max_layers_minus1; i++) {
-      TRUE_OR_RETURN(br->ReadBool(&vps->max_tid_ref_present_flag[i]));
+      //TRUE_OR_RETURN(br->ReadBool(&vps->max_tid_ref_present_flag[i]));
+      bool temp_tid_bool;
+      TRUE_OR_RETURN(br->ReadBool(&temp_tid_bool));
+      vps->max_tid_ref_present_flag[i] = temp_tid_bool;
+
     }
   }
 
@@ -860,9 +880,20 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
                                                      H266ProfileTierLevel* ptl) {
   if (profile_tier_present) {
     // General profile tier level
-    TRUE_OR_RETURN(br->ReadBits(7, &ptl->general_profile_idc));
-    TRUE_OR_RETURN(br->ReadBool(&ptl->general_tier_flag));
-    TRUE_OR_RETURN(br->ReadBits(8, &ptl->general_level_idc));
+    //TRUE_OR_RETURN(br->ReadBits(7, &ptl->general_profile_idc));
+    //TRUE_OR_RETURN(br->ReadBool(&ptl->general_tier_flag));
+    //TRUE_OR_RETURN(br->ReadBits(8, &ptl->general_level_idc));
+    int temp_profile;
+    TRUE_OR_RETURN(br->ReadBits(7, &temp_profile));
+    ptl->general_profile_idc = static_cast<uint8_t>(temp_profile);
+
+    bool temp_tier;
+    TRUE_OR_RETURN(br->ReadBool(&temp_tier));
+    ptl->general_tier_flag = temp_tier;
+
+    int temp_level;
+    TRUE_OR_RETURN(br->ReadBits(8, &temp_level));
+    ptl->general_level_idc = static_cast<uint8_t>(temp_level);
     
     // Constraints flags
     uint32_t constraint_flags;

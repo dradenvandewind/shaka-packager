@@ -59,9 +59,15 @@ bool H266ByteToUnitStreamConverter::GetDecoderConfigurationRecord(
   
   // General profile, tier and level information
   // vvc_config_general_profile_idc, general_tier_flag, etc.
-  buffer.AppendInt(static_cast<uint8_t>(vps->profile_tier_level));
-  buffer.AppendInt(static_cast<uint8_t>((vps->general_profile_tier_level_data ? 0x80 : 0x00) | 
-                                        vps->general_profile_tier_level_data));
+  //buffer.AppendInt(static_cast<uint8_t>(vps->profile_tier_level));
+  //buffer.AppendInt(static_cast<uint8_t>(vps->general_profile_tier_level_data);
+uint8_t general_profile_space = 0x00; // Adjust based on actual data
+uint8_t general_tier_flag = 0x00;     // Adjust based on actual data
+uint8_t general_profile_idc = static_cast<uint8_t>(vps->profile_tier_level.general_profile_idc);
+
+// warning not sure check in ITU
+buffer.AppendInt(static_cast<uint8_t>((general_profile_space << 6) | (general_tier_flag << 5) | general_profile_idc));
+
   
   // Bit depth and chroma format
   uint8_t bit_depth_info = ((sps->bit_depth_luma_minus8 & 0x07) << 4) | 

@@ -15,7 +15,7 @@ namespace media {
 
 /// Parser for VVC NAL units (H.266)
 /// Handles VVC bitstream parsing according to ISO/IEC 23090-3
-class VvcParser {
+class H266Parser  {
  public:
   /// VVC NAL unit types
   enum NalUnitType {
@@ -83,8 +83,8 @@ class VvcParser {
     }
   };
 
-  VvcParser();
-  ~VvcParser();
+  H266Parser ();
+  ~H266Parser ();
 
   /// Parse NAL units from a buffer (Annex B format with start codes)
   /// @param data Buffer containing NAL units
