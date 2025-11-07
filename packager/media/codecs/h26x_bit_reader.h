@@ -72,6 +72,9 @@ class H26xBitReader {
   bool ReadBool(uint8_t* out);
   bool ReadUE(uint32_t* val);
 
+  bool ParseNalUnits(const uint8_t* data, size_t data_size,
+                      std::vector<H266Parser::NalUnit>* nal_units);
+
  private:
   // Advance to the next byte, loading it into curr_byte_.
   // Return false on end of stream.

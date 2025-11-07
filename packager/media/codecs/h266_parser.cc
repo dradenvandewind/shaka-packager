@@ -5,6 +5,8 @@
 // https://developers.google.com/open-source/licenses/bsd
 
 #include <packager/media/codecs/h266_parser.h>
+#include "packager/media/codecs/h26x_bit_reader.h"
+
 
 #include <algorithm>
 #include <cmath>
