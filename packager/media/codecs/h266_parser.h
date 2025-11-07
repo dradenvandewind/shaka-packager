@@ -385,15 +385,16 @@ struct H266SliceHeader {
   bool dependent_slice_segment_flag = false;
   int slice_segment_address = 0;
 };
-  struct NalUnit {
-    const uint8_t* data;
-    size_t size;
-    int type;
-  };
+ 
   
 /// A class to parse H.266 streams.
 class H266Parser {
  public:
+   struct NalUnit {
+    const uint8_t* data;
+    size_t size;
+    int type;
+  };
   enum Result {
     kOk,
     kInvalidStream,      // error in stream
