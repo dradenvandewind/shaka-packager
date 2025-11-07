@@ -37,7 +37,7 @@ add_library(media_codecs STATIC
 )
 
 target_link_libraries(media_codecs
-    media_base ${ABSEIL_LIBS} h26x_bit_reader)
+    media_base ${ABSEIL_LIBS})
 
 add_executable(media_codecs_unittest
     aac_audio_specific_config_unittest.cc
