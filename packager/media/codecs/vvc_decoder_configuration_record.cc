@@ -623,6 +623,7 @@ std::string VvcDecoderConfigurationRecord::GetCodecString(FourCC codec_fourcc) c
 bool VvcDecoderConfigurationRecord::ParseFromNalUnits(const std::vector<uint8_t>& nal_units_data) {
   H266Parser parser;
   std::vector<H266Parser::NalUnit> nal_units;
+  
 
   if (!parser.ParseNalUnits(nal_units_data.data(),
                             nal_units_data.size(),

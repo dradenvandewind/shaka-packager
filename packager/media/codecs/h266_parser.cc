@@ -927,6 +927,48 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
 
   return kOk;
 }
+bool H266Parser::ParseNalUnits(const uint8_t* data,
+                               size_t size,
+                               std::vector<NalUnit>* nal_units) {
+  if (!data || size == 0 || !nal_units) {
+    LOG(ERROR) << "Invalid parameters to ParseNalUnits";
+    return false;
+  }
+
+  nal_units->clear();
+
+  // Use NaluReader to parse the bitstream
+  NaluReader reader(Nalu::kH266, 0, data, size);
+  
+  Nalu nalu;
+  NaluReader::Result result;
+  
+  while ((result = reader.Advance(&nalu)) == NaluReader::kOk) {
+    // Create NalUnit entry
+    NalUnit unit;
+    unit.data = nalu.data();
+    unit.size = nalu.header_size() + nalu.payload_size();
+    unit.type = nalu.type();
+    
+    nal_units->push_back(unit);
+    
+    DVLOG(3) << "Found H.266 NAL unit: type=" << nalu.type() 
+             << " size=" << unit.size;
+  }
+  
+  if (result != NaluReader::kEOStream) {
+    LOG(ERROR) << "Failed to parse H.266 NAL units, result: " << result;
+    return false;
+  }
+  
+  if (nal_units->empty()) {
+    LOG(WARNING) << "No NAL units found in buffer";
+    return false;
+  }
+  
+  DVLOG(2) << "Successfully parsed " << nal_units->size() << " H.266 NAL units";
+  return true;
+}
 
 }  // namespace media
 }  // namespace shaka

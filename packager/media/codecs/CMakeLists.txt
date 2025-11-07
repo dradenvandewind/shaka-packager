@@ -21,8 +21,11 @@ add_library(media_codecs STATIC
     h265_byte_to_unit_stream_converter.cc
     h265_parser.cc
     h26x_bit_reader.cc
+    h266_byte_to_unit_stream_converter.cc
+    h266_parser.cc
     h26x_byte_to_unit_stream_converter.cc
     hevc_decoder_configuration_record.cc
+    vvc_decoder_configuration_record.cc
     hls_audio_util.cc
     iamf_audio_util.cc
     nal_unit_to_byte_stream_converter.cc
@@ -31,13 +34,10 @@ add_library(media_codecs STATIC
     vp_codec_configuration_record.cc
     vp8_parser.cc
     vp9_parser.cc
-    vvc_decoder_configuration_record.cc
-    h266_parser.cc
-    h266_byte_to_unit_stream_converter.cc
 )
 
 target_link_libraries(media_codecs
-    media_base)
+    media_base ${ABSEIL_LIBS} h26x_bit_reader)
 
 add_executable(media_codecs_unittest
     aac_audio_specific_config_unittest.cc
@@ -63,7 +63,7 @@ add_executable(media_codecs_unittest
     vp_codec_configuration_record_unittest.cc
     vp8_parser_unittest.cc
     vp9_parser_unittest.cc
-    vvc_parser_unittest.cc
+    
 )
 
 target_link_libraries(media_codecs_unittest

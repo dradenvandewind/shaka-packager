@@ -184,5 +184,29 @@ size_t H26xBitReader::NumEmulationPreventionBytesRead() {
   return emulation_prevention_bytes_;
 }
 
+bool H26xBitReader::ReadBits(int num_bits, uint32_t* out) {
+  int temp;
+  if (!ReadBits(num_bits, &temp))
+    return false;
+  *out = static_cast<uint32_t>(temp);
+  return true;
+}
+
+bool H26xBitReader::ReadBool(uint8_t* out) {
+  bool temp;
+  if (!ReadBool(&temp))
+    return false;
+  *out = temp ? 1 : 0;
+  return true;
+}
+
+bool H26xBitReader::ReadUE(uint32_t* val) {
+  int temp;
+  if (!ReadUE(&temp))
+    return false;
+  *val = static_cast<uint32_t>(temp);
+  return true;
+}
+
 }  // namespace media
 }  // namespace shaka

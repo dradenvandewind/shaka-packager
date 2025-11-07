@@ -385,7 +385,12 @@ struct H266SliceHeader {
   bool dependent_slice_segment_flag = false;
   int slice_segment_address = 0;
 };
-
+  struct NalUnit {
+    const uint8_t* data;
+    size_t size;
+    int type;
+  };
+  
 /// A class to parse H.266 streams.
 class H266Parser {
  public:
@@ -398,6 +403,8 @@ class H266Parser {
 
   H266Parser();
   ~H266Parser();
+
+
 
   bool GetVpsTimingInfo(int vps_id, uint32_t* num_units_in_tick, uint32_t* time_scale);
   uint32_t GetMaxLayers(int vps_id);
@@ -415,6 +422,16 @@ class H266Parser {
                          H266SliceHeader* slice_header,
                          const H266PictureHeader* picture_header);
  */
+  /// Parse NAL units from a buffer and extract their information
+  /// @param data Buffer containing NAL units
+  /// @param size Size of the buffer
+  /// @param nal_units Output vector to store parsed NAL unit information
+  /// @return true on success, false otherwise
+
+  bool ParseNalUnits(const uint8_t* data,
+                     size_t size,
+                     std::vector<NalUnit>* nal_units);
+
   /// Parses a PPS element.
   Result ParsePps(const Nalu& nalu, int* pps_id);
   
