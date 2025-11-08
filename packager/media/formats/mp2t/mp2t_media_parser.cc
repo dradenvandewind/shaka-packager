@@ -18,6 +18,7 @@
 #include <packager/media/formats/mp2t/es_parser_dvb.h>
 #include <packager/media/formats/mp2t/es_parser_h264.h>
 #include <packager/media/formats/mp2t/es_parser_h265.h>
+#include <packager/media/formats/mp2t/es_parser_h266.h>
 #include <packager/media/formats/mp2t/es_parser_teletext.h>
 #include <packager/media/formats/mp2t/mp2t_common.h>
 #include <packager/media/formats/mp2t/ts_audio_type.h>

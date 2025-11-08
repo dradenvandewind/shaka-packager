@@ -27,6 +27,9 @@ enum class TsStreamType {
   kAdtsAac = 0x0F,
   kAvc = 0x1B,
   kHevc = 0x24,
+  kVcc = 0x33,    // H266/VVC video stream VVc header (ISO/IEC23090-3)
+  kEvc = 0x35,    // EVC video stream (ISO/IEC 23094-1)
+  kLcevc = 0x36,  // LCEVC enhancement layer (
   // Below are extensions defined in other specifications.
   // AC3 and E-AC3 are defined in ATSC Standard A/52.
   // Cannot find specification for DTS-HD and DTS. They are extracted from
