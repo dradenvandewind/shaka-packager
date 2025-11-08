@@ -318,6 +318,9 @@ void Mp2tMediaParser::RegisterPes(int pmt_pid,
     case TsStreamType::kHevc:
       es_parser.reset(new EsParserH265(pes_pid, on_new_stream, on_emit_media));
       break;
+    case TsStreamType::kVcc:
+      es_parser.reset(new EsParserH266(pes_pid, on_new_stream, on_emit_media));
+      break;
     case TsStreamType::kAdtsAac:
     case TsStreamType::kMpeg1Audio:
     case TsStreamType::kAc3:
