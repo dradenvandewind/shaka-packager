@@ -22,7 +22,7 @@
 
 #include <packager/media/codecs/h266_byte_to_unit_stream_converter.h>
 #include <packager/media/codecs/vvc_decoder_configuration_record.h>
-#include <packager/media/codecs/h266_parser.h>
+//#include <packager/media/codecs/h266_parser.h>
 #include <packager/media/formats/mp2t/mp2t_common.h>
 
 
@@ -111,12 +111,191 @@ bool EsParserH266::ProcessNalu(const Nalu& nalu,
   return true;
 }
 
+void EsParserH266::Reset() {
+  current_access_unit_.clear();
+  current_access_unit_pts_ = -1;
+  current_access_unit_dts_ = -1;
+  current_access_unit_is_keyframe_ = false;
+  
+  pending_samples_.clear();
+  
+  timestamp_tracker_.clear();
+  last_frame_rate_ = 0.0;
+  last_sample_duration_ = 0;
+  
+  pps_map_.clear();
+  sps_map_.clear();
+  vps_map_.clear();
+  
+  last_pps_.reset();
+  last_sps_.reset();
+  last_vps_.reset();
+  
+  waiting_for_keyframe_ = true;
+  frames_parsed_ = 0;
+  first_pts_ = -1;
+  last_pts_ = -1;
+  
+  es_buffer_.clear();
+}
+
+  
+
+namespace {
+constexpr int64_t kMicrosecondsPerSecond = 1000000;
+}
+
+
+
+
+int64_t EsParserH266::GetSampleDurationFromSps(int pps_id) {
+  static constexpr int64_t kMinValidDuration = 1000;   // 1ms
+  static constexpr int64_t kMaxValidDuration = 1000000; // 1s
+
+  auto sps = GetSpsForPps(pps_id);
+  if (!sps ) {
+    return 0;
+  }
+
+  const auto& vui = sps->vui_parameters;
+  
+  if (!vui.vui_timing_info_present_flag) {
+    return 0;
+  }
+
+  // Vérifications supplémentaires pour VVC
+  // if (vui.field_seq_flag) {
+  //   // Gestion spécifique pour le entrelacé (field sequential)
+  //   return HandleFieldSequentialTiming(vui);
+  // }
+
+  
+
+  //const auto& timing = vui.vui_timing_info_present_flag;
+  
+  // Validation renforcée
+  if (vui.vui_time_scale == 0 || vui.vui_num_units_in_tick == 0) {
+    LOG(ERROR) << "Invalid timing values: time_scale=" << vui.vui_time_scale
+               << ", num_units_in_tick=" << vui.vui_num_units_in_tick;
+    return 0;
+  }
+
+  // Calcul avec vérification de dépassement
+  if (vui.vui_num_units_in_tick > (std::numeric_limits<int64_t>::max() / kMicrosecondsPerSecond)) {
+    LOG(ERROR) << "Potential overflow in duration calculation";
+    return 0;
+  }
+
+  int64_t duration = (kMicrosecondsPerSecond * vui.vui_num_units_in_tick) / vui.vui_time_scale;
+
+  // Ajustement pour le HDR et les taux de rafraîchissement élevés
+  // if (vui.hdr_parameters_present_flag) {
+  //   duration = AdjustDurationForHdr(duration, vui);
+  // }
+
+  // Validation finale
+  if (duration < kMinValidDuration || duration > kMaxValidDuration) {
+    LOG(WARNING) << "Duration out of reasonable range: " << duration << "µs";
+    return 0;
+  }
+
+  return duration;
+}
+
+int64_t EsParserH266::CalculateDurationFromRecentTimestamps() {
+  if (timestamp_tracker_.size() < 2) {
+    return 0;
+  }
+
+  // Calculer la durée moyenne basée sur les timestamps récents
+  int64_t total_duration = 0;
+  int count = 0;
+
+  for (size_t i = 1; i < timestamp_tracker_.size(); ++i) {
+    int64_t duration = timestamp_tracker_[i].pts - timestamp_tracker_[i-1].pts;
+    if (duration > 0 && duration < kMicrosecondsPerSecond) { // Filtrer les valeurs aberrantes
+      total_duration += duration;
+      count++;
+    }
+  }
+  if (count > 0) {
+    last_frame_rate_ = kMicrosecondsPerSecond / (total_duration / count);
+    return total_duration / count;
+  }
+
+  return 0;
+}
+
+int64_t EsParserH266::GetDefaultSampleDuration() {
+  // Durées par défaut basées sur le type de contenu typique
+   const int64_t kDefaultDurationUHD = 1000000 / 60;  // 60 fps pour UHD
+  const int64_t kDefaultDurationHD = 1000000 / 30;   // 30 fps pour HD
+  // const int64_t kDefaultDurationSD = 1000000 / 25;   // 25 fps pour SD
+
+  // Essayer de déterminer la résolution depuis le SPS
+  auto sps = GetLastActiveSps();
+  if (sps) {
+    int width = sps->pic_width_max_in_luma_samples;
+    int height = sps->pic_height_max_in_luma_samples;
+    
+    if (width >= 3840 || height >= 2160) {
+      return kDefaultDurationUHD;
+    } else if (width >= 1920 || height >= 1080) {
+      return kDefaultDurationHD;
+    }
+  }
+
+  // Fallback ultra-conservateur
+  return kDefaultDurationHD;
+}
+std::shared_ptr<H266Sps> EsParserH266::GetSpsForPps(int pps_id) {
+  auto pps_iter = pps_map_.find(pps_id);
+  if (pps_iter == pps_map_.end()) {
+    return nullptr;
+  }
+  
+  auto sps_iter = sps_map_.find(pps_iter->second->seq_parameter_set_id);
+  return (sps_iter != sps_map_.end()) ? sps_iter->second : nullptr;
+}
+
+std::shared_ptr<H266Sps> EsParserH266::GetLastActiveSps() {
+  if (!last_pps_) {
+    return nullptr;
+  }
+  return GetSpsForPps(last_pps_->pic_parameter_set_id);
+}
+
+
+
+int64_t EsParserH266::CalculateSampleDuration(int pps_id) {
+  // 1. Essayer d'obtenir la durée depuis les paramètres VVC (SPS)
+  int64_t duration_from_sps = GetSampleDurationFromSps(pps_id);
+  if (duration_from_sps > 0) {
+    return duration_from_sps;
+  }
+
+  // 2. Utiliser le framerate détecté précédemment s'il existe
+  if (last_frame_rate_ > 0) {
+    return 1000000 / last_frame_rate_; // Convertir en microsecondes
+  }
+
+  // 3. Analyser les timestamps DTS/PTS récents pour calculer la durée
+  int64_t duration_from_timestamps = CalculateDurationFromRecentTimestamps();
+  if (duration_from_timestamps > 0) {
+    return duration_from_timestamps;
+  }
+
+  // 4. Fallback: utiliser une durée par défaut basée sur le type de contenu
+  return GetDefaultSampleDuration();
+}
+
+
 bool EsParserH266::ProcessVclNalu(const Nalu& nalu,
                                   VideoSliceInfo* video_slice_info) {
 
   const bool is_key_frame = (nalu.type() == Nalu::H266_IDR_W_RADL ||
                                nalu.type() == Nalu::H266_IDR_N_LP);
-  DVLOG(1) << "Nalu: slice KeyFrame=" << is_key_frame;
+  LOG(INFO) << "Nalu: slice KeyFrame=" << is_key_frame;
 
 
   // Parse slice header to get PPS ID and other information
@@ -129,7 +308,7 @@ bool EsParserH266::ProcessVclNalu(const Nalu& nalu,
     video_slice_info->frame_num = 0; // frame_num is only for H264.
     video_slice_info->pps_id = slice_header.pic_parameter_set_id;
   } else if (status == H266Parser::kUnsupportedStream) {
-    DVLOG(1) << "Unsupported feature in H.266 slice header.";
+    LOG(INFO) << "Unsupported feature in H.266 slice header.";
     new_stream_info_cb_(nullptr);  // Signal an error.
    
   } else {

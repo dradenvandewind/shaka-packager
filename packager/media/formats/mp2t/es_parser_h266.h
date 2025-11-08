@@ -15,6 +15,8 @@
 
 #include <packager/macros/classes.h>
 #include <packager/media/formats/mp2t/es_parser_h26x.h>
+#include <packager/media/codecs/h266_parser.h>
+
 #include <functional>
 
 namespace shaka {
@@ -54,6 +56,54 @@ class EsParserH266 : public EsParserH26x {
   int64_t CalculateSampleDuration(int pps_id) override;
   // Callback to pass the stream configuration.
   NewStreamInfoCB new_stream_info_cb_;
+
+  
+
+  int64_t GetSampleDurationFromSps(int pps_id);
+  int64_t CalculateDurationFromRecentTimestamps();
+  int64_t GetDefaultSampleDuration();
+  std::shared_ptr<H266Sps> GetSpsForPps(int pps_id);
+  std::shared_ptr<H266Sps> GetLastActiveSps();
+
+
+   struct TimestampEntry {
+    int64_t pts;
+    int64_t dts;
+    int64_t duration;
+  };
+  std::deque<TimestampEntry> timestamp_tracker_;
+  double last_frame_rate_ = 0.0;
+  int64_t last_sample_duration_ = 0;
+
+  std::map<int, std::shared_ptr<H266Pps>> pps_map_;
+  std::map<int, std::shared_ptr<H266Sps>> sps_map_;
+  std::map<int, std::shared_ptr<H266Vps>> vps_map_;
+
+  std::shared_ptr<H266Pps> last_pps_;
+  std::shared_ptr<H266Sps> last_sps_;
+  std::shared_ptr<H266Vps> last_vps_;
+
+  std::vector<uint8_t> current_access_unit_;
+  int64_t current_access_unit_pts_ = -1;
+  int64_t current_access_unit_dts_ = -1;
+  bool current_access_unit_is_keyframe_ = false;
+
+  bool waiting_for_keyframe_ = true;
+  
+  // Statistiques et métriques
+  size_t frames_parsed_ = 0;
+  int64_t first_pts_ = -1;
+  int64_t last_pts_ = -1;
+
+  // Buffer pour accumulation des données
+  std::vector<uint8_t> es_buffer_;
+
+  std::vector<std::shared_ptr<MediaSample>> pending_samples_;
+  //  std::unique_ptr<VideoStreamInfo> video_stream_info_;
+
+
+
+
 
   // Last video decoder config.
   std::shared_ptr<StreamInfo> last_video_decoder_config_;
