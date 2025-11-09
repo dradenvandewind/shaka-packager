@@ -307,6 +307,9 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
   H26xBitReader* br = &reader;
+  uint32_t NumTileColumns = 0;  
+  uint32_t NumTileRows = 0;    
+
 
   *pps_id = -1;
   std::unique_ptr<H266Pps> pps(new H266Pps);
@@ -338,7 +341,10 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   if(pps->pps_subpic_id_mapping_present_flag){
     if(!pps->pps_no_pic_partition_flag){
       TRUE_OR_RETURN((br->ReadUE(&pps->pps_num_subpics_minus1)));
+      NumTileColumns = 1;
+      NumTileRows = 1;
     }
+    
     TRUE_OR_RETURN((br->ReadUE(&pps->pps_num_subpics_minus1)));
     u_int tmp_pps_subpic_id = 0;
     for(u_int i = 0;i <= pps->pps_num_subpics_minus1;i++){
@@ -361,9 +367,37 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
       TRUE_OR_RETURN(br->ReadUE(&tmp_pps_tile_row_height_minus1));
       pps->pps_tile_row_height_minus1.push_back(tmp_pps_tile_row_height_minus1);
     }
+    // not sure
+    int CtbSizeY = 1 << (pps->pps_log2_ctu_size_minus5 + 5);
+    int PicWidthInCtbsY = ceil(pps->pps_pic_width_in_luma_samples / CtbSizeY);
+    int PicHeightInCtbsY = ceil(pps->pps_pic_height_in_luma_samples / CtbSizeY);
+    int remainingWidthInCtbsY = PicWidthInCtbsY;
+    for (int i = 0; i <= pps->pps_num_exp_tile_columns_minus1; i++) {
+        int tileColWidth = pps->pps_tile_column_width_minus1[i] + 1;
+        remainingWidthInCtbsY -= tileColWidth;
+    }
+
+    if (remainingWidthInCtbsY > 0) {
+        int lastColWidth = pps->pps_tile_column_width_minus1[pps->pps_num_exp_tile_columns_minus1] + 1;
+        NumTileColumns = pps->pps_num_exp_tile_columns_minus1 + 1 + 
+                         ceil(remainingWidthInCtbsY / (float)lastColWidth);
+    } else {
+        NumTileColumns = pps->pps_num_exp_tile_columns_minus1 + 1;
+    }
+    int remainingHeightInCtbsY = PicHeightInCtbsY;
+    for (int i = 0; i <= pps->pps_num_exp_tile_rows_minus1; i++) {
+        int tileRowHeight = pps->pps_tile_row_height_minus1[i] + 1;
+        remainingHeightInCtbsY -= tileRowHeight;
+    }
+    if (remainingHeightInCtbsY > 0) {
+        int lastRowHeight = pps->pps_tile_row_height_minus1[pps->pps_num_exp_tile_rows_minus1] + 1;
+        NumTileRows = pps->pps_num_exp_tile_rows_minus1 + 1 + 
+                      ceil(remainingHeightInCtbsY / (float)lastRowHeight);
+    } else {
+        NumTileRows = pps->pps_num_exp_tile_rows_minus1 + 1;
+    }
+
     //NumTilesInPic is set equal to NumTileColumns * NumTileRows.
-    uint32_t NumTileColumns = 4;  // default value i m not say how to get this value for this moment
-    uint32_t NumTileRows = 3;     // default value i m not say how to get this value for this moment
     uint32_t NumTilesInPic = NumTileColumns * NumTileRows;
 
     if( NumTilesInPic > 1 ) {
@@ -379,11 +413,163 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
           TRUE_OR_RETURN(br->ReadBool(&pps->pps_tile_idx_delta_present_flag));
       }
       // #### I don't know populate this variable     check slice header 
+#if 0
+//move to slice header parse
+void decode_slice_top_left_tile_idx(Bitstream *bs, PPS *pps, SliceHeader *sh) {
+    if (pps->pps_rect_slice_flag && pps->NumTilesInPic > 1) {
+        // Calculer le nombre de bits nécessaires
+        int num_bits = CeilLog2(pps->NumTilesInPic);
+        
+        printf("Lecture de SliceTopLeftTileIdx sur %d bits...\n", num_bits);
+        
+        // Lire depuis le bitstream
+        sh->SliceTopLeftTileIdx = read_bits(bs, num_bits);
+        
+        printf("SliceTopLeftTileIdx = %u\n", sh->SliceTopLeftTileIdx);
+        
+        // Vérification
+        if (sh->SliceTopLeftTileIdx >= pps->NumTilesInPic) {
+            fprintf(stderr, "ERREUR: SliceTopLeftTileIdx (%u) >= NumTilesInPic (%u)\n",
+                    sh->SliceTopLeftTileIdx, pps->NumTilesInPic);
+            sh->SliceTopLeftTileIdx = 0;
+        }
+    } else {
+        // Pas de tiling rectangulaire ou une seule tile
+        sh->SliceTopLeftTileIdx = 0;
+        printf("SliceTopLeftTileIdx = 0 (pas de multi-tiling ou mode raster-scan)\n");
+    }
+}
+#endif
+
       std::vector<uint32_t> SliceTopLeftTileIdx; // I don't know populate this variable
+      u_int tmp_pps_slice_width_in_tiles_minus1 = 0;
       for( int i = 0; i < pps->pps_num_slices_in_pic_minus1; i++ ) {
         if( SliceTopLeftTileIdx[ i ] % NumTileColumns != NumTileColumns − 1 ){
+          TRUE_OR_RETURN(br->ReadUE(&tmp_pps_slice_width_in_tiles_minus1));
+          pps->pps_slice_width_in_tiles_minus1.push_back(tmp_pps_slice_width_in_tiles_minus1);  
+        }
+        if( SliceTopLeftTileIdx[ i ] / NumTileColumns != NumTileRows − 1 && ( pps->pps_tile_idx_delta_present_flag || SliceTopLeftTileIdx[ i ] % NumTileColumns = = 0 ) ){
+          TRUE_OR_RETURN(br->ReadUE(&tmp_pps_slice_height_in_tiles_minus1));
+          pps->pps_slice_height_in_tiles_minus1.push_back(tmp_pps_slice_height_in_tiles_minus1);
+        }
+        u_int tmp_pps_num_exp_slices_in_tile = 0;
+        if( pps->pps_slice_width_in_tiles_minus1[ i ] == 0 && pps->pps_slice_height_in_tiles_minus1[ i ] == 0 && RowHeightVal[ SliceTopLeftTileIdx[ i ] / NumTileColumns ] > 1 ) {
+          TRUE_OR_RETURN(br->ReadUE(&tmp_pps_num_exp_slices_in_tile));
+          pps->pps_num_exp_slices_in_tile.push_back(tmp_pps_num_exp_slices_in_tile);
+          // not sure how to populate this variable
+          std::vector<uint32_t> NumSlicesInTile;
+          NumSlicesInTile.assign(NumTilesInPic, 0);
+          for (uint32_t sliceIdx = 0; sliceIdx < SliceTopLeftTileIdx.size(); sliceIdx++) {
+            uint32_t tileIdx = SliceTopLeftTileIdx[sliceIdx];
+            if (tileIdx < NumSlicesInTile.size()) {
+              NumSlicesInTile[tileIdx]++;
+            }
+          }
+
+
+          for( int j = 0; j < pps->pps_num_exp_slices_in_tile[ i ]; j++ ){
+            u_int tmp_pps_exp_slice_height_in_ctus_minus1 = 0;
+            TRUE_OR_RETURN(br->ReadUE(&tmp_pps_exp_slice_height_in_ctus_minus1));
+            pps->pps_exp_slice_height_in_ctus_minus1[i][j] = tmp_pps_exp_slice_height_in_ctus_minus1;
+            i += NumSlicesInTile[i] -1; 
+          }
+          if( pps->pps_tile_idx_delta_present_flag && i < pps->pps_num_slices_in_pic_minus1 ){
+            int tmp_pps_tile_idx_delta_val = 0;
+            TRUE_OR_RETURN(br->ReadSE(&tmp_pps_tile_idx_delta_val));
+            pps->pps_tile_idx_delta_val.push_back(tmp_pps_tile_idx_delta_val);
+          }
 
         }
+        if( !pps->pps_rect_slice_flag || pps->pps_single_slice_per_subpic_flag || pps->pps_num_slices_in_pic_minus1 > 0 ){
+          TRUE_OR_RETURN(br->ReadBool(&pps->pps_loop_filter_across_slices_enabled_flag));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&pps->pps_cabac_init_present_flag));
+        tmp_pps_num_ref_idx_default_active_minus1= 0;
+        for( i = 0; i < 2; i++ ) {
+          TRUE_OR_RETURN(br->ReadSE(&tmp_pps_num_ref_idx_default_active_minus1));
+          pps->pps_num_ref_idx_default_active_minus1.push_back(tmp_pps_num_ref_idx_default_active_minus1);
+        }
+        TRUE_OR_RETURN(br->ReadBool(&pps->pps_rpl1_idx_present_flag));
+        TRUE_OR_RETURN(br->ReadBool(&pps->pps_weighted_pred_flag));
+        TRUE_OR_RETURN(br->ReadBool(&pps->pps_weighted_bipred_flag));
+        TRUE_OR_RETURN(br->ReadBool(&pps->pps_ref_wraparound_enabled_flag));
+        if( pps->pps_ref_wraparound_enabled_flag ) {
+          TRUE_OR_RETURN(br->ReadUE(&pps->pps_pic_width_minus_wraparound_offset));
+        }
+        TRUE_OR_RETURN(br->ReadSE(&pps->pps_pic_init_qp_minus26));
+        TRUE_OR_RETURN(br->ReadBool(&pps->pps_cu_qp_delta_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool(&pps->pps_chroma_tool_offsets_present_flag));
+        if( pps->pps_chroma_tool_offsets_present_flag ) {
+          TRUE_OR_RETURN(br->ReadSE(&pps->pps_cb_qp_offset));
+          TRUE_OR_RETURN(br->ReadSE(&pps->pps_cr_qp_offset));
+          TRUE_OR_RETURN(br->ReadBool(&pps->pps_joint_cbcr_qp_offset_present_flag));
+          if( pps->pps_joint_cbcr_qp_offset_present_flag ) {
+            TRUE_OR_RETURN(br->ReadSE(&pps->pps_joint_cbcr_qp_offset_value));
+          }
+          TRUE_OR_RETURN(br->ReadBool(&pps->pps_slice_chroma_qp_offsets_present_flag));
+          TRUE_OR_RETURN(br->ReadBool(&pps->pps_cu_chroma_qp_offset_list_enabled_flag));
+          if( pps->pps_cu_chroma_qp_offset_list_enabled_flag ) {
+            TRUE_OR_RETURN(br->ReadUE(&pps->pps_cu_chroma_qp_offset_list_len_minus1));
+          }
+          for( int i = 0; i <= pps->pps_chroma_qp_offset_list_len_minus1; i++ ){
+            int tmp_pps_cb_qp_offset_list = 0;
+            TRUE_OR_RETURN(br->ReadSE(&tmp_pps_cb_qp_offset_list));
+            pps->pps_cb_qp_offset_list.push_back(tmp_pps_cb_qp_offset_list);
+            int tmp_pps_cr_qp_offset_list = 0;
+            TRUE_OR_RETURN(br->ReadSE(&tmp_pps_cr_qp_offset_list));
+            pps->pps_cr_qp_offset_list.push_back(tmp_pps_cr_qp_offset_list);
+            if( pps->pps_joint_cbcr_qp_offset_present_flag ) {
+              int tmp_pps_joint_cbcr_qp_offset_list = 0;
+              TRUE_OR_RETURN(br->ReadSE(&tmp_pps_joint_cbcr_qp_offset_list));
+              pps->pps_joint_cbcr_qp_offset_list.push_back(tmp_pps_joint_cbcr_qp_offset_list);
+            }
+          }
+        }
+        TRUE_OR_RETURN(br->ReadBool(&pps->pps_deblocking_filter_control_present_flag));
+        if( pps->pps_deblocking_filter_control_present_flag ) {
+          TRUE_OR_RETURN(br->ReadBool(&pps->pps_deblocking_filter_override_enabled_flag));
+          TRUE_OR_RETURN(br->ReadBool(&pps->pps_deblocking_filter_disabled_flag));
+          if( !pps->pps_no_pic_partition_flag && pps->pps_deblocking_filter_override_enabled_flag ) {
+            TRUE_OR_RETURN(br->ReadBool(&pps->pps_dbf_info_in_ph_flag));
+          }
+          if( !pps->pps_deblocking_filter_disabled_flag ) {
+            TRUE_OR_RETURN(br->ReadSE(&pps->pps_luma_beta_offset_div2));
+            TRUE_OR_RETURN(br->ReadSE(&pps->pps_luma_tc_offset_div2));
+            if( pps->chroma_tool_offsets_present_flag ) {
+              TRUE_OR_RETURN(br->ReadSE(&pps->pps_cb_beta_offset_div2));
+              TRUE_OR_RETURN(br->ReadSE(&pps->pps_cb_tc_offset_div2));
+              TRUE_OR_RETURN(br->ReadSE(&pps->pps_cr_beta_offset_div2));
+              TRUE_OR_RETURN(br->ReadSE(&pps->pps_cr_tc_offset_div2));
+            }
+        }
+      }
+      if( !pps->pps_no_pic_partition_flag ) {
+        TRUE_OR_RETURN(br->ReadBool(&pps->pps_rpl_info_in_ph_flag));
+        TRUE_OR_RETURN(br->ReadBool(&pps->pps_sao_info_in_ph_flag));
+        TRUE_OR_RETURN(br->ReadBool(&pps->pps_alf_info_in_ph_flag));
+        if( ( pps->pps_weighted_pred_flag || pps->pps_weighted_bipred_flag ) && pps->pps_rpl_info_in_ph_flag ){
+          TRUE_OR_RETURN(br->ReadBool(&pps->pps_wp_info_in_ph_flag));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&pps->pps_qp_delta_info_in_ph_flag));
+      }
+      
+      TRUE_OR_RETURN(br->ReadBool(&pps->pps_slice_header_extension_present_flag));
+      TRUE_OR_RETURN(br->ReadBool(&pps->pps_slice_header_extension_present_flag));
+      TRUE_OR_RETURN(br->ReadBool(&pps->pps_extension_flag));
+      if( pps->pps_extension_flag ) {
+        
+        while( more_rbsp_data( ) ) {
+          TRUE_OR_RETURN(br->ReadBool(&pps->pps_extension_data_flag));
+        }
+      }
+
+
+
+
+
+
+
+        
       }
   }
 

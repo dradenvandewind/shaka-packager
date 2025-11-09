@@ -169,11 +169,14 @@ struct H266Pps {
   std::vector<int> pps_slice_width_in_tiles_minus1;
   std::vector<int> pps_slice_height_in_tiles_minus1;
   std::vector<int> pps_num_exp_slices_in_tile;
-  std::vector<int> pps_exp_slice_height_in_ctus_minus1[256]; //256 not sure need check  
+  //std::vector<int> pps_exp_slice_height_in_ctus_minus1[256]; //256 not sure need check 
+  std::vector<std::vector<uint32_t>> pps_exp_slice_height_in_ctus_minus1; 
   std::vector<int> pps_tile_idx_delta_val; //256 not sure need check
 
   bool pps_loop_filter_across_slices_enabled_flag = false;
   bool pps_cabac_init_present_flag = false;
+  std::vector<int> pps_num_ref_idx_default_active_minus1; 
+
 
   std::vector<int> pps_num_ref_idx_default_active_minus1; //256 not sure need check
   bool pps_rpl1_idx_present_flag = false;
@@ -197,6 +200,11 @@ struct H266Pps {
   std::vector<int> pps_qp_offset_list; //256 not sure need check
   std::vector<int> pps_cr_qp_offset_list;
   std::vector<int> pps_joint_cbcr_qp_offset_list;
+  std::vector<int> pps_cb_qp_offset_list;
+  std::vector<int> pps_cr_qp_offset_list;
+  
+
+
 
   bool pps_deblocking_filter_control_present_flag = false;
   bool pps_deblocking_filter_override_enabled_flag = false;
