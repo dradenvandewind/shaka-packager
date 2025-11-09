@@ -141,9 +141,228 @@ struct H266Sps {
   bool IsValidBitDepth() const;
 
 
-  int sps_seq_parameter_set_id = 0;
+  int sps_seq_parameter_set_id = 0; // 4 bits
   int vps_id = 0;  // H.266 uses vps_id directly in SPS
-  int max_sublayers_minus1 = 0;
+  int sps_video_parameter_set_id = 0;  // 4 bits
+  int max_sublayers_minus1 = 0;// 3 bits
+  int sps_chroma_format_idc = 1; // default to 4:2:0
+  int sps_log2_ctu_size_minus5 = 0; // default to 0 (32x32 CTU) 2 bits
+  bool sps_ptl_dpb_hrd_params_present_flag = false;
+  bool sps_gdr_enabled_flag = false;
+  bool sps_ref_pic_resampling_enabled_flag = false;
+  bool sps_res_change_in_clvs_allowed_flag = false;
+  int sps_pic_width_in_luma_samples = 0;
+  int sps_pic_width_max_in_luma_samples = 0;
+
+  bool sps_conformance_window_flag = false;
+  int sps_conf_win_left_offset = 0;
+  int sps_conf_win_right_offset = 0;
+  int sps_conf_win_top_offset = 0;
+  int sps_conf_win_bottom_offset = 0;
+
+  bool sps_subpic_info_present_flag = false;
+  int sps_num_subpics_minus1 = 0;
+  bool sps_independent_subpics_flag = false;
+  bool sps_subpic_same_size_flag = false;
+  std::vector<int> sps_subpic_top_left_x;
+  std::vector<int> sps_subpic_top_left_y;
+  std::vector<int> sps_subpic_width_minus1;
+  std::vector<int> sps_subpic_height_minus1;
+  std::vector<bool> sps_subpic_treated_as_pic_flag;
+  std::vector<bool> sps_loop_filter_across_subpic_enabled_flag;
+  bool sps_subpic_id_len_minus1 = false;
+  bool sps_subpic_id_mapping_explicitly_signalled_flag = false;
+  bool sps_subpic_id_mapping_present_flag = false;
+  std::vector<uint32_t> sps_subpic_id;
+  int sps_bitdepth_minus8 = 0;
+  bool sps_entropy_coding_sync_enabled_flag = false;
+  bool sps_entry_point_offsets_present_flag = false;
+  int sps_log2_max_pic_order_cnt_lsb_minus4 = 0;
+  bool sps_poc_msb_cycle_flag = false;
+  int sps_poc_msb_cycle_len_minus1 = 0;
+  int sps_num_extra_ph_bytes = 0;
+  std::vector<bool> sps_extra_ph_bit_present_flag[256];//256 not sure need check
+  int sps_num_extra_sh_bytes = 0;
+  std::vector<bool> sps_extra_sh_bit_present_flag[256];//256 not sure need check
+  bool sps_sublayer_dpb_params_flag = false;
+  int sps_log2_min_luma_coding_block_size_minus2 = 0;
+  bool sps_partition_constraints_override_enabled_flag = false;
+  int sps_log2_diff_min_qt_min_cb_intra_slice_luma = 0;
+  int sps_max_mtt_hierarchy_depth_intra_slice_luma = 0;
+  int sps_log2_diff_max_bt_min_qt_intra_slice_luma = 0;
+  int sps_log2_diff_max_tt_min_qt_intra_slice_luma = 0;
+
+  bool sps_qtbtt_dual_tree_intra_flag = false;
+  int sps_log2_diff_min_qt_min_cb_intra_slice_chroma = 0;
+  int sps_log2_diff_max_tt_min_qt_intra_slice_chroma = 0;
+
+  int sps_log2_diff_min_qt_min_cb_inter_slice = 0;
+  int sps_max_mtt_hierarchy_depth_inter_slice = 0;
+
+  int sps_log2_diff_max_bt_min_qt_inter_slice = 0;
+  int sps_log2_diff_max_tt_min_qt_inter_slice = 0;
+
+  bool sps_max_luma_transform_size_64_flag = false;
+  bool sps_transform_skip_enabled_flag = false;
+
+  int sps_log2_transform_skip_max_size_minus2 = 0;
+  int sps_bdpcm_enabled_flag = 0;
+  
+  bool sps_mts_enabled_flag = false;
+  bool sps_explicit_mts_intra_enabled_flag = false;
+  bool sps_explicit_mts_inter_enabled_flag = false;
+  bool sps_lfnst_enabled_flag = false;
+  bool sps_joint_cbcr_enabled_flag = false;
+  bool sps_same_qp_table_for_chroma_flag = false;
+
+  std::vector <int> sps_qp_table_start_minus26[24];//not sure need check
+  std::vector <int> sps_num_points_in_qp_table_minus1[24];//not sure need check
+  std::vector <int> sps_delta_qp_in_val_minus1[24][24];//not sure need check
+  std::vector <int> sps_delta_qp_diff_val[24][24];//not sure need check
+
+  bool sps_sao_enabled_flag = false;
+  bool sps_ccalf_enabled_flag = false;
+  bool sps_lmcs_enabled_flag = false;
+  bool sps_weighted_pred_flag = false;
+  bool sps_weighted_bipred_flag = false;
+  bool sps_long_term_ref_pics_flag = false;
+  bool sps_inter_layer_prediction_enabled_flag = false;
+  bool sps_idr_rpl_present_flag = false;
+  bool sps_rpl1_same_as_rpl0_flag = false;
+
+  bool sps_ref_wraparound_enabled_flag = false;
+  bool sps_temporal_mvp_enabled_flag = false;
+  bool sps_sbtmvp_enabled_flag = false;
+  bool sps_amvr_enabled_flag = false;
+  bool sps_bdof_enabled_flag = false;
+  bool sps_bdof_control_present_in_ph_flag = false;
+  bool sps_smvd_enabled_flag = false;
+  bool sps_dmvr_enabled_flag = false;
+
+  bool sps_dmvr_control_present_in_ph_flag = false;
+  bool sps_mmvd_enabled_flag = false;
+
+  bool sps_mmvd_fullpel_only_enabled_flag = false;
+  int sps_six_minus_max_num_merge_cand = false;
+  bool sps_sbt_enabled_flag = false;
+  bool sps_affine_enabled_flag = false;
+
+  int sps_five_minus_max_num_subblock_merge_cand = 0;
+  bool sps_6param_affine_enabled_flag = false;
+
+  bool sps_affine_amvr_enabled_flag = false;
+  bool sps_affine_prof_enabled_flag = false;
+
+  bool sps_prof_control_present_in_ph_flag = false;
+  bool sps_bcw_enabled_flag = false;
+  
+  bool sps_ciip_enabled_flag = false;
+  bool sps_gpm_enabled_flag = false;
+
+  int sps_max_num_merge_cand_minus_max_num_gpm_cand = 0;
+  int sps_log2_parallel_merge_level_minus2 = 0;
+  bool sps_isp_enabled_flag = false;
+  bool sps_mrl_enabled_flag = false;
+  bool sps_mip_enabled_flag = false;
+
+  bool sps_cclm_enabled_flag = false;
+
+  bool sps_chroma_horizontal_collocated_flag = false;
+  bool sps_chroma_vertical_collocated_flag = false;
+
+  bool sps_palette_enabled_flag = false;
+  bool sps_act_enabled_flag = false;
+
+  int sps_min_qp_prime_ts = 0;
+  bool sps_ibc_enabled_flag = false;
+
+  int sps_six_minus_max_num_ibc_merge_cand = 0;
+
+  bool sps_ladf_enabled_flag = false;
+
+  int sps_num_ladf_intervals_minus2 = 0;
+  int sps_ladf_lowest_interval_qp_offset = 0;
+
+  std::vector<int> sps_ladf_qp_offset[3]; //3 not sure need check sps_num_ladf_intervals_minus2
+  std::vector<int> sps_ladf_delta_threshold_minus1[3];//3 not sure need check
+
+  bool sps_explicit_scaling_list_enabled_flag = false;
+  bool sps_scaling_matrix_for_lfnst_disabled_flag = false;
+
+  bool sps_scaling_matrix_for_alternative_colour_space_disabled_flag = false;
+  bool sps_scaling_matrix_designated_colour_space_flag = false;
+  bool sps_dep_quant_enabled_flag = false;
+  bool sps_sign_data_hiding_enabled_flag = false;
+
+  bool sps_virtual_boundaries_enabled_flag = false;
+  bool sps_virtual_boundaries_present_flag = false;
+
+  int sps_num_ver_virtual_boundaries = 0;
+
+  std::vector <int> sps_virtual_boundary_pos_x_minus1[12];//i = sps_num_ver_virtual_boundaries
+  int sps_num_hor_virtual_boundaries = 0;
+
+  std::vector <int> sps_virtual_boundary_pos_y_minus1[12];//i = sps_num_hor_virtual_boundaries  
+
+  bool sps_timing_hrd_params_present_flag = false;
+  bool sps_sublayer_cpb_params_present_flag = false;
+
+  bool sps_vui_parameters_present_flag = false;
+  bool sps_sublayer_cpb_params_present_flag = false;
+
+  bool sps_field_seq_flag = false;
+  bool sps_vui_parameters_present_flag = false;
+
+  int sps_vui_payload_size_minus1 = 0;  
+
+  bool sps_vui_alignment_zero_bits = false;
+  bool sps_extension_flag = false;
+
+  bool sps_range_extension_flag = false;
+  bool sps_extension_7bits_flag = false;
+
+  bool sps_extension_data_flag = false;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   bool sps_temporal_id_nesting_flag = false;
 
   // H.266 profile_tier_level structure
@@ -211,6 +430,7 @@ struct H266RepFormat {
   int conf_win_vps_top_offset = 0;
   int conf_win_vps_bottom_offset = 0;
 };
+bool sps_subpic_info_present_flag =
 
 struct H266ProfileTierLevel {
   uint8_t general_profile_idc;
@@ -236,11 +456,15 @@ struct H266Vps {
     kNone = 16
   };
 
-  int vps_video_parameter_set_id;
+  int vps_video_parameter_set_id; //4 bits
   //int vps_max_layers_minus1;
-  uint32_t vps_max_layers_minus1;
+  uint32_t vps_max_layers_minus1; //6 bits
+  int vps_max_sublayers_minus1; //3 bits
+  bool vps_default_ptl_dpb_hrd_max_tid_flag; //bool
+  bool vps_all_independent_layers_flag; //bool
 
-  int vps_max_sublayers_minus1;
+  std::vector<uint8_t> vpsLayerId; // 6 bits each, size = vpsMaxLayersMinus1 + 1
+  std::vector<bool> vps_independent_layer_flag;
 
   // Timing info in VPS (H.266 specific)
   bool vps_timing_info_present_flag;
@@ -271,7 +495,7 @@ struct H266Vps {
 
   /*                */
   bool vps_default_output_layer_idc;
-  bool vps_all_independent_layers_flag;
+  //bool vps_all_independent_layers_flag;
   //std::vector<uint32_t> layer_id_included_flag;
   std::vector<bool> layer_id_included_flag;
 
