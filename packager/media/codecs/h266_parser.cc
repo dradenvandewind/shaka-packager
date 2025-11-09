@@ -557,72 +557,15 @@ void decode_slice_top_left_tile_idx(Bitstream *bs, PPS *pps, SliceHeader *sh) {
       TRUE_OR_RETURN(br->ReadBool(&pps->pps_slice_header_extension_present_flag));
       TRUE_OR_RETURN(br->ReadBool(&pps->pps_extension_flag));
       if( pps->pps_extension_flag ) {
-        
-        while( more_rbsp_data( ) ) {
+        //while( more_rbsp_data( ) ) {
           TRUE_OR_RETURN(br->ReadBool(&pps->pps_extension_data_flag));
-        }
+        //}
+      //rbsp_trailing_bits( )
       }
-
-
-
-
-
-
 
         
       }
   }
-
-
-
-
-
-  
-
-
-
-  
-  TRUE_OR_RETURN(br->ReadBool(&pps->no_qp_delta_flag));
-  TRUE_OR_RETURN(br->ReadSE(&pps->init_qp_minus26));
-  
-  TRUE_OR_RETURN(br->ReadBool(&pps->cu_qp_delta_enabled_flag));
-  if (pps->cu_qp_delta_enabled_flag) {
-    TRUE_OR_RETURN(br->ReadUE(&pps->cu_chroma_qp_offset_list_len_minus1));
-  }
-
-  // Deblocking filter parameters
-  TRUE_OR_RETURN(br->ReadBool(&pps->deblocking_filter_override_enabled_flag));
-  TRUE_OR_RETURN(br->ReadBool(&pps->deblocking_filter_disabled_flag));
-  TRUE_OR_RETURN(br->ReadSE(&pps->deblocking_filter_beta_offset_div2));
-  TRUE_OR_RETURN(br->ReadSE(&pps->deblocking_filter_tc_offset_div2));
-
-  // Weighted prediction
-  TRUE_OR_RETURN(br->ReadBool(&pps->weighted_pred_flag));
-  TRUE_OR_RETURN(br->ReadBool(&pps->weighted_bipred_flag));
-
-  // Tiles
-  TRUE_OR_RETURN(br->ReadBool(&pps->tiles_enabled_flag));
-  if (pps->tiles_enabled_flag) {
-    TRUE_OR_RETURN(br->ReadBool(&pps->uniform_tile_spacing_flag));
-    TRUE_OR_RETURN(br->ReadUE(&pps->num_tile_columns_minus1));
-    TRUE_OR_RETURN(br->ReadUE(&pps->num_tile_rows_minus1));
-    
-    if (!pps->uniform_tile_spacing_flag) {
-      pps->tile_column_width_minus1.resize(pps->num_tile_columns_minus1);
-      for (int i = 0; i < pps->num_tile_columns_minus1; i++) {
-        TRUE_OR_RETURN(br->ReadUE(&pps->tile_column_width_minus1[i]));
-      }
-      
-      pps->tile_row_height_minus1.resize(pps->num_tile_rows_minus1);
-      for (int i = 0; i < pps->num_tile_rows_minus1; i++) {
-        TRUE_OR_RETURN(br->ReadUE(&pps->tile_row_height_minus1[i]));
-      }
-    }
-    
-    TRUE_OR_RETURN(br->ReadBool(&pps->loop_filter_across_tiles_enabled_flag));
-  }
-
-  // Additional H.266 PPS fields would be parsed here...
 
   // This will replace any existing PPS instance.
   *pps_id = pps->pic_parameter_set_id;
