@@ -5,7 +5,7 @@
 // https://developers.google.com/open-source/licenses/bsd
 
 #include <packager/media/codecs/h266_parser.h>
-//#include "packager/media/codecs/h26x_bit_reader.h"
+#include "packager/media/codecs/h26x_bit_reader.h"
 
 
 #include <algorithm>
@@ -168,6 +168,8 @@ H266SliceHeader::H266SliceHeader() {}
 H266SliceHeader::~H266SliceHeader() {}
 
 int H266Sps::GetPicSizeInCtbsY() const {
+  LOG(INFO) << "Calculating Pic Size in CTBs for H.266 SPS";
+
   // H.266 uses different calculation than H.265
   int min_cb_log2_size_y = log2_min_luma_coding_block_size_minus2 + 2;
   int ctb_log2_size_y = min_cb_log2_size_y + log2_ctu_size_minus5 + 5;
@@ -206,6 +208,8 @@ H266Parser::~H266Parser() {}
 
 H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
                                                 H266SliceHeader* slice_header) {
+  LOG(INFO) << "Parsing H.266 Slice Header NALU";
+
   DCHECK(nalu.is_video_slice());
   *slice_header = H266SliceHeader();
 
@@ -298,6 +302,7 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
 
 H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   DCHECK_EQ(Nalu::H266_PPS_NUT, nalu.type());
+  LOG(INFO) << "Parsing H.266 PPS NALU";
 
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
@@ -361,6 +366,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
 H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   DCHECK_EQ(Nalu::H266_SPS_NUT, nalu.type());
+  LOG(INFO) << "Parsing H.266 SPS NALU";
 
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
@@ -426,6 +432,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
 #if 0
 H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   DCHECK_EQ(Nalu::H266_VPS_NUT, nalu.type());
+  LOG(INFO) << "Parsing H.266 VPS NALU";
 
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
@@ -478,6 +485,8 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 H266Parser::Result H266Parser::ParseAps(const Nalu& nalu, int* aps_id, int* aps_type) {
   DCHECK(nalu.type() == Nalu::H266_PREFIX_APS_NUT || 
          nalu.type() == Nalu::H266_SUFFIX_APS_NUT);
+  LOG(INFO) << "Parsing H.266 APS NALU";
+
 
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
@@ -503,7 +512,7 @@ H266Parser::Result H266Parser::ParseAps(const Nalu& nalu, int* aps_id, int* aps_
 H266Parser::Result H266Parser::ParsePictureHeader(const Nalu& nalu,
                                                   H266PictureHeader* picture_header) {
   DCHECK_EQ(Nalu::H266_PH_NUT, nalu.type());
-
+  LOG(INFO) << "Parsing H.266 Picture Header NALU"; 
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
   H26xBitReader* br = &reader;
@@ -599,6 +608,7 @@ H266Parser::Result H266Parser::ParseVuiParameters(int max_num_sub_layers_minus1,
                                                   H266VuiParameters* vui) {
   // Reads whole element but ignores most of it.
   int ignored;
+  LOG(INFO) << "Parsing H.266 VUI parameters";
 
   TRUE_OR_RETURN(br->ReadBool(&vui->aspect_ratio_info_present_flag));
   if (vui->aspect_ratio_info_present_flag) {
@@ -660,6 +670,7 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
                                                      int max_num_sub_layers_minus1,
                                                      H26xBitReader* br) {
   // Simplified profile/tier/level parsing for H.266
+  LOG(INFO) << "Parsing H.266 Profile Tier Level";
   if (profile_tier_present) {
     // Skip general_profile_tier_level data
     TRUE_OR_RETURN(br->SkipBits(12 * 8));  // 12 bytes
@@ -685,6 +696,7 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
 H266Parser::Result H266Parser::SkipScalingListData(H26xBitReader* br) {
   // H.266 scaling list data parsing would go here
   // Similar to H.265 but with potential differences
+  LOG(INFO) << "Skipping H.266 Scaling List Data";
   int ignored;
   for (int size_id = 0; size_id < 4; size_id++) {
     for (int matrix_id = 0; matrix_id < 6;
@@ -708,6 +720,7 @@ H266Parser::Result H266Parser::SkipScalingListData(H26xBitReader* br) {
 }
 
 H266Parser::Result H266Parser::ByteAlignment(H26xBitReader* br) {
+  LOG(INFO) << "Performing byte alignment";
   TRUE_OR_RETURN(br->SkipBits(1));
   TRUE_OR_RETURN(br->SkipBits(br->NumBitsLeft() % 8));
   return kOk;
@@ -718,6 +731,7 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
                                                H266SliceHeader* slice_header,
                                                const H266PictureHeader* picture_header) {
   // Implementation would use picture_header context
+  LOG(INFO) << "STUB Parsing H.266 Slice Header with Picture Header context";
 
   //todo 
   return ParseSliceHeader(nalu, slice_header);
@@ -751,16 +765,19 @@ H266Parser::Result H266Parser::ParseReferencePictureList(const H266Sps& sps,
 }
 
 H266Parser::Result H266Parser::SkipAlfData(H26xBitReader* br) {
+  LOG(INFO) << "STUB Skipping H.266 ALF Data";
   // Stub implementation
   return kOk;
 }
 
 H266Parser::Result H266Parser::SkipLmcsData(H26xBitReader* br) {
+  LOG(INFO) << "STUB Skipping H.266 LMCS Data";
   // Stub implementation
   return kOk;
 }
 
 H266Parser::Result H266Parser::ParseOlsIds(H26xBitReader* br, std::vector<int>* ols_ids) {
+  LOG(INFO) << "STUB Parsing H.266 OLS IDs";
   // Stub implementation
   return kOk;
 }
@@ -769,16 +786,19 @@ H266Parser::Result H266Parser::ParseDpbParameters(int max_sublayers_minus1,
                                                  bool sublayer_info_flag,
                                                  H26xBitReader* br) {
   // Stub implementation
+  LOG(INFO) << "STUB Parsing H.266 DPB Parameters";
   return kOk;
 }
 
 H266Parser::Result H266Parser::ParseGeneralConstraintsInfo(H26xBitReader* br) {
   // Stub implementation
+  LOG(INFO) << "STUB Parsing H.266 General Constraints Info";
   return kOk;
 }
 #endif 
 H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   DCHECK_EQ(Nalu::H266_VPS_NUT, nalu.type());
+  LOG(INFO) << "Parsing H.266 VPS NALU";
 
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
@@ -880,6 +900,8 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
                                                      int max_num_sub_layers_minus1,
                                                      H26xBitReader* br,
                                                      H266ProfileTierLevel* ptl) {
+  LOG(INFO) << "Parsing H.266 Profile Tier Level";
+
   if (profile_tier_present) {
     // General profile tier level
     //TRUE_OR_RETURN(br->ReadBits(7, &ptl->general_profile_idc));
@@ -932,6 +954,8 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
 bool H266Parser::ParseNalUnits(const uint8_t* data,
                                size_t size,
                                std::vector<NalUnit>* nal_units) {
+  LOG(INFO) << "Parsing H.266 NAL units from buffer";
+
   if (!data || size == 0 || !nal_units) {
     LOG(ERROR) << "Invalid parameters to ParseNalUnits";
     return false;

@@ -67,6 +67,7 @@ bool EsParserH266::ProcessNalu(const Nalu& nalu,
                                VideoSliceInfo* video_slice_info) {
   DCHECK(nalu.data());
   DCHECK(video_slice_info);
+  LOG(INFO) << "Processing H.266 NALU of type: " << nalu.type();
 
   const int nalu_type = nalu.type();
 
@@ -112,6 +113,7 @@ bool EsParserH266::ProcessNalu(const Nalu& nalu,
 }
 
 void EsParserH266::Reset() {
+  LOG(INFO) << "Resetting EsParserH266 state.";
   current_access_unit_.clear();
   current_access_unit_pts_ = -1;
   current_access_unit_dts_ = -1;
@@ -149,6 +151,7 @@ constexpr int64_t kMicrosecondsPerSecond = 1000000;
 
 
 int64_t EsParserH266::GetSampleDurationFromSps(int pps_id) {
+  LOG(INFO) << "Getting sample duration from SPS for PPS ID: " << pps_id;
   static constexpr int64_t kMinValidDuration = 1000;   // 1ms
   static constexpr int64_t kMaxValidDuration = 1000000; // 1s
 
@@ -203,6 +206,7 @@ int64_t EsParserH266::GetSampleDurationFromSps(int pps_id) {
 }
 
 int64_t EsParserH266::CalculateDurationFromRecentTimestamps() {
+  LOG(INFO) << "Calculating duration from recent timestamps.";
   if (timestamp_tracker_.size() < 2) {
     return 0;
   }
@@ -227,6 +231,7 @@ int64_t EsParserH266::CalculateDurationFromRecentTimestamps() {
 }
 
 int64_t EsParserH266::GetDefaultSampleDuration() {
+  LOG(INFO) << "Using default sample duration based on content type.";
   // Durées par défaut basées sur le type de contenu typique
    const int64_t kDefaultDurationUHD = 1000000 / 60;  // 60 fps pour UHD
   const int64_t kDefaultDurationHD = 1000000 / 30;   // 30 fps pour HD
@@ -249,6 +254,7 @@ int64_t EsParserH266::GetDefaultSampleDuration() {
   return kDefaultDurationHD;
 }
 std::shared_ptr<H266Sps> EsParserH266::GetSpsForPps(int pps_id) {
+  LOG(INFO) << "Getting SPS for PPS ID: " << pps_id;
   auto pps_iter = pps_map_.find(pps_id);
   if (pps_iter == pps_map_.end()) {
     return nullptr;
@@ -259,6 +265,7 @@ std::shared_ptr<H266Sps> EsParserH266::GetSpsForPps(int pps_id) {
 }
 
 std::shared_ptr<H266Sps> EsParserH266::GetLastActiveSps() {
+  LOG(INFO) << "Getting last active SPS.";
   if (!last_pps_) {
     return nullptr;
   }
@@ -268,6 +275,7 @@ std::shared_ptr<H266Sps> EsParserH266::GetLastActiveSps() {
 
 
 int64_t EsParserH266::CalculateSampleDuration(int pps_id) {
+  LOG(INFO) << "Calculating sample duration for PPS ID: " << pps_id;
   // 1. Essayer d'obtenir la durée depuis les paramètres VVC (SPS)
   int64_t duration_from_sps = GetSampleDurationFromSps(pps_id);
   if (duration_from_sps > 0) {
@@ -292,6 +300,8 @@ int64_t EsParserH266::CalculateSampleDuration(int pps_id) {
 
 bool EsParserH266::ProcessVclNalu(const Nalu& nalu,
                                   VideoSliceInfo* video_slice_info) {
+LOG(INFO) << "Processing VCL NALU of type: " << nalu.type();
+
 
   const bool is_key_frame = (nalu.type() == Nalu::H266_IDR_W_RADL ||
                                nalu.type() == Nalu::H266_IDR_N_LP);
@@ -323,6 +333,7 @@ bool EsParserH266::ProcessVclNalu(const Nalu& nalu,
 }
 
 void EsParserH266::ProcessOtherNonVclNalu(const Nalu& nalu) {
+  LOG(INFO) << "Processing non-VCL NALU of type: " << nalu.type();
   switch (nalu.type()) {
     case Nalu::H266_VPS_NUT: {
       int vps_id;
@@ -362,6 +373,7 @@ void EsParserH266::ProcessOtherNonVclNalu(const Nalu& nalu) {
 }
 
 bool EsParserH266::UpdateVideoDecoderConfig(int pps_id) {
+  LOG(INFO) << "Updating video decoder config for PPS ID: " << pps_id;
   const H266Pps* pps = parser_->GetPps(pps_id);
   const H266Sps* sps;
   if (!pps) {
