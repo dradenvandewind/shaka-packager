@@ -314,8 +314,88 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
   TRUE_OR_RETURN(br->ReadBits(6, &pps->pic_parameter_set_id));  // 6 bits 
   TRUE_OR_RETURN(br->ReadBits(4,&pps->seq_parameter_set_id));  // 4 bits
-  //TODO BELOW
-  // H.266 PPS has different fields than H.265
+  TRUE_OR_RETURN(br->ReadBool(&pps->pps_mixed_nalu_types_in_pic_flag));
+  TRUE_OR_RETURN(br->ReadUE(&pps->pps_pic_width_in_luma_samples));
+  TRUE_OR_RETURN(br->ReadUE(&pps->pps_pic_height_in_luma_samples));
+  TRUE_OR_RETURN(br->ReadBool(&pps->pps_conformance_window_flag));
+
+  if(pps->pps_conformance_window_flag){
+    TRUE_OR_RETURN(br->ReadUE(&pps->pps_conf_win_left_offset));
+    TRUE_OR_RETURN((br->ReadUE(&pps->pps_conf_win_left_offset)));
+    TRUE_OR_RETURN((br->ReadUE(&pps->pps_conf_win_top_offset)));
+    TRUE_OR_RETURN((br->ReadUE(&pps->pps_conf_win_bottom_offset)));
+  }
+  TRUE_OR_RETURN((br->ReadBool(&pps->pps_scaling_window_explicit_signalling_flag)));
+  if(pps->pps_scaling_window_explicit_signalling_flag){
+    TRUE_OR_RETURN((br->ReadSE(&pps->pps_scaling_win_left_offset)));
+    TRUE_OR_RETURN((br->ReadSE(&pps->pps_scaling_win_right_offset)));
+    TRUE_OR_RETURN((br->ReadSE(&pps->pps_scaling_win_top_offset)));
+    TRUE_OR_RETURN((br->ReadSE(&pps->pps_scaling_win_bottom_offset)));
+  }
+  TRUE_OR_RETURN(br->ReadBool(&pps->pps_output_flag_present_flag));
+  TRUE_OR_RETURN(br->ReadBool(&pps->pps_no_pic_partition_flag));
+  TRUE_OR_RETURN(br->ReadBool(&pps->pps_subpic_id_mapping_present_flag));
+  if(pps->pps_subpic_id_mapping_present_flag){
+    if(!pps->pps_no_pic_partition_flag){
+      TRUE_OR_RETURN((br->ReadUE(&pps->pps_num_subpics_minus1)));
+    }
+    TRUE_OR_RETURN((br->ReadUE(&pps->pps_num_subpics_minus1)));
+    u_int tmp_pps_subpic_id = 0;
+    for(u_int i = 0;i <= pps->pps_num_subpics_minus1;i++){
+      
+      TRUE_OR_RETURN(br->ReadBits(sps->sps_subpic_id_len_minus1, &tmp_pps_subpic_id));
+      pps->pps_subpic_id.push_back(tmp_pps_subpic_id);
+    }
+  }
+  if(!pps->pps_no_pic_partition_flag){
+    TRUE_OR_RETURN(br->ReadBits(2,&pps->pps_log2_ctu_size_minus5));  // 2 bits
+    TRUE_OR_RETURN(br->ReadUE(&pps->pps_num_exp_tile_columns_minus1));
+    TRUE_OR_RETURN(br->ReadUE(&pps->pps_num_exp_tile_rows_minus1));
+    u_int tmp_pps_tile_column_width_minus1 = 0;
+    for( u_int i = 0; i <= pps->pps_num_exp_tile_columns_minus1; i++ ){
+      TRUE_OR_RETURN(br->ReadUE(&tmp_pps_tile_column_width_minus1));
+      pps->pps_tile_column_width_minus1.push_back(tmp_pps_tile_column_width_minus1);
+    }
+    u_int tmp_pps_tile_row_height_minus1 = 0;
+    for( u_int i = 0; i <= pps->pps_num_exp_tile_rows_minus1; i++ ){
+      TRUE_OR_RETURN(br->ReadUE(&tmp_pps_tile_row_height_minus1));
+      pps->pps_tile_row_height_minus1.push_back(tmp_pps_tile_row_height_minus1);
+    }
+    //NumTilesInPic is set equal to NumTileColumns * NumTileRows.
+    uint32_t NumTileColumns = 4;  // default value i m not say how to get this value for this moment
+    uint32_t NumTileRows = 3;     // default value i m not say how to get this value for this moment
+    uint32_t NumTilesInPic = NumTileColumns * NumTileRows;
+
+    if( NumTilesInPic > 1 ) {
+        TRUE_OR_RETURN(br->ReadBool(&pps->pps_loop_filter_across_tiles_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool(&pps->pps_rect_slice_flag));
+    }
+    if(pps->pps_single_slice_per_subpic_flag){
+      TRUE_OR_RETURN(br->ReadBool(&pps->pps_subpic_id_mapping_present_flag));
+    }
+    if( pps->pps_rect_slice_flag && !pps->pps_single_slice_per_subpic_flag ) {
+      TRUE_OR_RETURN(br->ReadUE(&pps->pps_num_slices_in_pic_minus1));
+      if(pps->pps_num_slices_in_pic_minus1 > 1 ){
+          TRUE_OR_RETURN(br->ReadBool(&pps->pps_tile_idx_delta_present_flag));
+      }
+      // #### I don't know populate this variable     check slice header 
+      std::vector<uint32_t> SliceTopLeftTileIdx; // I don't know populate this variable
+      for( int i = 0; i < pps->pps_num_slices_in_pic_minus1; i++ ) {
+        if( SliceTopLeftTileIdx[ i ] % NumTileColumns != NumTileColumns − 1 ){
+
+        }
+      }
+  }
+
+
+
+
+
+  
+
+
+
+  
   TRUE_OR_RETURN(br->ReadBool(&pps->no_qp_delta_flag));
   TRUE_OR_RETURN(br->ReadSE(&pps->init_qp_minus26));
   

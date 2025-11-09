@@ -162,6 +162,7 @@ struct H266Pps {
 
   bool pps_loop_filter_across_tiles_enabled_flag = false;
   bool pps_rect_slice_flag = false;
+  
   bool pps_single_slice_per_subpic_flag = false;
   int pps_num_slices_in_pic_minus1 = 0;
   bool pps_tile_idx_delta_present_flag = false;
