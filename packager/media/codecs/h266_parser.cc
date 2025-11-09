@@ -310,10 +310,11 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
   *pps_id = -1;
   std::unique_ptr<H266Pps> pps(new H266Pps);
+  //pic_parameter_set_rbsp( ) 7.3.2.5
 
-  TRUE_OR_RETURN(br->ReadUE(&pps->pic_parameter_set_id));
-  TRUE_OR_RETURN(br->ReadUE(&pps->seq_parameter_set_id));
-
+  TRUE_OR_RETURN(br->ReadBits(6, &pps->pic_parameter_set_id));  // 6 bits 
+  TRUE_OR_RETURN(br->ReadBits(4,&pps->seq_parameter_set_id));  // 4 bits
+  //TODO BELOW
   // H.266 PPS has different fields than H.265
   TRUE_OR_RETURN(br->ReadBool(&pps->no_qp_delta_flag));
   TRUE_OR_RETURN(br->ReadSE(&pps->init_qp_minus26));
@@ -367,6 +368,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   DCHECK_EQ(Nalu::H266_SPS_NUT, nalu.type());
   LOG(INFO) << "Parsing H.266 SPS NALU";
+  //seq_parameter_set_rbsp( ) 7.3.2.4
 
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
@@ -375,9 +377,78 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   *sps_id = -1;
   std::unique_ptr<H266Sps> sps(new H266Sps);
 
-  TRUE_OR_RETURN(br->ReadUE(&sps->sps_seq_parameter_set_id));
-  TRUE_OR_RETURN(br->ReadUE(&sps->vps_id));
+  TRUE_OR_RETURN(br->ReadBits(4,&sps->sps_seq_parameter_set_id));
+  TRUE_OR_RETURN(br->ReadBits(4,&sps->sps_video_parameter_set_id));
   TRUE_OR_RETURN(br->ReadBits(3, &sps->max_sublayers_minus1));
+  TRUE_OR_RETURN(br->ReadBits(2, &sps->sps_chroma_format_idc));
+  TRUE_OR_RETURN(br->ReadBits(2, &sps->sps_log2_ctu_size_minus5));
+  TRUE_OR_RETURN(br->ReadBool(&sps->sps_ptl_dpb_hrd_params_present_flag));
+  if( sps->sps_ptl_dpb_hrd_params_present_flag) {
+    //todo
+    //profile_tier_level( 1, sps_max_sublayers_minus1 )
+
+  }
+  TRUE_OR_RETURN(br->ReadBool(&sps->sps_gdr_enabled_flag));
+  TRUE_OR_RETURN(br->ReadBool(&sps->sps_ref_pic_resampling_enabled_flag));
+  if( sps->sps_ref_pic_resampling_enabled_flag) {
+    TRUE_OR_RETURN(br->ReadBool(&sps->sps_res_change_in_clvs_allowed_flag));
+  }
+  TRUE_OR_RETURN(br->ReadUE(&sps->sps_pic_width_in_luma_samples));
+  TRUE_OR_RETURN(br->ReadUE(&sps->sps_pic_height_in_luma_samples));
+  TRUE_OR_RETURN(br->ReadBool(&sps->sps_conformance_window_flag));
+  if (sps->sps_conformance_window_flag) {
+    TRUE_OR_RETURN(br->ReadUE(&sps->sps_conf_win_left_offset));
+    TRUE_OR_RETURN(br->ReadUE(&sps->sps_conf_win_right_offset));
+    TRUE_OR_RETURN(br->ReadUE(&sps->sps_conf_win_top_offset));
+    TRUE_OR_RETURN(br->ReadUE(&sps->sps_conf_win_bottom_offset));
+  }
+    TRUE_OR_RETURN(br->ReadBool(&sps->sps_subpic_info_present_flag));
+    if(sps->sps_subpic_info_present_flag) {
+      TRUE_OR_RETURN(br->ReadUE(&sps->sps_num_subpics_minus1));
+    }
+    if(sps->sps_num_subpics_minus1 > 0) {
+      TRUE_OR_RETURN(br->ReadBool(&sps->sps_independent_subpics_flag));
+      TRUE_OR_RETURN(br->ReadBool(&sps->sps_subpic_same_size_flag));
+    }
+
+    if(sps->sps_num_subpics_minus1 > 0){
+        for(int i=0; i<= sps->sps_num_subpics_minus1 ; i++) {
+          if(!sps->sps_subpic_same_size_flag && i>0) {
+            // define CtbSizeY
+            if(i>0 && sps->sps_pic_width_max_in_luma_samples > CtbSizeY) {
+              TRUE_OR_RETURN(br->ReadSE(&sps->sps_subpic_top_left_x[i]));  // u(v)  NOT SURE
+
+
+
+
+
+            TRUE_OR_RETURN(br->ReadUE(&sps->sps_subpic_width_minus1[i]));
+            TRUE_OR_RETURN(br->ReadUE(&sps->sps_subpic_height_minus1[i]));
+          }
+          TRUE_OR_RETURN(br->ReadUE(&sps->sps_subpic_top_left_x[i]));
+          TRUE_OR_RETURN(br->ReadUE(&sps->sps_subpic_top_left_y[i]));
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_subpic_treated_as_pic_flag[i]));
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_loop_filter_across_subpic_enabled_flag[i]));
+        }
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
   TRUE_OR_RETURN(br->ReadBool(&sps->sps_temporal_id_nesting_flag));
 
   // Profile/Tier/Level - simplified parsing
@@ -433,6 +504,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
 H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   DCHECK_EQ(Nalu::H266_VPS_NUT, nalu.type());
   LOG(INFO) << "Parsing H.266 VPS NALU";
+  //video_parameter_set_rbsp( )  7.3.2.3
 
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
@@ -441,12 +513,36 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   *vps_id = -1;
   std::unique_ptr<H266Vps> vps(new H266Vps);
 
-  TRUE_OR_RETURN(br->ReadUE(&vps->vps_video_parameter_set_id));
-  TRUE_OR_RETURN(br->ReadBits(6, &vps->vps_max_layers_minus1));
-  TRUE_OR_RETURN(br->ReadBits(3, &vps->vps_max_sublayers_minus1));
+  TRUE_OR_RETURN(br->ReadBits(4, &vps->vps_video_parameter_set_id)); 
+  TRUE_OR_RETURN(br->ReadBits(6, &vps->vps_max_layers_minus1)); 
+  TRUE_OR_RETURN(br->ReadBits(3, &vps->vps_max_sublayers_minus1)); 
+
+  if (vps->vps_max_sublayers_minus1 > 0 && vps->vps_max_sublayers_minus1 >0 ) {
+   TRUE_OR_RETURN(br->ReadBool(&vps->vps_default_ptl_dpb_hrd_max_tid_flag));
+  }
+  if(vps_max_layers_minus1 > 0) {
+    //TODO layer_id_included_flag parsing per layer
+    TRUE_OR_RETURN(br->ReadBool(&vps->vps_all_independent_layers_flag));
+  }
+  vps->vpsLayerId.clear();
+  for(uint8_t i=0; i<= vps->vps_max_layers_minus1; i++) {
+    uint8_t layerId;
+    TRUE_OR_RETURN(br->ReadBits(6, &layerId)); // 6 bits
+
+    TRUE_OR_RETURN(br->ReadBits(6, &vps->vps_layer_id[i])); // 6 bits
+    vps->vpsLayerId.push_back(layerId);
+    if(i>0 && !vps->vps_all_independent_layers_flag) {
+      //TODO parsing of layer_dependency_info( i )
+
+    }
+
+  }
+
+
 
   // Timing info in VPS (H.266 specific)
   TRUE_OR_RETURN(br->ReadBool(&vps->vps_timing_info_present_flag));
+
   if (vps->vps_timing_info_present_flag) {
     READ_LONG_OR_RETURN(&vps->vps_num_units_in_tick);
     READ_LONG_OR_RETURN(&vps->vps_time_scale);
