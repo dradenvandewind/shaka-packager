@@ -88,7 +88,7 @@ struct H266VuiParameters {
 struct H266Pps {
   H266Pps();
   ~H266Pps();
-
+  
   int pic_parameter_set_id = 0;
   int seq_parameter_set_id = 0;
 
@@ -125,7 +125,103 @@ struct H266Pps {
   std::vector<int> tile_row_height_minus1;
   bool loop_filter_across_tiles_enabled_flag = true;
 
-  // Incomplete: many more H.266 specific fields...
+  //pic_parameter_set_rbsp( 7.3.2.5
+  int pps_pic_parameter_set_id = 0;
+  int pps_seq_parameter_set_id = 0;
+  bool pps_mixed_nalu_types_in_pic_flag = false;
+  int pps_pic_width_in_luma_samples = 0;
+  int pps_pic_height_in_luma_samples = 0;
+  
+  bool pps_conformance_window_flag = false;
+  int pps_conf_win_left_offset = 0;
+  int pps_conf_win_right_offset = 0;
+  int pps_conf_win_top_offset = 0;
+  int pps_conf_win_bottom_offset = 0;
+
+  bool pps_scaling_window_explicit_signalling_flag = false;
+
+  int pps_scaling_win_left_offset = 0;
+  int pps_scaling_win_right_offset = 0;
+  int pps_scaling_win_top_offset = 0;
+  int pps_scaling_win_bottom_offset = 0;
+
+  bool pps_output_flag_present_flag = false;
+  bool pps_no_pic_partition_flag = false;
+  bool pps_subpic_id_mapping_present_flag = false;
+
+  int pps_num_subpics_minus1 = 0;
+  int pps_subpic_id_len_minus1 = 0;
+  std::vector<uint32_t> pps_subpic_id;
+
+  int pps_log2_ctu_size_minus5 = 0;
+  int pps_num_exp_tile_columns_minus1 = 0;
+  int pps_num_exp_tile_rows_minus1 = 0;
+
+  std::vector<uint32_t> pps_tile_column_width_minus1;
+  std::vector<uint32_t> pps_tile_row_height_minus1;
+
+  bool pps_loop_filter_across_tiles_enabled_flag = false;
+  bool pps_rect_slice_flag = false;
+  bool pps_single_slice_per_subpic_flag = false;
+  int pps_num_slices_in_pic_minus1 = 0;
+  bool pps_tile_idx_delta_present_flag = false;
+  std::vector<int> pps_slice_width_in_tiles_minus1;
+  std::vector<int> pps_slice_height_in_tiles_minus1;
+  std::vector<int> pps_num_exp_slices_in_tile;
+  std::vector<int> pps_exp_slice_height_in_ctus_minus1[256]; //256 not sure need check  
+  std::vector<int> pps_tile_idx_delta_val; //256 not sure need check
+
+  bool pps_loop_filter_across_slices_enabled_flag = false;
+  bool pps_cabac_init_present_flag = false;
+
+  std::vector<int> pps_num_ref_idx_default_active_minus1; //256 not sure need check
+  bool pps_rpl1_idx_present_flag = false;
+  bool pps_weighted_pred_flag = false;
+  bool pps_weighted_bipred_flag = false;
+  bool pps_ref_wraparound_enabled_flag = false;
+  int pps_pic_width_minus_wraparound_offset = 0;
+  int pps_init_qp_minus26 = 0;
+  bool pps_cu_qp_delta_enabled_flag = false;
+  
+  bool pps_chroma_tool_offsets_present_flag = false;
+  int pps_cb_qp_offset = 0;
+  int pps_cr_qp_offset = 0;
+  bool pps_joint_cbcr_qp_offset_present_flag = false;
+  int pps_joint_cbcr_qp_offset_value = 0;
+
+  bool pps_slice_chroma_qp_offsets_present_flag = false;
+  bool pps_cu_chroma_qp_offset_list_enabled_flag = false;
+
+  int pps_chroma_qp_offset_list_len_minus1 = 0;
+  std::vector<int> pps_qp_offset_list; //256 not sure need check
+  std::vector<int> pps_cr_qp_offset_list;
+  std::vector<int> pps_joint_cbcr_qp_offset_list;
+
+  bool pps_deblocking_filter_control_present_flag = false;
+  bool pps_deblocking_filter_override_enabled_flag = false;
+  bool pps_deblocking_filter_disabled_flag = false;
+  bool pps_dbf_info_in_ph_flag = false;
+
+  int pps_luma_beta_offset_div2 = 0;
+  int pps_luma_tc_offset_div2 = 0;
+
+  int pps_cb_beta_offset_div2 = 0;
+  int pps_cb_tc_offset_div2 = 0;
+  int pps_cr_beta_offset_div2 = 0;
+  int pps_cr_tc_offset_div2 = 0;
+
+  bool pps_rpl_info_in_ph_flag = false;
+  bool pps_sao_info_in_ph_flag = false;
+  bool pps_alf_info_in_ph_flag = false;
+  bool pps_wp_info_in_ph_flag = false;
+  bool pps_qp_delta_info_in_ph_flag = false;
+
+  bool pps_picture_header_extension_present_flag = false;
+  bool pps_slice_header_extension_present_flag = false;
+  bool pps_extension_flag = false;
+
+  bool pps_extension_data_flag = false;
+
 };
 
 struct H266Sps {
@@ -323,44 +419,7 @@ struct H266Sps {
 
   bool sps_extension_data_flag = false;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ // end H.266 specific fields
 
 
   bool sps_temporal_id_nesting_flag = false;
@@ -608,6 +667,65 @@ struct H266SliceHeader {
   // Dependent slice segment
   bool dependent_slice_segment_flag = false;
   int slice_segment_address = 0;
+  // slice_header 7.3.7
+  bool sh_picture_header_in_slice_header_flag = false;
+  int sh_subpic_id = 0;
+  int sh_slice_address = 0;
+  std::vector<int> sh_extra_bits; //256 not sure need check
+  int sh_num_tiles_in_slice_minus1 = 0;
+  int sh_slice_type = 0;
+  bool sh_no_output_of_prior_pics_flag = false;
+  bool sh_alf_enabled_flag = false;
+  int sh_num_alf_aps_ids_luma = 0;
+  std::vector<int> sh_alf_aps_id_luma; //not sure need check
+
+  bool sh_alf_cb_enabled_flag = false;
+  bool sh_alf_cr_enabled_flag = false;
+  int sh_alf_aps_id_chroma = 0;
+  bool sh_alf_cc_cb_enabled_flag = false;
+  int sh_alf_cc_cb_aps_id = 0;
+  bool sh_alf_cc_cr_enabled_flag = false;
+  int sh_alf_cc_cr_aps_id = 0;
+
+  bool sh_lmcs_used_flag = false;
+  bool sh_explicit_scaling_list_used_flag = false;
+  bool sh_num_ref_idx_active_override_flag = false;
+
+  std::vector<int> sh_num_ref_idx_active_minus1; 
+  bool sh_cabac_init_flag = false;
+  bool sh_collocated_from_l0_flag = false;
+  int sh_collocated_ref_idx = 0;
+
+  int sh_qp_delta = 0;
+  int sh_cb_qp_offset = 0;
+  int sh_cr_qp_offset = 0;
+  int sh_joint_cbcr_qp_offset = 0;
+  bool sh_cu_chroma_qp_offset_enabled_flag = false;
+  bool sh_sao_luma_used_flag = false; 
+
+  bool sh_sao_chroma_used_flag = false;
+  bool sh_deblocking_params_present_flag = false;
+  bool sh_deblocking_filter_disabled_flag = false;
+  int sh_beta_offset_div2 = 0;
+  int sh_tc_offset_div2 = 0;
+
+  int sh_cb_beta_offset_div2 = 0;
+  int sh_cb_tc_offset_div2 = 0;
+  int sh_cr_beta_offset_div2 = 0;
+  int sh_cr_tc_offset_div2 = 0;
+
+  bool sh_dep_quant_used_flag = false;
+  bool sh_sign_data_hiding_used_flag = false;
+  bool sh_ts_residual_coding_disabled_flag = false;
+
+  int sh_ts_residual_coding_rice_idx_minus1 = 0;
+  int sh_reverse_last_sig_coeff_flag = 0;
+  int sh_slice_header_extension_length  = 0;
+  std::vector<bool> sh_slice_header_extension_data_byte; //not sure need check
+
+int sh_entry_offset_len_minus1 = 0;
+std::vector<uint32_t> sh_entry_point_offset_minus1; //256 not sure need check
+
 };
  
   
