@@ -915,7 +915,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           //}
           //todo
           //vui_payload( sps->sps_vui_payload_size_minus1 + 1 )
-          OK_OR_RETURN(ParseVuiParameters(sps->max_sublayers_minus1, br,
+          OK_OR_RETURN(Vui_Payload(sps->max_sublayers_minus1, br,
                                     &sps->vui_parameters));
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_extension_flag));
@@ -1146,13 +1146,53 @@ const H266Aps* H266Parser::GetAps(int aps_id) {
   return active_apses_[aps_id].get();
 }
 
-H266Parser::Result H266Parser::ParseVuiParameters(int max_num_sub_layers_minus1,
+H266Parser::Result H266Parser::Vui_Payload(int max_num_sub_layers_minus1,
                                                   H26xBitReader* br,
                                                   H266VuiParameters* vui) {
   // Reads whole element but ignores most of it.
   int ignored;
   LOG(INFO) << "Parsing H.266 VUI parameters";
+  //VuiExtensionBitsPresentFlag = 0
+  //7.3.2.21 VUI payload syntax  from H266
+  // 7.2 VUI parameters syntax from ITU-T H.274 | ISO/IEC 23002-7 */
 
+    TRUE_OR_RETURN(br->ReadBool(&vui->vui_progressive_source_flag));
+    TRUE_OR_RETURN(br->ReadBool(&vui->vui_interlaced_source_flag));
+    TRUE_OR_RETURN(br->ReadBool(&vui->vui_non_packed_constraint_flag));
+    TRUE_OR_RETURN(br->ReadBool(&vui->vui_non_projected_constraint_flag));
+    TRUE_OR_RETURN(br->ReadBool(&vui->vui_aspect_ratio_info_present_flag));
+    if(vui->vui_aspect_ratio_info_present_flag){
+      TRUE_OR_RETURN(br->ReadBool(&vui->vui_aspect_ratio_constant_flag));
+      TRUE_OR_RETURN(br->ReadBits(8,&vui->vui_aspect_ratio_idc));
+      if(vuid>vui_aspect_ratio_idc == 255){
+        TRUE_OR_RETURN(br->ReadBits(16,&vui->vui_sar_width));
+        TRUE_OR_RETURN(br->ReadBits(16,&vui->vui_sar_width));
+      }
+    }
+    TRUE_OR_RETURN(br->ReadBool(&vui->vui_overscan_info_present_flag));
+    if(vui->vui_overscan_info_present_flag){
+      TRUE_OR_RETURN(br->ReadBool(&vui->vui_overscan_appropriate_flag));
+    }
+    TRUE_OR_RETURN(br->ReadBool(&vui->vui_colour_description_present_flag));
+    if(vui->vui_colour_description_present_flag){
+      TRUE_OR_RETURN(br->ReadBits(8,&vui->vui_colour_primaries));
+      TRUE_OR_RETURN(br->ReadBits(8,&vui->vui_transfer_characteristics));
+      TRUE_OR_RETURN(br->ReadBits(8,&vui->vui_matrix_coeffs));
+      TRUE_OR_RETURN(br->ReadBool(&vui->vui_full_range_flag));
+    }
+    TRUE_OR_RETURN(br->ReadBool(&vui->vui_chroma_loc_info_present_flag));
+    if(vui->vui_chroma_loc_info_present_flag){
+      if( vui->vui_progressive_source_flag && !vui->vui_interlaced_source_flag ){
+        TRUE_OR_RETURN(br->ReadUE(&vui->vui_chroma_sample_loc_type_frame));
+      }
+      else
+      {
+        TRUE_OR_RETURN(br->ReadUE(&vui->vui_chroma_sample_loc_type_top_field));
+        TRUE_OR_RETURN(br->ReadUE(&vui->vui_chroma_sample_loc_type_bottom_field));
+      }
+    }
+#if 0
+  // i wait to remove this code
   TRUE_OR_RETURN(br->ReadBool(&vui->aspect_ratio_info_present_flag));
   if (vui->aspect_ratio_info_present_flag) {
     TRUE_OR_RETURN(br->ReadBits(8, &vui->aspect_ratio_idc));
@@ -1205,7 +1245,7 @@ H266Parser::Result H266Parser::ParseVuiParameters(int max_num_sub_layers_minus1,
     TRUE_OR_RETURN(br->ReadUE(&ignored));  // max_bytes_per_pic_denom
     TRUE_OR_RETURN(br->ReadUE(&ignored));  // max_bits_per_min_cu_denum
   }
-
+#endif
   return kOk;
 }
 

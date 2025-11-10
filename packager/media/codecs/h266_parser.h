@@ -81,7 +81,29 @@ struct H266VuiParameters {
   int vui_chroma_sample_loc_type_frame = 0;
   int vui_chroma_sample_loc_type_top_field = 0;
   int vui_chroma_sample_loc_type_bottom_field = 0;
+  //T-REC-H.274-202309-I!!PDF-E.pdf
+  bool vui_progressive_source_flag;
+  bool vui_interlaced_source_flag;
+  bool vui_non_packed_constraint_flag;
+  bool vui_non_projected_constraint_flag;
+  bool vui_aspect_ratio_info_present_flag;
+  bool vui_aspect_ratio_constant_flag;
+  int vui_aspect_ratio_idc;
+  int vui_sar_width;
+  int vui_sar_height;
+  bool vui_overscan_info_present_flag;
+  bool vui_overscan_appropriate_flag;
 
+  bool vui_colour_description_present_flag;
+  int vui_colour_primaries;
+  int vui_transfer_characteristics;
+  int vui_matrix_coeffs;
+  int vui_full_range_flag;
+
+  bool vui_chroma_loc_info_present_flag;
+  u_int vui_chroma_sample_loc_type_frame;
+  u_int vui_chroma_sample_loc_type_top_field;
+  u_int vui_chroma_sample_loc_type_bottom_field;
   // Incomplete...
 };
 
@@ -842,7 +864,7 @@ class H266Parser {
   const H266Aps* GetAps(int aps_id);
 
  private:
-  Result ParseVuiParameters(int max_num_sub_layers_minus1,
+  Result Vui_Payload((int max_num_sub_layers_minus1,
                             H26xBitReader* br,
                             H266VuiParameters* vui);
 
