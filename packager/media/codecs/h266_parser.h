@@ -60,6 +60,11 @@ struct H266OlsTimingHrdParameters{
     std::vector<bool> fixed_pic_rate_within_cvs_flag;
     std::vector<int> elemental_duration_in_tc_minus1;
     std::vector<bool> low_delay_hrd_flag;
+    std::vector<std::vector<std::vector<int>>> bit_rate_value_minus1;
+    std::vector<std::vector<std::vector<int>>> cpb_size_value_minus1;
+    std::vector<std::vector<std::vector<int>>> cpb_size_du_value_minus1;
+    std::vector<std::vector<std::vector<int>>> bit_rate_du_value_minus1;
+    std::vector<std::vector<std::vector<int>>> cbr_flag;
 
 };
 

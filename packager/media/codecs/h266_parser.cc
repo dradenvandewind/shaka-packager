@@ -1298,7 +1298,51 @@ LOG(INFO) << "Parsing H.266 Ols Timing Hrd parameters";
       }else if (( sps->timing.general_nal_hrd_params_present_flag || sps->timing.general_vcl_hrd_params_present_flag ) && sps->timing.hrd_cpb_cnt_minus1 == 0){
         TRUE_OR_RETURN(br->ReadBool(&tmp_low_delay_hrd_flag));
         olf->low_delay_hrd_flag.push_back(tmp_low_delay_hrd_flag);
-        //todo
+
+        int tmp_bit_rate_value_minus1 = 0;
+        int tmp_cpb_size_value_minus1 = 0;
+        int tmp_cpb_size_du_value_minus1 = 0;
+        int tmp_bit_rate_du_value_minus1 = 0;
+        int tmp_cbr_flag = 0;
+
+        if(sps->timing.general_nal_hrd_params_present_flag ){
+          //todo make function for this 
+          for( int j = 0; j <= sps->timing.hrd_cpb_cnt_minus1; j++ ) {
+            TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
+            olf->bit_rate_value_minus1[i][j].push_back(tmp_elemental_duration_in_tc_minus1);
+
+            TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_value_minus1));
+            olf->bit_rate_value_minus1[i][j].push_back(tmp_cpb_size_value_minus1);
+            if( sps->timing.general_du_hrd_params_present_flag ) {
+              TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_du_value_minus1));
+              olf->cpb_size_du_value_minus1[i][j].push_back(tmp_cpb_size_du_value_minus1);
+              
+              TRUE_OR_RETURN(br->ReadUE(&tmp_bit_rate_du_value_minus1));
+              olf->bit_rate_du_value_minus1[i][j].push_back(tmp_bit_rate_du_value_minus1);
+            }
+            TRUE_OR_RETURN(br->ReadBool(&tmp_cbr_flag));
+            olf->cbr_flag[i][j].push_back(tmp_cbr_flag);
+          }
+        }
+        if(sps->timing.general_vcl_hrd_params_present_flag){
+          for( int j = 0; j <= sps->timing.hrd_cpb_cnt_minus1; j++ ) {
+            TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
+            olf->bit_rate_value_minus1[i][j].push_back(tmp_elemental_duration_in_tc_minus1);
+
+            TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_value_minus1));
+            olf->bit_rate_value_minus1[i][j].push_back(tmp_cpb_size_value_minus1);
+            if( sps->timing.general_du_hrd_params_present_flag ) {
+              TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_du_value_minus1));
+              olf->cpb_size_du_value_minus1[i][j].push_back(tmp_cpb_size_du_value_minus1);
+              
+              TRUE_OR_RETURN(br->ReadUE(&tmp_bit_rate_du_value_minus1));
+              olf->bit_rate_du_value_minus1[i][j].push_back(tmp_bit_rate_du_value_minus1);
+            }
+            TRUE_OR_RETURN(br->ReadBool(&tmp_cbr_flag));
+            olf->cbr_flag[i][j].push_back(tmp_cbr_flag);
+          }
+
+        }
       }
     }
 //
