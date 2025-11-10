@@ -55,6 +55,13 @@ struct H266ReferencePictureSet {
   int num_positive_pics;
   int num_delta_pocs;
 };
+struct H266OlsTimingHrdParameters{
+    std::vector<bool> fixed_pic_rate_general_flag;
+    std::vector<bool> fixed_pic_rate_within_cvs_flag;
+    std::vector<int> elemental_duration_in_tc_minus1;
+    std::vector<bool> low_delay_hrd_flag;
+
+};
 
 struct H266VuiParameters {
   enum { kExtendedSar = 255 };
@@ -255,6 +262,20 @@ struct H266Pps {
   int CtbSizeY;
 
 };
+struct GeneralTimingHrdParameters{
+  uint32_t num_units_in_tick;
+  uint32_t time_scale;
+  bool general_nal_hrd_params_present_flag;
+  bool general_vcl_hrd_params_present_flag;
+  bool general_same_pic_timing_in_all_ols_flag;
+  bool general_du_hrd_params_present_flag;
+  uint8_t tick_divisor_minus2;
+  int bit_rate_scale;
+  int cpb_size_scale;
+  int cpb_size_du_scale;
+  int hrd_cpb_cnt_minus1;
+};
+
 
 struct H266Sps {
   H266Sps();
@@ -267,7 +288,7 @@ struct H266Sps {
   uint32_t GetBitDepthChroma() const;
   uint32_t GetQpBdOffset() const;
   bool IsValidBitDepth() const;
-
+ 
 
   int sps_seq_parameter_set_id = 0; // 4 bits
   int vps_id = 0;  // H.266 uses vps_id directly in SPS
@@ -449,6 +470,7 @@ struct H266Sps {
   std::vector <int> sps_virtual_boundary_pos_y_minus1;//i = sps_num_hor_virtual_boundaries  
 
   bool sps_timing_hrd_params_present_flag = false;
+  GeneralTimingHrdParameters timing;
   bool sps_sublayer_cpb_params_present_flag = false;
 
   bool sps_vui_parameters_present_flag = false;
@@ -502,10 +524,13 @@ struct H266Sps {
 
   // Strong intra smoothing
   bool sps_strong_intra_smoothing_enabled_flag = false;
+  // OLS timing hrd parameters
+  H266OlsTimingHrdParameters ols_parameters;
 
   // VUI parameters
   bool vui_parameters_present = false;
   H266VuiParameters vui_parameters;
+
 
   // H.266 specific tools
   bool sps_affine_enabled_flag = false;
@@ -864,9 +889,17 @@ class H266Parser {
   const H266Aps* GetAps(int aps_id);
 
  private:
-  Result Vui_Payload((int max_num_sub_layers_minus1,
+  Result Vui_Payload(int max_num_sub_layers_minus1,
                             H26xBitReader* br,
                             H266VuiParameters* vui);
+  Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdParameters *time,
+                                      H26xBitReader* br);                          
+  
+  Result Ols_Timing_Hrd_parameters(int firstsublayer, int sps_max_sublayers_minus1,
+                            const H266Sps& sps, 
+                            H26xBitReader* br,
+                            H266OlsTimingHrdParameters* olf);
+                            
 
   Result ParseProfileTierLevel(bool profile_tier_present,
                               int max_num_sub_layers_minus1,

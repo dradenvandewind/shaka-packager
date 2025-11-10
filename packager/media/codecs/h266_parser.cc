@@ -817,7 +817,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_bcw_enabled_flag));
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_ciip_enabled_flag));
-        int MaxNumMergeCand = 6 − sps->sps_six_minus_max_num_merge_cand;
+        int MaxNumMergeCand = 6 - sps->sps_six_minus_max_num_merge_cand;
         if (MaxNumMergeCand >= 2){
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_gpm_enabled_flag));
           if( sps->sps_gpm_enabled_flag && MaxNumMergeCand >= 3 ){
@@ -895,12 +895,14 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           if(sps->sps_timing_hrd_params_present_flag){
             //todo
             //general_timing_hrd_parameters
+            OK_OR_RETURN(GetGeneralTimingHrdParameters(&sps->timing,br));
           }
           if (sps->sps_max_sublayers_minus1){
             TRUE_OR_RETURN(br->ReadUE(&sps->sps_sublayer_cpb_params_present_flag));
             int firstSubLayer = sps->sps_sublayer_cpb_params_present_flag ? 0 : sps->sps_max_sublayers_minus1;
             //todo
             //ols_timing_hrd_parameters( firstSubLayer, sps_max_sublayers_minus1 )
+            //H266OlsTimingHrdParameters
           }
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_field_seq_flag));
@@ -916,7 +918,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           //todo
           //vui_payload( sps->sps_vui_payload_size_minus1 + 1 )
           OK_OR_RETURN(Vui_Payload(sps->max_sublayers_minus1, br,
-                                    &sps->vui_parameters));
+                                    &sps->vui_parVui_Payloadameters));
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_extension_flag));
         if(sps->sps_extension_flag){
@@ -927,26 +929,23 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             //sps_range_extension( )
           }
         }
+        /*
         if(sps->sps_extension_7bits){
           while( more_rbsp_data( ) ){
             sps_extension_data_flag
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_extension_data_flag));
         }
         rbsp_trailing_bits( )
+        */
         
-  // VUI parameters
-  /* TRUE_OR_RETURN(br->ReadBool(&sps->vui_parameters_present));
-  if (sps->vui_parameters_present) {
-    OK_OR_RETURN(ParseVuiParameters(sps->max_sublayers_minus1, br,
-                                    &sps->vui_parameters));
-  }
- */
+  
   // This will replace any existing SPS instance.
   *sps_id = sps->sps_seq_parameter_set_id;
   active_spses_[*sps_id] = std::move(sps);
 
   return kOk;
 }
+
 #if 0
 H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   DCHECK_EQ(Nalu::H266_VPS_NUT, nalu.type());
@@ -1145,6 +1144,29 @@ bool H266Parser::IsLayerIndependent(int vps_id, uint32_t layer_id) {
 const H266Aps* H266Parser::GetAps(int aps_id) {
   return active_apses_[aps_id].get();
 }
+H266Parser::Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdParameters *time,
+                                      H26xBitReader* br){
+  LOG(INFO) << "Parsing H.266 GetGeneralTimingHrdParameters in SPS";
+  TRUE_OR_RETURN(br->ReadBits(32,&time->num_units_in_tick));
+  TRUE_OR_RETURN(br->ReadBits(32,&time->time_scale));
+  TRUE_OR_RETURN(br->ReadBool(&time->general_nal_hrd_params_present_flag));
+  TRUE_OR_RETURN(br->ReadBools(&time->general_vcl_hrd_params_present_flag));
+  if( time->general_nal_hrd_params_present_flag || time->general_vcl_hrd_params_present_flag ) {
+    TRUE_OR_RETURN(br->ReadBool(&time->general_same_pic_timing_in_all_ols_flag));
+    TRUE_OR_RETURN(br->ReadBool(&time->general_du_hrd_params_present_flag));
+    if( time->general_du_hrd_params_present_flag ){
+      TRUE_OR_RETURN(br->ReadBits(8,&time->tick_divisor_minus2));
+    }
+    TRUE_OR_RETURN(br->ReadBits(4,&time->bit_rate_scale));
+    TRUE_OR_RETURN(br->ReadBits(4,&time->cpb_size_scale));
+    if( time->general_du_hrd_params_present_flag ){
+      TRUE_OR_RETURN(br->ReadBits(4,&time->cpb_size_du_scale));
+    }
+    TRUE_OR_RETURN(br->ReadUE(&time->hrd_cpb_cnt_minus1));
+  }
+    return kOk;
+}
+
 
 H266Parser::Result H266Parser::Vui_Payload(int max_num_sub_layers_minus1,
                                                   H26xBitReader* br,
@@ -1248,6 +1270,43 @@ H266Parser::Result H266Parser::Vui_Payload(int max_num_sub_layers_minus1,
 #endif
   return kOk;
 }
+
+H266Parser::Result H266Parser::Ols_Timing_Hrd_parameters(int firstsublayer, int sps_max_sublayers_minus1,
+                            const H266Sps& sps,
+                            H26xBitReader* br,
+                            H266OlsTimingHrdParameters* olf){
+LOG(INFO) << "Parsing H.266 Ols Timing Hrd parameters";
+  //7.3.5.2 OLS timing and HRD parameters 
+  int tmp_fixed_pic_rate_general_flag = 0;
+  int tmp_fixed_pic_rate_within_cvs_flag = 0;
+  int tmp_elemental_duration_in_tc_minus1 = 0;
+  int tmp_low_delay_hrd_flag = 0;
+  for( int i = firstsublayer; i <= sps_max_sublayers_minus1; i++ ) {
+
+    TRUE_OR_RETURN(br->ReadBool(&tmp_fixed_pic_rate_general_flag));  
+    olf->fixed_pic_rate_general_flag.push_back(tmp_fixed_pic_rate_general_flag);
+    if( !tmp_fixed_pic_rate_general_flag){
+      TRUE_OR_RETURN(br->ReadBool(&tmp_fixed_pic_rate_within_cvs_flag));
+      olf->fixed_pic_rate_within_cvs_flag.push_back(tmp_fixed_pic_rate_within_cvs_flag);
+      if(tmp_fixed_pic_rate_within_cvs_flag){
+        TRUE_OR_RETURN(br->ReadBool(&tmp_elemental_duration_in_tc_minus1));
+        olf->elemental_duration_in_tc_minus1.push_back(tmp_elemental_duration_in_tc_minus1);
+      }else if (( sps->timing.general_nal_hrd_params_present_flag || sps->timing.general_vcl_hrd_params_present_flag ) && sps->timing.hrd_cpb_cnt_minus1 == 0){
+        TRUE_OR_RETURN(br->ReadBool(&tmp_low_delay_hrd_flag));
+        olf->low_delay_hrd_flag.push_back(tmp_low_delay_hrd_flag);
+        //todo
+      }
+    }
+//
+  }
+  return kOk;
+}
+
+
+
+
+
+                            }
 
 H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
                                                      int max_num_sub_layers_minus1,
