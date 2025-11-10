@@ -269,6 +269,9 @@ struct H266Sps {
   int sps_num_subpics_minus1 = 0;
   bool sps_independent_subpics_flag = false;
   std::vector <int> sps_subpic_ctu_top_left_x;
+  std::vector <int> sps_subpic_ctu_top_left_y;
+  std::vector <int> sps_subpic_width_minus1;
+  std::vector <int> sps_subpic_height_minus1;
   
 
   bool sps_subpic_same_size_flag = false;
@@ -280,6 +283,7 @@ struct H266Sps {
   std::vector<bool> sps_loop_filter_across_subpic_enabled_flag;
   bool sps_subpic_id_len_minus1 = false;
   bool sps_subpic_id_mapping_explicitly_signalled_flag = false;
+  
   bool sps_subpic_id_mapping_present_flag = false;
   std::vector<uint32_t> sps_subpic_id;
   int sps_bitdepth_minus8 = 0;
@@ -289,6 +293,8 @@ struct H266Sps {
   bool sps_poc_msb_cycle_flag = false;
   int sps_poc_msb_cycle_len_minus1 = 0;
   int sps_num_extra_ph_bytes = 0;
+
+
   std::vector<bool> sps_extra_ph_bit_present_flag[256];//256 not sure need check
   int sps_num_extra_sh_bytes = 0;
   std::vector<bool> sps_extra_sh_bit_present_flag[256];//256 not sure need check

@@ -626,27 +626,50 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             // define CtbSizeY
             int CtbLog2SizeY = sps->sps_log2_ctu_size_minus5 + 5;
             int CtbSizeY = 1 << CtbLog2SizeY;
-            int bit_read = 0;
-            int tmpWidthVal;
+            int tmpWidthVal = ((sps->sps_pic_width_max_in_luma_samples + CtbSizeY − 1 ) / CtbSizeY);
+            int tmpHeightVal = (( sps->sps_pic_height_max_in_luma_samples + CtbSizeY − 1 ) / CtbSizeY);
+
             bit_read = ceil(log2(tmpWidthVal));
 
             u_int tmp_sps_subpic_ctu_top_left_x = 0;
             if(i>0 && sps->sps_pic_width_max_in_luma_samples > CtbSizeY) {
-
-              TRUE_OR_RETURN(br->ReadBits(bit_read,&sps->sps_subpic_ctu_top_left_x[[i]));  // u(v)  NOT SURE
-
-
-
-
-
-            TRUE_OR_RETURN(br->ReadUE(&sps->sps_subpic_width_minus1[i]));
-            TRUE_OR_RETURN(br->ReadUE(&sps->sps_subpic_height_minus1[i]));
+              TRUE_OR_RETURN(br->ReadBits(tmpWidthVal,&tmp_sps_subpic_ctu_top_left_x));  // u(v)  NOT SURE
+              sps->sps_subpic_ctu_top_left_x.push_back(tmp_sps_subpic_ctu_top_left_x);
+            }
+            int tmp_sps_subpic_ctu_top_left_y = 0;
+            if( i > 0 && sps->sps_pic_height_max_in_luma_samples > CtbSizeY ){
+              TRUE_OR_RETURN(br->ReadBits(tmpHeightVal,&tmp_sps_subpic_ctu_top_left_y));  // u(v)  NOT SURE
+              sps->sps_subpic_ctu_top_left_y.push_back(tmp_sps_subpic_ctu_top_left_y);
+            }
+            int tmp_sps_subpic_width_minus1 = 0;
+            if( i < sps->sps_num_subpics_minus1 && sps->sps_pic_width_max_in_luma_samples > CtbSizeY ){              
+              TRUE_OR_RETURN(br->ReadBits(tmpWidthVal,&tmp_sps_subpic_width_minus1));  // u(v)  NOT SURE
+              sps->sps_subpic_width_minus1.push_back(tmp_sps_subpic_width_minus1);
+            }
+            int tmp_sps_subpic_height_minus1 = 0;
+            if( i < sps->sps_num_subpics_minus1 && sps->sps_pic_height_max_in_luma_samples > CtbSizeY ){
+              //sps_subpic_height_minus1[
+              TRUE_OR_RETURN(br->ReadBits(tmpHeightVal,&tmp_sps_subpic_height_minus1));  // u(v)  NOT SURE
+              sps->sps_subpic_ctu_top_left_y.push_back(tmp_sps_subpic_height_minus1);
+            }
+              
           }
-          TRUE_OR_RETURN(br->ReadUE(&sps->sps_subpic_top_left_x[i]));
-          TRUE_OR_RETURN(br->ReadUE(&sps->sps_subpic_top_left_y[i]));
-          TRUE_OR_RETURN(br->ReadBool(&sps->sps_subpic_treated_as_pic_flag[i]));
-          TRUE_OR_RETURN(br->ReadBool(&sps->sps_loop_filter_across_subpic_enabled_flag[i]));
-        }
+          if( !sps->sps_independent_subpics_flag) {
+            int tmp_sps_subpic_treated_as_pic_flag;
+            int tmp_sps_loop_filter_across_subpic_enabled_flag;
+
+          TRUE_OR_RETURN(br->ReadBits(1,&tmp_sps_subpic_treated_as_pic_flag));
+          sps->sps_subpic_treated_as_pic_flag.push_back(tmp_sps_subpic_treated_as_pic_flag);
+          TRUE_OR_RETURN(br->Readbits(1,&tmp_sps_loop_filter_across_subpic_enabled_flag));
+          sps->sps_loop_filter_across_subpic_enabled_flag.push_back(tmp_sps_loop_filter_across_subpic_enabled_flag);
+          }
+        } //for 
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_subpic_id_len_minus1));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_subpic_id_mapping_explicitly_signalled_flag));
+
+
+
+
   }
 
 
