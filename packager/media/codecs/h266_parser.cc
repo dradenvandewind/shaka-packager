@@ -903,6 +903,10 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             //todo
             //ols_timing_hrd_parameters( firstSubLayer, sps_max_sublayers_minus1 )
             //H266OlsTimingHrdParameters
+            Ols_Timing_Hrd_parameters(firstSubLayer, sps->sps_max_sublayers_minus1,
+                            sps,
+                            br,
+                            sps->timing);
           }
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_field_seq_flag));
