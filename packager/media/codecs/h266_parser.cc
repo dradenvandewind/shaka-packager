@@ -371,6 +371,9 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     int CtbSizeY = 1 << (pps->pps_log2_ctu_size_minus5 + 5);
     int PicWidthInCtbsY = ceil(pps->pps_pic_width_in_luma_samples / CtbSizeY);
     int PicHeightInCtbsY = ceil(pps->pps_pic_height_in_luma_samples / CtbSizeY);
+    //bckp up forr sps
+    pps->CtbSizeY = CtbSizeY;
+
     int remainingWidthInCtbsY = PicWidthInCtbsY;
     for (int i = 0; i <= pps->pps_num_exp_tile_columns_minus1; i++) {
         int tileColWidth = pps->pps_tile_column_width_minus1[i] + 1;
@@ -628,7 +631,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             int CtbSizeY = 1 << CtbLog2SizeY;
             int tmpWidthVal = ((sps->sps_pic_width_max_in_luma_samples + CtbSizeY − 1 ) / CtbSizeY);
             int tmpHeightVal = (( sps->sps_pic_height_max_in_luma_samples + CtbSizeY − 1 ) / CtbSizeY);
-
+            // todo recheck this section    
             bit_read = ceil(log2(tmpWidthVal));
 
             u_int tmp_sps_subpic_ctu_top_left_x = 0;
@@ -666,6 +669,114 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         } //for 
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_subpic_id_len_minus1));
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_subpic_id_mapping_explicitly_signalled_flag));
+
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_entry_point_offsets_present_flag));
+        TRUE_OR_RETURN(br->ReadBits(4,&sps->sps_log2_max_pic_order_cnt_lsb_minus4));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_poc_msb_cycle_flag));
+        if(sps->sps_poc_msb_cycle_flag){
+            TRUE_OR_RETURN(br->ReadUE(&sps->sps_poc_msb_cycle_len_minus1));
+        }
+        TRUE_OR_RETURN(br->ReadBits(2,&sps->sps_num_extra_ph_bytes));
+        int tmp_sps_extra_sh_bit_present_flag = 0;
+        for( int i = 0; i < (sps->sps_num_extra_sh_bytes * 8 ); i++ ){
+          TRUE_OR_RETURN(br->ReadBool(&tmp_sps_extra_sh_bit_present_flag));
+          sps->sps_extra_sh_bit_present_flag.push_back(tmp_sps_extra_sh_bit_present_flag);
+        }
+        if( sps->sps_ptl_dpb_hrd_params_present_flag ) {
+          if( sps->sps_max_sublayers_minus1 > 0 ){
+              TRUE_OR_RETURN(br->ReadBool(&sps->sps_sublayer_dpb_params_flag));
+              //TODO
+             //dpb_parameters( sps_max_sublayers_minus1, sps_sublayer_dpb_params_flag )
+          }
+        }
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_partition_constraints_override_enabled_flag));
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma));
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_max_mtt_hierarchy_depth_intra_slice_luma));
+        if( sps->sps_max_mtt_hierarchy_depth_intra_slice_luma != 0 ) {
+           TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_max_bt_min_qt_intra_slice_luma));
+           TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_max_tt_min_qt_intra_slice_luma));
+        }
+        if( sps->sps_chroma_format_idc != 0 ){
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_qtbtt_dual_tree_intra_flag));
+        }
+        if( sps->sps_qtbtt_dual_tree_intra_flag ) {
+
+            TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_min_qt_min_cb_intra_slice_chroma));
+            TRUE_OR_RETURN(br->ReadUE(&sps->sps_max_mtt_hierarchy_depth_intra_slice_chroma));
+            if( sps->sps_max_mtt_hierarchy_depth_intra_slice_chroma != 0 ) {
+                TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_max_bt_min_qt_intra_slice_chroma));
+                TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_max_tt_min_qt_intra_slice_chroma));
+            }
+        }
+
+
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_min_qt_min_cb_inter_slice));
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_max_mtt_hierarchy_depth_inter_slice));
+        if( sps->sps_max_mtt_hierarchy_depth_inter_slice != 0 ) {
+          TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_max_bt_min_qt_inter_slice));
+          TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_max_tt_min_qt_inter_slice));
+        }
+        if( pps->CtbSizeY > 32 )
+        {
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_max_luma_transform_size_64_flag));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_transform_skip_enabled_flag));
+        if( sps->sps_transform_skip_enabled_flag ) {
+            TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_transform_skip_max_size_minus2));
+            TRUE_OR_RETURN(br->ReadBool(&sps->sps_bdpcm_enabled_flag));
+        }
+        TRUE_OR_RETURN(br->ReadBool&sps->sps_mts_enabled_flag));
+        if( sps->sps_mts_enabled_flag ) {
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_explicit_mts_intra_enabled_flag));
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_explicit_mts_inter_enabled_flag));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_lfnst_enabled_flag));
+
+        if( sps->sps_chroma_format_idc != 0 ) {
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_joint_cbcr_enabled_flag));
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_same_qp_table_for_chroma_flag));
+          int numQpTables = sps->sps_same_qp_table_for_chroma_flag ? 1 : ( sps->sps_joint_cbcr_enabled_flag ? 3 : 2 );
+          int tmp_sps_qp_table_start_minus26 = 0;
+          int tmp_sps_num_points_in_qp_table_minus1 = 0;
+          for( int i = 0; i < numQpTables; i++ ) {
+
+            TRUE_OR_RETURN(br->ReadSE(&tmp_sps_qp_table_start_minus26));
+            sps->sps_qp_table_start_minus26.push_back(tmp_sps_qp_table_start_minus26);
+            TRUE_OR_RETURN(br->ReadUE(&tmp_sps_num_points_in_qp_table_minus1));
+            sps->sps_num_points_in_qp_table_minus1.push_back(tmp_sps_num_points_in_qp_table_minus1);
+            
+            int tmp_sps_delta_qp_in_val_minus1 = 0;
+            int tmp_sps_delta_qp_diff_val = 0;
+            for( int j = 0; j <= sps->sps_num_points_in_qp_table_minus1[ i ]; j++ ) {
+              TRUE_OR_RETURN(br->ReadUE(&tmp_sps_delta_qp_in_val_minus1));
+              sps->sps_delta_qp_in_val_minus1[i][j].push_back(tmp_sps_delta_qp_in_val_minus1);
+              TRUE_OR_RETURN(br->ReadUE(&tmp_sps_delta_qp_diff_val));
+              sps->sps_delta_qp_diff_val[i][j].push_back(tmp_sps_delta_qp_diff_val);
+            }
+          }
+        }
+        
+
+
+
+
+
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
+
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
+
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
+
+
+
+
+
 
 
 

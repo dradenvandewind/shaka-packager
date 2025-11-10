@@ -230,6 +230,7 @@ struct H266Pps {
   bool pps_extension_flag = false;
 
   bool pps_extension_data_flag = false;
+  int CtbSizeY;
 
 };
 
@@ -295,10 +296,13 @@ struct H266Sps {
   int sps_num_extra_ph_bytes = 0;
 
 
-  std::vector<bool> sps_extra_ph_bit_present_flag[256];//256 not sure need check
+  std::vector<bool> sps_extra_ph_bit_present_flag;//256 not sure need check
+  
+  
   int sps_num_extra_sh_bytes = 0;
-  std::vector<bool> sps_extra_sh_bit_present_flag[256];//256 not sure need check
+  std::vector<bool> sps_extra_sh_bit_present_flag;//256 not sure need check
   bool sps_sublayer_dpb_params_flag = false;
+
   int sps_log2_min_luma_coding_block_size_minus2 = 0;
   bool sps_partition_constraints_override_enabled_flag = false;
   int sps_log2_diff_min_qt_min_cb_intra_slice_luma = 0;
@@ -329,10 +333,11 @@ struct H266Sps {
   bool sps_joint_cbcr_enabled_flag = false;
   bool sps_same_qp_table_for_chroma_flag = false;
 
-  std::vector <int> sps_qp_table_start_minus26[24];//not sure need check
-  std::vector <int> sps_num_points_in_qp_table_minus1[24];//not sure need check
-  std::vector <int> sps_delta_qp_in_val_minus1[24][24];//not sure need check
-  std::vector <int> sps_delta_qp_diff_val[24][24];//not sure need check
+  std::vector <u_int> sps_qp_table_start_minus26;//not sure need check
+  std::vector <u_int> sps_num_points_in_qp_table_minus1;//not sure need check
+  
+  std::vector<std::vector<std::vector<int>>> sps_delta_qp_in_val_minus1;//not sure need check
+  std::vector<std::vector<std::vector<int>>> sps_delta_qp_diff_val;//not sure need check
 
   bool sps_sao_enabled_flag = false;
   bool sps_ccalf_enabled_flag = false;
