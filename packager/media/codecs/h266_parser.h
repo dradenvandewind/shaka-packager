@@ -348,6 +348,9 @@ struct H266Sps {
   bool sps_inter_layer_prediction_enabled_flag = false;
   bool sps_idr_rpl_present_flag = false;
   bool sps_rpl1_same_as_rpl0_flag = false;
+  std::vector <int> sps_num_ref_pic_lists;
+
+
 
   bool sps_ref_wraparound_enabled_flag = false;
   bool sps_temporal_mvp_enabled_flag = false;
@@ -402,8 +405,8 @@ struct H266Sps {
   int sps_num_ladf_intervals_minus2 = 0;
   int sps_ladf_lowest_interval_qp_offset = 0;
 
-  std::vector<int> sps_ladf_qp_offset[3]; //3 not sure need check sps_num_ladf_intervals_minus2
-  std::vector<int> sps_ladf_delta_threshold_minus1[3];//3 not sure need check
+  std::vector<int> sps_ladf_qp_offset; //3 not sure need check sps_num_ladf_intervals_minus2
+  std::vector<int> sps_ladf_delta_threshold_minus1;//3 not sure need check
 
   bool sps_explicit_scaling_list_enabled_flag = false;
   bool sps_scaling_matrix_for_lfnst_disabled_flag = false;
@@ -421,7 +424,7 @@ struct H266Sps {
   std::vector <int> sps_virtual_boundary_pos_x_minus1[12];//i = sps_num_ver_virtual_boundaries
   int sps_num_hor_virtual_boundaries = 0;
 
-  std::vector <int> sps_virtual_boundary_pos_y_minus1[12];//i = sps_num_hor_virtual_boundaries  
+  std::vector <int> sps_virtual_boundary_pos_y_minus1;//i = sps_num_hor_virtual_boundaries  
 
   bool sps_timing_hrd_params_present_flag = false;
   bool sps_sublayer_cpb_params_present_flag = false;

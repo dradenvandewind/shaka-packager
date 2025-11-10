@@ -756,95 +756,191 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             }
           }
         }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_sao_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_alf_enabled_flag));
+        if( sps->sps_alf_enabled_flag && sps->sps_chroma_format_idc != 0 ){
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_ccalf_enabled_flag));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_lmcs_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_weighted_pred_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_weighted_bipred_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_long_term_ref_pics_flag));
+        if( sps->sps_video_parameter_set_id > 0 ){
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_inter_layer_prediction_enabled_flag));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_idr_rpl_present_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_long_term_ref_pics_flag));
+        int tmp_sps_num_ref_pic_lists = 0;
+        for( int i = 0; i < ( sps->sps_rpl1_same_as_rpl0_flag ? 1 : 2 ); i++ ) {
+
+          TRUE_OR_RETURN(br->ReadUE(&tmp_sps_num_ref_pic_lists));
+          sps->sps_num_ref_pic_lists.push_back(tmp_sps_num_ref_pic_lists);
+          for( int j = 0; j < sps->sps_num_ref_pic_lists[ i ]; j++){
+            //todo
+            //ref_pic_list_struct( i, j )
+          }
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_ref_wraparound_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_temporal_mvp_enabled_flag));
+        if( sps->sps_temporal_mvp_enabled_flag ){
+            TRUE_OR_RETURN(br->ReadBool(&sps->sps_sbtmvp_enabled_flag));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_amvr_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_bdof_enabled_flag));
+        if(sps->sps_bdof_enabled_flag){
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_bdof_control_present_in_ph_flag));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_smvd_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_dmvr_enabled_flag));
+        if(sps->sps_dmvr_enabled_flag){
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_dmvr_control_present_in_ph_flag));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_mmvd_enabled_flag));
+        if(sps->sps_mmvd_enabled_flag){
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_mmvd_fullpel_only_enabled_flag));
+        }    
+
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_six_minus_max_num_merge_cand));
+
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_sbt_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_affine_enabled_flag));
+        if (sps->sps_affine_enabled_flag){
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_five_minus_max_num_subblock_merge_cand));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_6param_affine_enabled_flag));
+        }
+        if(sps->sps_amvr_enabled_flag){
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_affine_amvr_enabled_flag));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_affine_prof_enabled_flag));
+        if(sps->sps_affine_prof_enabled_flag){
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_prof_control_present_in_ph_flag));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_bcw_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_ciip_enabled_flag));
+        int MaxNumMergeCand = 6 − sps->sps_six_minus_max_num_merge_cand;
+        if (MaxNumMergeCand >= 2){
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_gpm_enabled_flag));
+          if( sps->sps_gpm_enabled_flag && MaxNumMergeCand >= 3 ){
+            TRUE_OR_RETURN(br->ReadUE(&sps->sps_max_num_merge_cand_minus_max_num_gpm_cand));
+          }
+        }
+        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_parallel_merge_level_minus2));
+
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_isp_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_mrl_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_mip_enabled_flag));
+        if( sps->sps_chroma_format_idc != 0 ){
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_cclm_enabled_flag));
+        }
+        if( sps->sps_chroma_format_idc == 1 ) {
+            TRUE_OR_RETURN(br->ReadBool(&sps->sps_chroma_horizontal_collocated_flag));
+            TRUE_OR_RETURN(br->ReadBool(&sps->sps_chroma_vertical_collocated_flag));      
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_palette_enabled_flag));
+        if( sps->sps_chroma_format_idc == 3 && !sps->sps_max_luma_transform_size_64_flag ){
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_act_enabled_flag));   
+        } 
+        if( sps->sps_transform_skip_enabled_flag || sps->sps_palette_enabled_flag ){
+          TRUE_OR_RETURN(br->ReadUE(&sps->sps_min_qp_prime_ts));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_ibc_enabled_flag));
+        if(sps->sps_ibc_enabled_flag){
+            TRUE_OR_RETURN(br->ReadUE(&sps->sps_six_minus_max_num_ibc_merge_cand));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_ladf_enabled_flag));
+        if(sps->sps_ladf_enabled_flag){
+          TRUE_OR_RETURN(br->ReadBits(2,&sps->sps_num_ladf_intervals_minus2));
+          TRUE_OR_RETURN(br->ReadSE(&sps->sps_ladf_lowest_interval_qp_offset));
+        }
+        int tmp_sps_ladf_qp_offset = 0;
+        int tmp_sps_ladf_delta_threshold_minus1 = 0;
+        for( int i = 0; i < sps->sps_num_ladf_intervals_minus2 + 1; i++ ) {
+          TRUE_OR_RETURN(br->ReadSE(&tmp_sps_ladf_qp_offset));
+          sps->sps_ladf_qp_offset.push_back(tmp_sps_ladf_qp_offset);
+          TRUE_OR_RETURN(br->ReadUE(&tmp_sps_ladf_delta_threshold_minus1));
+          sps->sps_ladf_delta_threshold_minus1.push_back(tmp_sps_ladf_delta_threshold_minus1);
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_explicit_scaling_list_enabled_flag));
+        if( sps->sps_lfnst_enabled_flag && sps->sps_explicit_scaling_list_enabled_flag ){
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_scaling_matrix_for_lfnst_disabled_flag));
+        }
+        if( sps->sps_act_enabled_flag && sps->sps_explicit_scaling_list_enabled_flag ){
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_scaling_matrix_for_alternative_colour_space_disabled_flag));   
+        }
+        if( sps->sps_scaling_matrix_for_alternative_colour_space_disabled_flag ){
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_scaling_matrix_designated_colour_space_flag));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_dep_quant_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_sign_data_hiding_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_virtual_boundaries_enabled_flag));
+        if(sps->sps_virtual_boundaries_enabled_flag){
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_virtual_boundaries_present_flag));
+          if(sps->sps_virtual_boundaries_present_flag){
+            TRUE_OR_RETURN(br->ReadUE(&sps->sps_num_ver_virtual_boundaries));
+            int tmp_sps_virtual_boundary_pos_x_minus1 = 0;
+            for( int i = 0; i < sps->sps_num_ver_virtual_boundaries; i++ ){
+              TRUE_OR_RETURN(br->ReadUE(&tmp_sps_virtual_boundary_pos_x_minus1));
+              sps->sps_virtual_boundary_pos_x_minus1.push_back(tmp_sps_virtual_boundary_pos_x_minus1);
+            }
+            TRUE_OR_RETURN(br->ReadUE(&sps->sps_num_hor_virtual_boundaries));
+            int tmp_sps_virtual_boundary_pos_y_minus1 = 0;
+            for( int i = 0; i < sps->sps_num_hor_virtual_boundaries; i++ ){
+              TRUE_OR_RETURN(br->ReadUE(&tmp_sps_virtual_boundary_pos_y_minus1));
+              sps->sps_virtual_boundary_pos_y_minus1.push_back(tmp_sps_virtual_boundary_pos_y_minus1);
+            }
+          }
+        }
+        if( sps->sps_ptl_dpb_hrd_params_present_flag ) {
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_timing_hrd_params_present_flag));
+          if(sps->sps_timing_hrd_params_present_flag){
+            //todo
+            //general_timing_hrd_parameters
+          }
+          if (sps->sps_max_sublayers_minus1){
+            TRUE_OR_RETURN(br->ReadUE(&sps->sps_sublayer_cpb_params_present_flag));
+            int firstSubLayer = sps->sps_sublayer_cpb_params_present_flag ? 0 : sps->sps_max_sublayers_minus1;
+            //todo
+            //ols_timing_hrd_parameters( firstSubLayer, sps_max_sublayers_minus1 )
+          }
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_field_seq_flag));
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_vui_parameters_present_flag));
+        if(sps->sps_vui_parameters_present_flag){
+          TRUE_OR_RETURN(br->ReadUE(&sps->sps_vui_payload_size_minus1));
+          bool sps_vui_alignment_zero_bit;
+          //todo
+          //implement byte_aligned
+         // while(!byte_aligned( ) )){
+            TRUE_OR_RETURN(br->ReadBool(&sps_vui_alignment_zero_bit));
+          //}
+          //todo
+          //vui_payload( sps->sps_vui_payload_size_minus1 + 1 )
+          OK_OR_RETURN(ParseVuiParameters(sps->max_sublayers_minus1, br,
+                                    &sps->vui_parameters));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&sps->sps_extension_flag));
+        if(sps->sps_extension_flag){
+          TRUE_OR_RETURN(br->ReadBool(&sps->sps_range_extension_flag));
+          TRUE_OR_RETURN(br->ReadBits(7,&sps->sps_extension_7bits));
+          if( sps->sps_range_extension_flag ){
+            //todo
+            //sps_range_extension( )
+          }
+        }
+        if(sps->sps_extension_7bits){
+          while( more_rbsp_data( ) ){
+            sps_extension_data_flag
+            TRUE_OR_RETURN(br->ReadBool(&sps->sps_extension_data_flag));
+        }
+        rbsp_trailing_bits( )
         
-
-
-
-
-
-        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
-        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
-
-        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
-        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
-        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
-
-        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
-        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
-        TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
-
-
-
-
-
-
-
-
-
-  }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-  TRUE_OR_RETURN(br->ReadBool(&sps->sps_temporal_id_nesting_flag));
-
-  // Profile/Tier/Level - simplified parsing
-  for (int i = 0; i < 12; i++) {
-    TRUE_OR_RETURN(br->ReadBits(8, &sps->general_profile_tier_level_data[i]));
-  }
-
-  // Chroma format and resolution
-  TRUE_OR_RETURN(br->ReadUE(&sps->chroma_format_idc));
-  TRUE_OR_RETURN(br->ReadUE(&sps->pic_width_max_in_luma_samples));
-  TRUE_OR_RETURN(br->ReadUE(&sps->pic_height_max_in_luma_samples));
-
-  // Conformance window
-  TRUE_OR_RETURN(br->ReadBool(&sps->conformance_window_present_flag));
-  if (sps->conformance_window_present_flag) {
-    TRUE_OR_RETURN(br->ReadUE(&sps->conf_win_left_offset));
-    TRUE_OR_RETURN(br->ReadUE(&sps->conf_win_right_offset));
-    TRUE_OR_RETURN(br->ReadUE(&sps->conf_win_top_offset));
-    TRUE_OR_RETURN(br->ReadUE(&sps->conf_win_bottom_offset));
-  }
-
-  // Bit depth
-  TRUE_OR_RETURN(br->ReadUE(&sps->bit_depth_luma_minus8));
-  TRUE_OR_RETURN(br->ReadUE(&sps->bit_depth_chroma_minus8));
-
-  // Partitioning parameters
-  TRUE_OR_RETURN(br->ReadUE(&sps->log2_ctu_size_minus5));
-  TRUE_OR_RETURN(br->ReadUE(&sps->log2_min_luma_coding_block_size_minus2));
-
-  // Quantization
-  TRUE_OR_RETURN(br->ReadUE(&sps->qp_bd_offset));
-
-  // Coding tools
-  TRUE_OR_RETURN(br->ReadBool(&sps->sps_temporal_mvp_enabled_flag));
-  TRUE_OR_RETURN(br->ReadBool(&sps->sps_strong_intra_smoothing_enabled_flag));
-  TRUE_OR_RETURN(br->ReadBool(&sps->sps_sao_enabled_flag));
-  TRUE_OR_RETURN(br->ReadBool(&sps->sps_alf_enabled_flag));
-
   // VUI parameters
-  TRUE_OR_RETURN(br->ReadBool(&sps->vui_parameters_present));
+  /* TRUE_OR_RETURN(br->ReadBool(&sps->vui_parameters_present));
   if (sps->vui_parameters_present) {
     OK_OR_RETURN(ParseVuiParameters(sps->max_sublayers_minus1, br,
                                     &sps->vui_parameters));
   }
-
+ */
   // This will replace any existing SPS instance.
   *sps_id = sps->sps_seq_parameter_set_id;
   active_spses_[*sps_id] = std::move(sps);
