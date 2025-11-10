@@ -268,6 +268,9 @@ struct H266Sps {
   bool sps_subpic_info_present_flag = false;
   int sps_num_subpics_minus1 = 0;
   bool sps_independent_subpics_flag = false;
+  std::vector <int> sps_subpic_ctu_top_left_x;
+  
+
   bool sps_subpic_same_size_flag = false;
   std::vector<int> sps_subpic_top_left_x;
   std::vector<int> sps_subpic_top_left_y;

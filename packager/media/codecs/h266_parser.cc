@@ -624,8 +624,16 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         for(int i=0; i<= sps->sps_num_subpics_minus1 ; i++) {
           if(!sps->sps_subpic_same_size_flag && i>0) {
             // define CtbSizeY
+            int CtbLog2SizeY = sps->sps_log2_ctu_size_minus5 + 5;
+            int CtbSizeY = 1 << CtbLog2SizeY;
+            int bit_read = 0;
+            int tmpWidthVal;
+            bit_read = ceil(log2(tmpWidthVal));
+
+            u_int tmp_sps_subpic_ctu_top_left_x = 0;
             if(i>0 && sps->sps_pic_width_max_in_luma_samples > CtbSizeY) {
-              TRUE_OR_RETURN(br->ReadSE(&sps->sps_subpic_top_left_x[i]));  // u(v)  NOT SURE
+
+              TRUE_OR_RETURN(br->ReadBits(bit_read,&sps->sps_subpic_ctu_top_left_x[[i]));  // u(v)  NOT SURE
 
 
 
