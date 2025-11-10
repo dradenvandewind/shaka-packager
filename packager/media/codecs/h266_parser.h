@@ -64,7 +64,7 @@ struct H266OlsTimingHrdParameters{
     std::vector<std::vector<std::vector<int>>> cpb_size_value_minus1;
     std::vector<std::vector<std::vector<int>>> cpb_size_du_value_minus1;
     std::vector<std::vector<std::vector<int>>> bit_rate_du_value_minus1;
-    std::vector<std::vector<std::vector<int>>> cbr_flag;
+    std::vector<std::vector<std::vector<bool>>> cbr_flag;
 
 };
 
@@ -281,6 +281,26 @@ struct GeneralTimingHrdParameters{
   int hrd_cpb_cnt_minus1;
 };
 
+struct H266ReferencePic{
+  std::vector <bool> rpl_sps_flag;
+  std::vector <int> rpl_idx;
+  std::vector<std::vector<std::vector<int>>> poc_lsb_lt;
+  //std::vector<std::vector<std::vector<int>>> num_ref_entries;
+  std::vector<std::vector<std::vector<bool>>> delta_poc_msb_cycle_present_flag;
+  std::vector<std::vector<std::vector<int>>> delta_poc_msb_cycle_lt;
+};
+
+struct H266ReferencePicList{
+  std::vector<std::vector<std::vector<int>>> num_ref_entries;
+  std::vector<std::vector<std::vector<bool>>> ltrp_in_header_flag;
+  std::vector<std::vector<std::vector<bool>>> inter_layer_ref_pic_flag;
+  std::vector<std::vector<std::vector<bool>>> st_ref_pic_flag;
+  std::vector<std::vector<std::vector<int>>> abs_delta_poc_st;
+  std::vector<std::vector<std::vector<bool>>> strp_entry_sign_flag;
+  std::vector<std::vector<std::vector<int>>> rpls_poc_lsb_lt;
+  std::vector<std::vector<std::vector<int>>> ilrp_idx;
+
+};
 
 struct H266Sps {
   H266Sps();
@@ -393,6 +413,7 @@ struct H266Sps {
   bool sps_weighted_pred_flag = false;
   bool sps_weighted_bipred_flag = false;
   bool sps_long_term_ref_pics_flag = false;
+  H266ReferencePic pic;
   bool sps_inter_layer_prediction_enabled_flag = false;
   bool sps_idr_rpl_present_flag = false;
   bool sps_rpl1_same_as_rpl0_flag = false;

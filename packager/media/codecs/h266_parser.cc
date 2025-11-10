@@ -893,16 +893,14 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         if( sps->sps_ptl_dpb_hrd_params_present_flag ) {
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_timing_hrd_params_present_flag));
           if(sps->sps_timing_hrd_params_present_flag){
-            //todo
+            
             //general_timing_hrd_parameters
             OK_OR_RETURN(GetGeneralTimingHrdParameters(&sps->timing,br));
           }
           if (sps->sps_max_sublayers_minus1){
             TRUE_OR_RETURN(br->ReadUE(&sps->sps_sublayer_cpb_params_present_flag));
             int firstSubLayer = sps->sps_sublayer_cpb_params_present_flag ? 0 : sps->sps_max_sublayers_minus1;
-            //todo
-            //ols_timing_hrd_parameters( firstSubLayer, sps_max_sublayers_minus1 )
-            //H266OlsTimingHrdParameters
+
             Ols_Timing_Hrd_parameters(firstSubLayer, sps->sps_max_sublayers_minus1,
                             sps,
                             br,
