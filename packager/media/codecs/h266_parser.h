@@ -281,14 +281,6 @@ struct GeneralTimingHrdParameters{
   int hrd_cpb_cnt_minus1;
 };
 
-struct H266ReferencePicList{
-  std::vector <bool> rpl_sps_flag;
-  std::vector <int> rpl_idx;
-  std::vector<std::vector<std::vector<int>>> poc_lsb_lt;
-  //std::vector<std::vector<std::vector<int>>> num_ref_entries;
-  std::vector<std::vector<std::vector<bool>>> delta_poc_msb_cycle_present_flag;
-  std::vector<std::vector<std::vector<int>>> delta_poc_msb_cycle_lt;
-};
 
 //ref_pic_list_struct( i, j )
 struct H266ReferencePicListStruct{
@@ -300,8 +292,15 @@ struct H266ReferencePicListStruct{
   std::vector<std::vector<std::vector<std::vector<bool>>>> strp_entry_sign_flag;
   std::vector<std::vector<std::vector<std::vector<bool>>>> rpls_poc_lsb_lt;
   std::vector<std::vector<std::vector<std::vector<int>>>> ilrp_idx;
-  H266ReferencePicList reference_pic_list;
+};
 
+struct H266ReferencePicList{
+  std::vector <bool> rpl_sps_flag;
+  std::vector <int> rpl_idx;
+  std::vector<std::vector<std::vector<int>>> poc_lsb_lt;
+  std::vector<std::vector<std::vector<bool>>> delta_poc_msb_cycle_present_flag;
+  std::vector<std::vector<std::vector<int>>> delta_poc_msb_cycle_lt;
+  H266ReferencePicListStruct reference_pic_list;
 };
 
 

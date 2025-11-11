@@ -776,8 +776,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           TRUE_OR_RETURN(br->ReadUE(&tmp_sps_num_ref_pic_lists));
           sps->sps_num_ref_pic_lists.push_back(tmp_sps_num_ref_pic_lists);
           for( int j = 0; j < sps->sps_num_ref_pic_lists[ i ]; j++){
-            //todo
-            //ref_pic_list_struct( i, j )
+            Ref_Pic_List_Struct(i,j, sps, br, sps->reference_pic_list_struct);
           }
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_ref_wraparound_enabled_flag));
@@ -1177,8 +1176,6 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
   //7.3.10 Reference picture list structure syntax
   std::vector<std::vector<std::vector<std::vector<int>>>> AbsDeltaPocSt;
   int tmp_num_ref_entries = 0;
-  TRUE_OR_RETURN(br->ReadUE(&tmp_num_ref_entries));
-  rpls->num_ref_entries[listIdx][rplsIdx].push_back(tmp_num_ref_entries);
   bool tmp_ltrp_in_header_flag = 0;
   bool tmp_inter_layer_ref_pic_flag = 0;
   bool tmp_st_ref_pic_flag = 0;
@@ -1188,6 +1185,8 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
   int tmp_ilrp_idx = 0;
   bool tmp st_ref_pic_flag = 0;
 
+  TRUE_OR_RETURN(br->ReadUE(&tmp_num_ref_entries));
+  rpls->num_ref_entries[listIdx][rplsIdx].push_back(tmp_num_ref_entries);
   if( sps->sps_long_term_ref_pics_flag && rplsIdx < sps->sps_num_ref_pic_lists[listIdx] && rpls->num_ref_entries[listIdx][rplsIdx] > 0 ){
     TRUE_OR_RETURN(br->ReadBool(&tmp_ltrp_in_header_flag));
     rpls->ltrp_in_header_flag[ listIdx ][ rplsIdx ].push_back(tmp_ltrp_in_header_flag);
