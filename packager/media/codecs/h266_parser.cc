@@ -1448,15 +1448,17 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
 
 H266Parser::Result H266Parser::ParseGeneralConstraintsInfo(H266GeneralConstraintsInfo *gci,
                                                      H26xBitReader* br) {
-TRUE_OR_RETURN(br->ReadBool(&gci->gci_present_flag);
-/* general */
+    
+                                                      TRUE_OR_RETURN(br->ReadBool(&gci->gci_present_flag);
+int numAdditionalBitsUsed = 0,
+                                                      /* general */
 if (gci->gci_present_flag){
     TRUE_OR_RETURN(br->ReadBool(&gci->gci_intra_only_constraint_flag));
     TRUE_OR_RETURN(br->ReadBool(&gci->gci_all_layers_independent_constraint_flag));
     TRUE_OR_RETURN(br->ReadBool(&gci->gci_one_au_only_constraint_flag));
     /* picture format */
-    TRUE_OR_RETURN(br->ReadBool(4,&gci->gci_sixteen_minus_max_bitdepth_constraint_idc)); //4 bits
-    TRUE_OR_RETURN(br->ReadBool(2,&gci->gci_three_minus_max_chroma_format_constraint_idc));//2 bits
+    TRUE_OR_RETURN(br->ReadBits(4,&gci->gci_sixteen_minus_max_bitdepth_constraint_idc)); //4 bits
+    TRUE_OR_RETURN(br->ReadBits(2,&gci->gci_three_minus_max_chroma_format_constraint_idc));//2 bits
     /* NAL unit type related */
     TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_mixed_nalu_types_in_pic_constraint_flag));
     TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_trail_constraint_flag));
@@ -1476,7 +1478,7 @@ if (gci->gci_present_flag){
     TRUE_OR_RETURN(br->ReadBool(&gci->gci_one_slice_per_subpic_constraint_flag));
     TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_subpic_info_constraint_flag));
     /* CTU and block partitioning */
-    int gci_three_minus_max_log2_ctu_size_constraint_idc)); //2 bits
+    TRUE_OR_RETURN(br->ReadBits(2,&gci->gci_three_minus_max_log2_ctu_size_constraint_idc)); //2 bits
     TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_partition_constraints_override_constraint_flag));
     TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_mtt_constraint_flag
     TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_qtbtt_dual_tree_intra_constraint_flag));
@@ -1524,16 +1526,30 @@ if (gci->gci_present_flag){
     TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_lmcs_constraint_flag));
     TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_ladf_constraint_flag));
     TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_virtual_boundaries_constraint_flag));
-    TRUE_OR_RETURN(br->ReadBool(8,&gci->gci_num_additional_bits)); //8 bits
-    TRUE_OR_RETURN(br->ReadBool(&gci->gci_all_rap_pictures_constraint_flag));
-    TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_extended_precision_processing_constraint_flag));
-    TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_ts_residual_coding_rice_constraint_flag));
-    TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_rrc_rice_extension_constraint_flag));
-    TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_persistent_rice_adaptation_constraint_flag));
-    TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_reverse_last_sig_coeff_constraint_flag));
-}
-    return kOk;
+    if(gci->gci_num_additional_bits > 5){
+      TRUE_OR_RETURN(br->ReadBool(8,&gci->gci_num_additional_bits)); //8 bits
+      TRUE_OR_RETURN(br->ReadBool(&gci->gci_all_rap_pictures_constraint_flag));
+      TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_extended_precision_processing_constraint_flag));
+      TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_ts_residual_coding_rice_constraint_flag));
+      TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_rrc_rice_extension_constraint_flag));
+      TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_persistent_rice_adaptation_constraint_flag));
+      TRUE_OR_RETURN(br->ReadBool(&gci->gci_no_reverse_last_sig_coeff_constraint_flag));
+      numAdditionalBitsUsed = 6;
+    } else {
+      numAdditionalBitsUsed = 0;
+    }
+    bool tmp_gci_reserved_bit;
+    for( int i = 0; i < gci->gci_num_additional_bits-numAdditionalBitsUsed; i++ )
+    {
+      TRUE_OR_RETURN(br->ReadBool(&tmp_gci_reserved_bit));
+    }
 
+  }
+  bool gci_alignment_zero_bit;
+  while( !byte_aligned()){
+    TRUE_OR_RETURN(br->ReadBool(&gci_alignment_zero_bit));
+  }
+  return kOk;
 }
 
 
