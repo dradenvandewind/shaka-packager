@@ -24,7 +24,8 @@ H26xBitReader::H26xBitReader()
       curr_byte_(0),
       num_remaining_bits_in_curr_byte_(0),
       prev_two_bytes_(0),
-      emulation_prevention_bytes_(0) {}
+      emulation_prevention_bytes_(0),
+      bit_position_(0) {}
 
 H26xBitReader::~H26xBitReader() {}
 
@@ -40,6 +41,7 @@ bool H26xBitReader::Initialize(const uint8_t* data, off_t size) {
   // Initially set to 0xffff to accept all initial two-byte sequences.
   prev_two_bytes_ = 0xffff;
   emulation_prevention_bytes_ = 0;
+  bit_position_ = 0;
 
   return true;
 }
@@ -71,6 +73,108 @@ bool H26xBitReader::UpdateCurrByte() {
 
   return true;
 }
+  bool H26xBitReader::byte_aligned() const { 
+    return (bit_position_ % 8) == 0;
+  }
+
+  size_t H26xBitReader::GetBitPosition() const {
+     return bit_position_; 
+  }
+
+  off_t H26xBitReader::NumBitsLeft() {
+  return bytes_left_ * 8 + num_remaining_bits_in_curr_byte_;
+ }
+
+ bool H26xBitReader::HasMoreRBSPData() {
+  return more_rbsp_data();
+}
+
+
+bool H26xBitReader::more_rbsp_data() {
+  // If there are no bits left, return false
+  if (NumBitsLeft() == 0)
+    return false;
+
+  // Save current state
+  const uint8_t* saved_data = data_;
+  off_t saved_bytes_left = bytes_left_;
+  int saved_curr_byte = curr_byte_;
+  int saved_num_remaining_bits = num_remaining_bits_in_curr_byte_;
+  int saved_prev_two_bytes = prev_two_bytes_;
+  size_t saved_bit_position = bit_position_;
+
+  // Look ahead to find the RBSP stop bit (rbsp_stop_one_bit)
+  bool found_stop_bit = false;
+  int bits_checked = 0;
+  const int max_bits_to_check = 32; // Reasonable limit to prevent infinite loop
+
+  while (bits_checked < max_bits_to_check && NumBitsLeft() > 0) {
+    int bit;
+    if (!ReadBits(1, &bit)) {
+      break;
+    }
+    bits_checked++;
+
+    if (bit == 1) {
+      // Found potential stop bit, check if all remaining bits are zero
+      found_stop_bit = true;
+      break;
+    }
+  }
+
+  // Restore state
+  data_ = saved_data;
+  bytes_left_ = saved_bytes_left;
+  curr_byte_ = saved_curr_byte;
+  num_remaining_bits_in_curr_byte_ = saved_num_remaining_bits;
+  prev_two_bytes_ = saved_prev_two_bytes;
+  bit_position_ = saved_bit_position;
+
+  // If we found a stop bit, there might be more RBSP data before it
+  // If we didn't find a stop bit but have bits left, there's definitely more data
+  return !found_stop_bit || bits_checked > 1;
+}
+
+
+bool H26xBitReader::IsAtRBSPTrailingBits() {
+  // Save current state
+  const uint8_t* saved_data = data_;
+  off_t saved_bytes_left = bytes_left_;
+  int saved_curr_byte = curr_byte_;
+  int saved_num_remaining_bits = num_remaining_bits_in_curr_byte_;
+  int saved_prev_two_bytes = prev_two_bytes_;
+  size_t saved_bit_position = bit_position_;
+
+  // Check if we're at the beginning of rbsp_trailing_bits
+  // which starts with a '1' bit followed by zero or more '0' bits
+  bool is_at_trailing_bits = false;
+  
+  if (NumBitsLeft() > 0) {
+    int first_bit;
+    if (ReadBits(1, &first_bit) && first_bit == 1) {
+      // We found the stop bit, now check if all remaining bits are zero
+      is_at_trailing_bits = true;
+      while (NumBitsLeft() > 0) {
+        int bit;
+        if (!ReadBits(1, &bit) || bit != 0) {
+          is_at_trailing_bits = false;
+          break;
+        }
+      }
+    }
+  }
+
+  // Restore state
+  data_ = saved_data;
+  bytes_left_ = saved_bytes_left;
+  curr_byte_ = saved_curr_byte;
+  num_remaining_bits_in_curr_byte_ = saved_num_remaining_bits;
+  prev_two_bytes_ = saved_prev_two_bytes;
+  bit_position_ = saved_bit_position;
+
+  return is_at_trailing_bits;
+}
+
 
 // Read |num_bits| (1 to 31 inclusive) from the stream and return them
 // in |out|, with first bit in the stream as MSB in |out| at position
@@ -92,6 +196,7 @@ bool H26xBitReader::ReadBits(int num_bits, int* out) {
   *out |= (curr_byte_ >> (num_remaining_bits_in_curr_byte_ - bits_left));
   *out &= ((1 << num_bits) - 1);
   num_remaining_bits_in_curr_byte_ -= bits_left;
+  bit_position_ += num_bits;
 
   return true;
 }
@@ -105,6 +210,7 @@ bool H26xBitReader::SkipBits(int num_bits) {
   }
 
   num_remaining_bits_in_curr_byte_ -= bits_left;
+  bit_position_ += num_bits;
   return true;
 }
 
@@ -131,6 +237,7 @@ bool H26xBitReader::ReadUE(int* val) {
       return false;
     *val += rest;
   }
+  bit_position_ += num_bits;
 
   return true;
 }
@@ -189,6 +296,7 @@ bool H26xBitReader::ReadBits(int num_bits, uint32_t* out) {
   if (!ReadBits(num_bits, &temp))
     return false;
   *out = static_cast<uint32_t>(temp);
+  bit_position_ += num_bits;
   return true;
 }
 
@@ -197,6 +305,7 @@ bool H26xBitReader::ReadBool(uint8_t* out) {
   if (!ReadBool(&temp))
     return false;
   *out = temp ? 1 : 0;
+  bit_position_ += 1;
   return true;
 }
 

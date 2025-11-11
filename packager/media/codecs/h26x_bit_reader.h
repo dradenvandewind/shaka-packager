@@ -72,6 +72,13 @@ class H26xBitReader {
   bool ReadBool(uint8_t* out);
   bool ReadUE(uint32_t* val);
 
+  bool byte_aligned() const;
+  size_t GetBitPosition() const;
+
+  bool IsAtRBSPTrailingBits();
+  bool more_rbsp_data();
+
+
 
  private:
   
@@ -101,6 +108,7 @@ class H26xBitReader {
 
   // Number of emulation preventation bytes (0x000003) we met.
   size_t emulation_prevention_bytes_;
+  size_t bit_position_;
 
   DISALLOW_COPY_AND_ASSIGN(H26xBitReader);
 };
