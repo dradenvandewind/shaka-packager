@@ -110,16 +110,16 @@ struct H266VuiParameters {
   int vui_colour_primaries;
   int vui_transfer_characteristics;
   int vui_matrix_coeffs;
-  int vui_full_range_flag;
+  //int vui_full_range_flag;
 
-  bool vui_chroma_loc_info_present_flag;
-  u_int vui_chroma_sample_loc_type_frame;
-  u_int vui_chroma_sample_loc_type_top_field;
-  u_int vui_chroma_sample_loc_type_bottom_field;
+  //bool vui_chroma_loc_info_present_flag;
+  //u_int vui_chroma_sample_loc_type_frame;
+  //u_int vui_chroma_sample_loc_type_top_field;
+  //u_int vui_chroma_sample_loc_type_bottom_field;
   // Incomplete...
 };
 struct H266GeneralConstraintsInfo{
-bool gci_present_flag
+bool gci_present_flag;
 /* general */
 bool gci_intra_only_constraint_flag;
 bool gci_all_layers_independent_constraint_flag;
@@ -148,7 +148,7 @@ bool gci_no_subpic_info_constraint_flag;
 /* CTU and block partitioning */
 int gci_three_minus_max_log2_ctu_size_constraint_idc; //2 bits
 bool gci_no_partition_constraints_override_constraint_flag;
-bool gci_no_mtt_constraint_flag
+bool gci_no_mtt_constraint_flag;
 bool gci_no_qtbtt_dual_tree_intra_constraint_flag;
 /* intra */
 bool gci_no_palette_constraint_flag;
@@ -214,7 +214,6 @@ struct H266ProfileTierLevel{
   H266GeneralConstraintsInfo gci;
 
   std::vector <bool> ptl_sublayer_level_present_flag;
-  std::vector <int> sublayer_level_idc;
   std::vector <int> sublayer_level_idc;
   int ptl_num_sub_profiles;
   std::vector <u_int32_t> general_sub_profile_idc;
@@ -315,7 +314,6 @@ struct H266Pps {
   std::vector<int> pps_num_ref_idx_default_active_minus1; 
 
 
-  std::vector<int> pps_num_ref_idx_default_active_minus1; //256 not sure need check
   bool pps_rpl1_idx_present_flag = false;
   bool pps_weighted_pred_flag = false;
   bool pps_weighted_bipred_flag = false;
@@ -337,8 +335,6 @@ struct H266Pps {
   std::vector<int> pps_qp_offset_list; //256 not sure need check
   std::vector<int> pps_cr_qp_offset_list;
   std::vector<int> pps_joint_cbcr_qp_offset_list;
-  std::vector<int> pps_cb_qp_offset_list;
-  std::vector<int> pps_cr_qp_offset_list;
   
 
 
@@ -447,8 +443,6 @@ struct H266Sps {
   bool sps_independent_subpics_flag = false;
   std::vector <int> sps_subpic_ctu_top_left_x;
   std::vector <int> sps_subpic_ctu_top_left_y;
-  std::vector <int> sps_subpic_width_minus1;
-  std::vector <int> sps_subpic_height_minus1;
   
 
   bool sps_subpic_same_size_flag = false;
@@ -521,7 +515,7 @@ struct H266Sps {
   bool sps_weighted_pred_flag = false;
   bool sps_weighted_bipred_flag = false;
   bool sps_long_term_ref_pics_flag = false;
-  H266ReferencePic pic;
+  H266ReferencePicListStruct pic;
   bool sps_inter_layer_prediction_enabled_flag = false;
   bool sps_idr_rpl_present_flag = false;
   bool sps_rpl1_same_as_rpl0_flag = false;
@@ -608,8 +602,6 @@ struct H266Sps {
   GeneralTimingHrdParameters timing;
   bool sps_sublayer_cpb_params_present_flag = false;
 
-  bool sps_vui_parameters_present_flag = false;
-  bool sps_sublayer_cpb_params_present_flag = false;
 
   bool sps_field_seq_flag = false;
   bool sps_vui_parameters_present_flag = false;
@@ -655,7 +647,6 @@ struct H266Sps {
   int qp_bd_offset = 0;
 
   // Temporal MVP
-  bool sps_temporal_mvp_enabled_flag = false;
 
   // Strong intra smoothing
   bool sps_strong_intra_smoothing_enabled_flag = false;
@@ -668,16 +659,8 @@ struct H266Sps {
 
 
   // H.266 specific tools
-  bool sps_affine_enabled_flag = false;
-  bool sps_amvr_enabled_flag = false;
-  bool sps_bdof_enabled_flag = false;
-  bool sps_bdof_control_present_in_ph_flag = false;
-  bool sps_sao_enabled_flag = false;
-  bool sps_alf_enabled_flag = false;
 
   // Sub-picture and scalability
-  bool sps_subpic_treated_as_pic_flag = false;
-  bool sps_ref_wraparound_enabled_flag = false;
 
   // Incomplete: many more H.266 specific fields...
 };
@@ -697,7 +680,6 @@ struct H266RepFormat {
   int conf_win_vps_top_offset = 0;
   int conf_win_vps_bottom_offset = 0;
 };
-bool sps_subpic_info_present_flag =
 
 struct H266ProfileTierLevel {
   uint8_t general_profile_idc;
@@ -1032,10 +1014,10 @@ class H266Parser {
                             const H266Sps& sps,
                             H26xBitReader* br,
                             H266ReferencePicListStruct* rpls);
-  Result H266Parser::ParseGeneralConstraintsInfo(H266GeneralConstraintsInfo *gci,
+  Result ParseGeneralConstraintsInfo(H266GeneralConstraintsInfo *gci,
                                                      H26xBitReader* br);
 
-  Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdParameters *time,
+  Result GetGeneralTimingHrdParameters(GeneralTimingHrdParameters *time,
                                       H26xBitReader* br);                          
   
   Result Ols_Timing_Hrd_parameters(int firstsublayer, int sps_max_sublayers_minus1,
