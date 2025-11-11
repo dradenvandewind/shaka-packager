@@ -431,6 +431,7 @@ struct H266Sps {
   bool sps_res_change_in_clvs_allowed_flag = false;
   int sps_pic_width_in_luma_samples = 0;
   int sps_pic_width_max_in_luma_samples = 0;
+  int sps_pic_height_in_luma_samples = 0;
 
   bool sps_conformance_window_flag = false;
   int sps_conf_win_left_offset = 0;
@@ -452,7 +453,7 @@ struct H266Sps {
   std::vector<int> sps_subpic_height_minus1;
   std::vector<bool> sps_subpic_treated_as_pic_flag;
   std::vector<bool> sps_loop_filter_across_subpic_enabled_flag;
-  bool sps_subpic_id_len_minus1 = false;
+  int sps_subpic_id_len_minus1;
   bool sps_subpic_id_mapping_explicitly_signalled_flag = false;
   
   bool sps_subpic_id_mapping_present_flag = false;
@@ -483,18 +484,18 @@ struct H266Sps {
   bool sps_qtbtt_dual_tree_intra_flag = false;
   int sps_log2_diff_min_qt_min_cb_intra_slice_chroma = 0;
   int sps_log2_diff_max_tt_min_qt_intra_slice_chroma = 0;
-
+  int sps_max_mtt_hierarchy_depth_intra_slice_chroma = 0;
   int sps_log2_diff_min_qt_min_cb_inter_slice = 0;
   int sps_max_mtt_hierarchy_depth_inter_slice = 0;
 
   int sps_log2_diff_max_bt_min_qt_inter_slice = 0;
   int sps_log2_diff_max_tt_min_qt_inter_slice = 0;
-
+  int sps_log2_diff_max_bt_min_qt_intra_slice_chroma = 0;
   bool sps_max_luma_transform_size_64_flag = false;
   bool sps_transform_skip_enabled_flag = false;
 
   int sps_log2_transform_skip_max_size_minus2 = 0;
-  int sps_bdpcm_enabled_flag = 0;
+  bool sps_bdpcm_enabled_flag = 0;
   
   bool sps_mts_enabled_flag = false;
   bool sps_explicit_mts_intra_enabled_flag = false;
@@ -511,6 +512,7 @@ struct H266Sps {
 
   bool sps_sao_enabled_flag = false;
   bool sps_ccalf_enabled_flag = false;
+  bool sps_alf_enabled_flag = false;
   bool sps_lmcs_enabled_flag = false;
   bool sps_weighted_pred_flag = false;
   bool sps_weighted_bipred_flag = false;
@@ -593,7 +595,7 @@ struct H266Sps {
 
   int sps_num_ver_virtual_boundaries = 0;
 
-  std::vector <int> sps_virtual_boundary_pos_x_minus1[12];//i = sps_num_ver_virtual_boundaries
+  std::vector <int> sps_virtual_boundary_pos_x_minus1;//i = sps_num_ver_virtual_boundaries
   int sps_num_hor_virtual_boundaries = 0;
 
   std::vector <int> sps_virtual_boundary_pos_y_minus1;//i = sps_num_hor_virtual_boundaries  
@@ -607,13 +609,14 @@ struct H266Sps {
   bool sps_vui_parameters_present_flag = false;
 
   int sps_vui_payload_size_minus1 = 0;  
+  H266VuiParameters vui_parameters;
 
   bool sps_vui_alignment_zero_bits = false;
   bool sps_extension_flag = false;
 
   bool sps_range_extension_flag = false;
   bool sps_extension_7bits_flag = false;
-
+  int sps_extension_7bits;
   bool sps_extension_data_flag = false;
 
  // end H.266 specific fields
@@ -996,8 +999,8 @@ class H266Parser {
 
  private:
   Result Vui_Payload(int max_num_sub_layers_minus1,
-                            H26xBitReader* br,
-                            H266VuiParameters* vui);
+                     H26xBitReader* br,
+                     H266VuiParameters* vui);
 
   Result Ref_Pic_List_Struct(int listIdx, int rplsIdx,
                             const H266Sps& sps,
