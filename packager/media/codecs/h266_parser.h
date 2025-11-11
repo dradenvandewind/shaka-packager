@@ -218,8 +218,6 @@ struct H266ProfileTierLevel{
   std::vector <int> sublayer_level_idc;
   int ptl_num_sub_profiles;
   std::vector <u_int32_t> general_sub_profile_idc;
-
-
 };
 
 
@@ -431,6 +429,7 @@ struct H266Sps {
   int sps_chroma_format_idc = 1; // default to 4:2:0
   int sps_log2_ctu_size_minus5 = 0; // default to 0 (32x32 CTU) 2 bits
   bool sps_ptl_dpb_hrd_params_present_flag = false;
+  H266ProfileTierLevel sps_profile_level;
   bool sps_gdr_enabled_flag = false;
   bool sps_ref_pic_resampling_enabled_flag = false;
   bool sps_res_change_in_clvs_allowed_flag = false;
