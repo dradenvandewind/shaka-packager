@@ -681,17 +681,6 @@ struct H266RepFormat {
   int conf_win_vps_bottom_offset = 0;
 };
 
-struct H266ProfileTierLevel {
-  uint8_t general_profile_idc;
-  uint8_t general_tier_flag;
-  uint8_t general_level_idc;
-  bool general_frame_only_constraint_flag;
-  bool general_non_packed_constraint_flag;
-  bool general_interlaced_source_flag;
-  bool general_progressive_source_flag;
-  // ... autres champs du profile tier level
-};
-
 
 struct H266Vps {
   H266Vps();
