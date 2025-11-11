@@ -304,6 +304,8 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   DCHECK_EQ(Nalu::H266_PPS_NUT, nalu.type());
   LOG(INFO) << "Parsing H.266 PPS NALU";
 
+  //warning  with }} for close
+
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
   H26xBitReader* br = &reader;
@@ -313,6 +315,8 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
   *pps_id = -1;
   std::unique_ptr<H266Pps> pps(new H266Pps);
+  std::unique_ptr<H266Sps> sps(new H266Sps);
+
   //pic_parameter_set_rbsp( ) 7.3.2.5
 
   TRUE_OR_RETURN(br->ReadBits(6, &pps->pic_parameter_set_id));  // 6 bits 
@@ -347,7 +351,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     
     TRUE_OR_RETURN((br->ReadUE(&pps->pps_num_subpics_minus1)));
     u_int tmp_pps_subpic_id = 0;
-    for(u_int i = 0;i <= pps->pps_num_subpics_minus1;i++){
+    for(int i = 0;i <= pps->pps_num_subpics_minus1;i++){
       
       TRUE_OR_RETURN(br->ReadBits(sps->sps_subpic_id_len_minus1, &tmp_pps_subpic_id));
       pps->pps_subpic_id.push_back(tmp_pps_subpic_id);
@@ -358,12 +362,12 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     TRUE_OR_RETURN(br->ReadUE(&pps->pps_num_exp_tile_columns_minus1));
     TRUE_OR_RETURN(br->ReadUE(&pps->pps_num_exp_tile_rows_minus1));
     u_int tmp_pps_tile_column_width_minus1 = 0;
-    for( u_int i = 0; i <= pps->pps_num_exp_tile_columns_minus1; i++ ){
+    for( int i = 0; i <= pps->pps_num_exp_tile_columns_minus1; i++ ){
       TRUE_OR_RETURN(br->ReadUE(&tmp_pps_tile_column_width_minus1));
       pps->pps_tile_column_width_minus1.push_back(tmp_pps_tile_column_width_minus1);
     }
     u_int tmp_pps_tile_row_height_minus1 = 0;
-    for( u_int i = 0; i <= pps->pps_num_exp_tile_rows_minus1; i++ ){
+    for( int i = 0; i <= pps->pps_num_exp_tile_rows_minus1; i++ ){
       TRUE_OR_RETURN(br->ReadUE(&tmp_pps_tile_row_height_minus1));
       pps->pps_tile_row_height_minus1.push_back(tmp_pps_tile_row_height_minus1);
     }
@@ -416,42 +420,15 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
           TRUE_OR_RETURN(br->ReadBool(&pps->pps_tile_idx_delta_present_flag));
       }
       // #### I don't know populate this variable     check slice header 
-#if 0
-//move to slice header parse
-void decode_slice_top_left_tile_idx(Bitstream *bs, PPS *pps, SliceHeader *sh) {
-    if (pps->pps_rect_slice_flag && pps->NumTilesInPic > 1) {
-        // Calculer le nombre de bits nécessaires
-        int num_bits = CeilLog2(pps->NumTilesInPic);
-        
-        printf("Lecture de SliceTopLeftTileIdx sur %d bits...\n", num_bits);
-        
-        // Lire depuis le bitstream
-        sh->SliceTopLeftTileIdx = read_bits(bs, num_bits);
-        
-        printf("SliceTopLeftTileIdx = %u\n", sh->SliceTopLeftTileIdx);
-        
-        // Vérification
-        if (sh->SliceTopLeftTileIdx >= pps->NumTilesInPic) {
-            fprintf(stderr, "ERREUR: SliceTopLeftTileIdx (%u) >= NumTilesInPic (%u)\n",
-                    sh->SliceTopLeftTileIdx, pps->NumTilesInPic);
-            sh->SliceTopLeftTileIdx = 0;
-        }
-    } else {
-        // Pas de tiling rectangulaire ou une seule tile
-        sh->SliceTopLeftTileIdx = 0;
-        printf("SliceTopLeftTileIdx = 0 (pas de multi-tiling ou mode raster-scan)\n");
-    }
-}
-#endif
-
       std::vector<uint32_t> SliceTopLeftTileIdx; // I don't know populate this variable
       u_int tmp_pps_slice_width_in_tiles_minus1 = 0;
+      int tmp_pps_slice_height_in_tiles_minus1 = 0;
       for( int i = 0; i < pps->pps_num_slices_in_pic_minus1; i++ ) {
-        if( SliceTopLeftTileIdx[ i ] % NumTileColumns != NumTileColumns − 1 ){
+        if( SliceTopLeftTileIdx[ i ] % NumTileColumns != NumTileColumns-1 ){
           TRUE_OR_RETURN(br->ReadUE(&tmp_pps_slice_width_in_tiles_minus1));
           pps->pps_slice_width_in_tiles_minus1.push_back(tmp_pps_slice_width_in_tiles_minus1);  
         }
-        if( SliceTopLeftTileIdx[ i ] / NumTileColumns != NumTileRows − 1 && ( pps->pps_tile_idx_delta_present_flag || SliceTopLeftTileIdx[ i ] % NumTileColumns = = 0 ) ){
+        if( SliceTopLeftTileIdx[ i ] / NumTileColumns != NumTileRows-1 && ( pps->pps_tile_idx_delta_present_flag || SliceTopLeftTileIdx[ i ] % NumTileColumns = = 0 ) ){
           TRUE_OR_RETURN(br->ReadUE(&tmp_pps_slice_height_in_tiles_minus1));
           pps->pps_slice_height_in_tiles_minus1.push_back(tmp_pps_slice_height_in_tiles_minus1);
         }
@@ -499,7 +476,7 @@ void decode_slice_top_left_tile_idx(Bitstream *bs, PPS *pps, SliceHeader *sh) {
         if( pps->pps_ref_wraparound_enabled_flag ) {
           TRUE_OR_RETURN(br->ReadUE(&pps->pps_pic_width_minus_wraparound_offset));
         }
-        TRUE_OR_RETURN(br->ReadSE(&pps->pps_pic_init_qp_minus26));
+        TRUE_OR_RETURN(br->ReadSE(&pps->pps_init_qp_minus26));
         TRUE_OR_RETURN(br->ReadBool(&pps->pps_cu_qp_delta_enabled_flag));
         TRUE_OR_RETURN(br->ReadBool(&pps->pps_chroma_tool_offsets_present_flag));
         if( pps->pps_chroma_tool_offsets_present_flag ) {
@@ -567,8 +544,9 @@ void decode_slice_top_left_tile_idx(Bitstream *bs, PPS *pps, SliceHeader *sh) {
       }
 
         
-      }
+    }
   }
+}
 
   // This will replace any existing PPS instance.
   *pps_id = pps->pic_parameter_set_id;
@@ -576,6 +554,7 @@ void decode_slice_top_left_tile_idx(Bitstream *bs, PPS *pps, SliceHeader *sh) {
 
   return kOk;
 }
+//H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
 H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   DCHECK_EQ(Nalu::H266_SPS_NUT, nalu.type());
@@ -630,8 +609,8 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             // define CtbSizeY
             int CtbLog2SizeY = sps->sps_log2_ctu_size_minus5 + 5;
             int CtbSizeY = 1 << CtbLog2SizeY;
-            int tmpWidthVal = ((sps->sps_pic_width_max_in_luma_samples + CtbSizeY − 1 ) / CtbSizeY);
-            int tmpHeightVal = (( sps->sps_pic_height_max_in_luma_samples + CtbSizeY − 1 ) / CtbSizeY);
+            int tmpWidthVal = ((sps->sps_pic_width_max_in_luma_samples + CtbSizeY-1 ) / CtbSizeY);
+            int tmpHeightVal = (( sps->sps_pic_height_max_in_luma_samples + CtbSizeY-1 ) / CtbSizeY);
             // todo recheck this section    
             bit_read = ceil(log2(tmpWidthVal));
 
@@ -1450,7 +1429,7 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
 H266Parser::Result H266Parser::ParseGeneralConstraintsInfo(H266GeneralConstraintsInfo *gci,
                                                      H26xBitReader* br) {
     
-                                                      TRUE_OR_RETURN(br->ReadBool(&gci->gci_present_flag);
+TRUE_OR_RETURN(br->ReadBool(&gci->gci_present_flag));
 int numAdditionalBitsUsed = 0,
                                                       /* general */
 if (gci->gci_present_flag){

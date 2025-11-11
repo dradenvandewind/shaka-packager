@@ -81,13 +81,13 @@ bool H26xBitReader::UpdateCurrByte() {
      return bit_position_; 
   }
 
-  off_t H26xBitReader::NumBitsLeft() {
+  /* off_t H26xBitReader::NumBitsLeft() {
   return bytes_left_ * 8 + num_remaining_bits_in_curr_byte_;
- }
+ } */
 
- bool H26xBitReader::HasMoreRBSPData() {
+ /* bool H26xBitReader::HasMoreRBSPData() {
   return more_rbsp_data();
-}
+} */
 
 
 bool H26xBitReader::more_rbsp_data() {

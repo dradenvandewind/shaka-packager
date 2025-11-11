@@ -330,12 +330,12 @@ struct H266Pps {
 
   bool pps_slice_chroma_qp_offsets_present_flag = false;
   bool pps_cu_chroma_qp_offset_list_enabled_flag = false;
-
+  int pps_cu_chroma_qp_offset_list_len_minus1; 
   int pps_chroma_qp_offset_list_len_minus1 = 0;
   std::vector<int> pps_qp_offset_list; //256 not sure need check
   std::vector<int> pps_cr_qp_offset_list;
   std::vector<int> pps_joint_cbcr_qp_offset_list;
-  
+  std::vector<int> pps_cb_qp_offset_list;
 
 
 
