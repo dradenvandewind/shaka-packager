@@ -1221,8 +1221,7 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
         }
       
       } else if( !rpls->ltrp_in_header_flag[listIdx][rplsIdx] ){
-        //The length of the
-rpls_poc_lsb_lt[ listIdx ][ rplsIdx ][ i ] syntax element is sps_log2_max_pic_order_cnt_lsb_minus4 + 4 bits
+        //The length of the rpls_poc_lsb_lt[ listIdx ][ rplsIdx ][ i ] syntax element is sps_log2_max_pic_order_cnt_lsb_minus4 + 4 bits
         int bit_read = sps->sps_log2_max_pic_order_cnt_lsb_minus4+4;
         TRUE_OR_RETURN(br->ReadBits(bit_read,&tmp_rpls_poc_lsb_lt));
         rpls->rpls_poc_lsb_lt[ listIdx ][ rplsIdx ][ j++ ].push_back(tmp_rpls_poc_lsb_lt);
@@ -1232,16 +1231,9 @@ rpls_poc_lsb_lt[ listIdx ][ rplsIdx ][ i ] syntax element is sps_log2_max_pic_or
       TRUE_OR_RETURN(br->ReadUE(&tmp_ilrp_idx));
       rpls->ilrp_idx[listIdx][rplsIdx][i].push_back(tmp_ilrp_idx);
     }
-
-
   }
-
-
-
-
-
-
-  }
+  return kOk;
+}
 
 
 H266Parser::Result H266Parser::Vui_Payload(int max_num_sub_layers_minus1,
