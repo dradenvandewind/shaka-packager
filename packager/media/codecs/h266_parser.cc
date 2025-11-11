@@ -1169,6 +1169,80 @@ H266Parser::Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdPar
     return kOk;
 }
 
+H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
+                            const H266Sps& sps,
+                            H26xBitReader* br,
+                            H266ReferencePicListStruct* rpls){
+  LOG(INFO) << "Parsing H.266 Reference picture list structure parameters";
+  //7.3.10 Reference picture list structure syntax
+  std::vector<std::vector<std::vector<std::vector<int>>>> AbsDeltaPocSt;
+  int tmp_num_ref_entries = 0;
+  TRUE_OR_RETURN(br->ReadUE(&tmp_num_ref_entries));
+  rpls->num_ref_entries[listIdx][rplsIdx].push_back(tmp_num_ref_entries);
+  bool tmp_ltrp_in_header_flag = 0;
+  bool tmp_inter_layer_ref_pic_flag = 0;
+  bool tmp_st_ref_pic_flag = 0;
+  int tmp_abs_delta_poc_st = 0;
+  bool tmp_strp_entry_sign_flag = 0;
+  int tmp rpls_poc_lsb_lt = 0;
+  int tmp_ilrp_idx = 0;
+  bool tmp st_ref_pic_flag = 0;
+
+  if( sps->sps_long_term_ref_pics_flag && rplsIdx < sps->sps_num_ref_pic_lists[listIdx] && rpls->num_ref_entries[listIdx][rplsIdx] > 0 ){
+    TRUE_OR_RETURN(br->ReadBool(&tmp_ltrp_in_header_flag));
+    rpls->ltrp_in_header_flag[ listIdx ][ rplsIdx ].push_back(tmp_ltrp_in_header_flag);
+  }
+  
+  for( int i = 0, int j = 0; i < rpls->num_ref_entries[ listIdx ][ rplsIdx ]; i++) {
+    if( sps->sps_inter_layer_prediction_enabled_flag ){
+          TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
+          rpls->inter_layer_ref_pic_flag[listIdx][rplsIdx][i].push_back(tmp_inter_layer_ref_pic_flag);
+    }
+    if( !rpls->inter_layer_ref_pic_flag[listIdx][rplsIdx][i] ) {
+      if( sps->sps_long_term_ref_pics_flag ){
+        TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
+        rpls->st_ref_pic_flag[listIdx][rplsIdx][i].push_back(tmp_inter_layer_ref_pic_flag);
+      }
+      if( rpls->st_ref_pic_flag[listIdx][rplsIdx][i]) {
+        TRUE_OR_RETURN(br->ReadUE(&tmp_st_ref_pic_flag));
+        rpls->abs_delta_poc_st[listIdx][rplsIdx][i].push_back(tmp_st_ref_pic_flag);
+        //compute AbsDeltaPocSt
+        if( ( sps->sps_weighted_pred_flag || sps->sps_weighted_bipred_flag ) && i != 0 )
+        {
+          AbsDeltaPocSt[listIdx][rplsIdx][i] = rpls->abs_delta_poc_st[listIdx][rplsIdx][i];
+        }
+        else{
+          AbsDeltaPocSt[listIdx][rplsIdx][i] = rpls->abs_delta_poc_st[listIdx][rplsIdx][i]+1;
+        }
+        if( AbsDeltaPocSt[listIdx][rplsIdx][i] > 0 )
+        {
+          TRUE_OR_RETURN(br->ReadBool(&tmp_strp_entry_sign_flag));
+          rpls->strp_entry_sign_flag[ listIdx ][ rplsIdx ][ i ].push_back(tmp_strp_entry_sign_flag);
+        }
+      
+      } else if( !rpls->ltrp_in_header_flag[listIdx][rplsIdx] ){
+        //The length of the
+rpls_poc_lsb_lt[ listIdx ][ rplsIdx ][ i ] syntax element is sps_log2_max_pic_order_cnt_lsb_minus4 + 4 bits
+        int bit_read = sps->sps_log2_max_pic_order_cnt_lsb_minus4+4;
+        TRUE_OR_RETURN(br->ReadBits(bit_read,&tmp_rpls_poc_lsb_lt));
+        rpls->rpls_poc_lsb_lt[ listIdx ][ rplsIdx ][ j++ ].push_back(tmp_rpls_poc_lsb_lt);
+      }
+
+    }else{
+      TRUE_OR_RETURN(br->ReadUE(&tmp_ilrp_idx));
+      rpls->ilrp_idx[listIdx][rplsIdx][i].push_back(tmp_ilrp_idx);
+    }
+
+
+  }
+
+
+
+
+
+
+  }
+
 
 H266Parser::Result H266Parser::Vui_Payload(int max_num_sub_layers_minus1,
                                                   H26xBitReader* br,

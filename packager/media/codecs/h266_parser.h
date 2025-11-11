@@ -281,7 +281,7 @@ struct GeneralTimingHrdParameters{
   int hrd_cpb_cnt_minus1;
 };
 
-struct H266ReferencePic{
+struct H266ReferencePicList{
   std::vector <bool> rpl_sps_flag;
   std::vector <int> rpl_idx;
   std::vector<std::vector<std::vector<int>>> poc_lsb_lt;
@@ -290,17 +290,22 @@ struct H266ReferencePic{
   std::vector<std::vector<std::vector<int>>> delta_poc_msb_cycle_lt;
 };
 
-struct H266ReferencePicList{
+//ref_pic_list_struct( i, j )
+struct H266ReferencePicListStruct{
   std::vector<std::vector<std::vector<int>>> num_ref_entries;
   std::vector<std::vector<std::vector<bool>>> ltrp_in_header_flag;
-  std::vector<std::vector<std::vector<bool>>> inter_layer_ref_pic_flag;
-  std::vector<std::vector<std::vector<bool>>> st_ref_pic_flag;
-  std::vector<std::vector<std::vector<int>>> abs_delta_poc_st;
-  std::vector<std::vector<std::vector<bool>>> strp_entry_sign_flag;
-  std::vector<std::vector<std::vector<int>>> rpls_poc_lsb_lt;
-  std::vector<std::vector<std::vector<int>>> ilrp_idx;
+  std::vector<std::vector<std::vector<std::vector<bool>>>> inter_layer_ref_pic_flag;
+  std::vector<std::vector<std::vector<std::vector<bool>>>> st_ref_pic_flag;
+  std::vector<std::vector<std::vector<std::vector<int>>>> abs_delta_poc_st;
+  std::vector<std::vector<std::vector<std::vector<bool>>>> strp_entry_sign_flag;
+  std::vector<std::vector<std::vector<std::vector<bool>>>> rpls_poc_lsb_lt;
+  std::vector<std::vector<std::vector<std::vector<int>>>> ilrp_idx;
+  H266ReferencePicList reference_pic_list;
 
 };
+
+
+
 
 struct H266Sps {
   H266Sps();
@@ -418,6 +423,7 @@ struct H266Sps {
   bool sps_idr_rpl_present_flag = false;
   bool sps_rpl1_same_as_rpl0_flag = false;
   std::vector <int> sps_num_ref_pic_lists;
+  H266ReferencePicListStruct reference_pic_list_struct;
 
 
 
@@ -918,6 +924,12 @@ class H266Parser {
   Result Vui_Payload(int max_num_sub_layers_minus1,
                             H26xBitReader* br,
                             H266VuiParameters* vui);
+
+  Result Ref_Pic_List_Struct(int listIdx, int rplsIdx,
+                            const H266Sps& sps,
+                            H26xBitReader* br,
+                            H266ReferencePicListStruct* rpls);
+
   Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdParameters *time,
                                       H26xBitReader* br);                          
   
