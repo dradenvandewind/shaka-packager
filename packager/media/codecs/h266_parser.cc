@@ -441,7 +441,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
           remainingHeightInCtbsY -= uniformTileRowHeight;
         }
         if( remainingHeightInCtbsY > 0 ){
-            RowHeightVal[jj++] = remainingHeightInCtbsY
+            RowHeightVal[jj++] = remainingHeightInCtbsY;
         }
         int NumTileRows = jj;
       int tmp_pps_slice_width_in_tiles_minus1 = 0;
@@ -904,14 +904,25 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             //general_timing_hrd_parameters
             OK_OR_RETURN(GetGeneralTimingHrdParameters(&sps->timing,br));
           }
+          if (!sps->general_timing_hrd_parameters) {
+              sps->general_timing_hrd_parameters = std::make_unique<GeneralTimingHrdParameters>();
+            }
           if (sps->max_sublayers_minus1){
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_sublayer_cpb_params_present_flag));
-            int firstSubLayer = sps->sps_sublayer_cpb_params_present_flag ? 0 : sps->max_sublayers_minus1;
+          }
+          int firstSubLayer = sps->sps_sublayer_cpb_params_present_flag ? 0 : sps->max_sublayers_minus1;
+
+
+            if (!sps->ols_parameters) {
+              sps->ols_parameters = std::make_unique<H266OlsTimingHrdParameters>();
+            }
+
+
 
             Ols_Timing_Hrd_parameters(firstSubLayer, sps->max_sublayers_minus1,
                             *sps,
                             br,
-                            static_cast<H266OlsTimingHrdParameters*>(&sps->timing));
+                            sps->ols_parameters);
           }
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_field_seq_flag));

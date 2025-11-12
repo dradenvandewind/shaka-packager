@@ -602,7 +602,7 @@ struct H266Sps {
   std::vector <int> sps_virtual_boundary_pos_y_minus1;//i = sps_num_hor_virtual_boundaries  
 
   bool sps_timing_hrd_params_present_flag = false;
-  GeneralTimingHrdParameters timing;
+  GeneralTimingHrdParameters general_timing_hrd_parameters;
   bool sps_sublayer_cpb_params_present_flag = false;
 
 
@@ -655,7 +655,7 @@ struct H266Sps {
   // Strong intra smoothing
   bool sps_strong_intra_smoothing_enabled_flag = false;
   // OLS timing hrd parameters
-  H266OlsTimingHrdParameters ols_parameters;
+  H266OlsTimingHrdParameters* ols_parameters;
 
   // VUI parameters
   bool vui_parameters_present = false;
