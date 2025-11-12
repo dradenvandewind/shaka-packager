@@ -421,7 +421,6 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
       }
       // #### I don't know populate this variable     check slice header 
       std::vector<uint32_t> SliceTopLeftTileIdx; // I don't know populate this variable
-      //u_int tmp_pps_slice_width_in_tiles_minus1 = 0;
       //int tmp_pps_slice_height_in_tiles_minus1 = 0;
               std::vector<int> RowHeightVal;
         int remainingHeightInCtbsY;
@@ -442,9 +441,11 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
           remainingHeightInCtbsY -= uniformTileRowHeight;
         }
         if( remainingHeightInCtbsY > 0 ){
-            RowHeightVal[j++] = remainingHeightInCtbsY
+            RowHeightVal[jj++] = remainingHeightInCtbsY
         }
         int NumTileRows = jj;
+      int tmp_pps_slice_width_in_tiles_minus1 = 0;
+      int tmp_pps_slice_height_in_tiles_minus1 = 0;
 
       for( int i = 0; i < pps->pps_num_slices_in_pic_minus1; i++ ) {
         if( SliceTopLeftTileIdx[ i ] % NumTileColumns != NumTileColumns-1 ){
@@ -666,7 +667,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           }
           if( !sps->sps_independent_subpics_flag) {
             bool tmp_sps_subpic_treated_as_pic_flag;
-            int tmp_sps_loop_filter_across_subpic_enabled_flag;
+            bool tmp_sps_loop_filter_across_subpic_enabled_flag;
 
           TRUE_OR_RETURN(br->ReadBool(&tmp_sps_subpic_treated_as_pic_flag));
           sps->sps_subpic_treated_as_pic_flag.push_back(tmp_sps_subpic_treated_as_pic_flag);
@@ -910,14 +911,14 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             Ols_Timing_Hrd_parameters(firstSubLayer, sps->max_sublayers_minus1,
                             *sps,
                             br,
-                            &sps->timing);
+                            static_cast<H266OlsTimingHrdParameters*>(&sps->timing));
           }
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_field_seq_flag));
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_vui_parameters_present_flag));
         if(sps->sps_vui_parameters_present_flag){
           TRUE_OR_RETURN(br->ReadUE(&sps->sps_vui_payload_size_minus1));
-          bool sps_vui_alignment_zero_bit;
+          //bool sps_vui_alignment_zero_bit;
           //todo
           //implement byte_aligned
           /*
