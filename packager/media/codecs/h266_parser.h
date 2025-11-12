@@ -431,6 +431,7 @@ struct H266Sps {
   bool sps_res_change_in_clvs_allowed_flag = false;
   int sps_pic_width_in_luma_samples = 0;
   int sps_pic_width_max_in_luma_samples = 0;
+  int sps_pic_height_max_in_luma_samples = 0;
   int sps_pic_height_in_luma_samples = 0;
 
   bool sps_conformance_window_flag = false;
@@ -658,7 +659,7 @@ struct H266Sps {
 
   // VUI parameters
   bool vui_parameters_present = false;
-  H266VuiParameters vui_parameters;
+  //H266VuiParameters vui_parameters;
 
 
   // H.266 specific tools
