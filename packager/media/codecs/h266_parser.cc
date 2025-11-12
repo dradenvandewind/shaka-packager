@@ -1221,7 +1221,7 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
     rpls->ltrp_in_header_flag[ listIdx ][ rplsIdx ].push_back(tmp_ltrp_in_header_flag);
   }
   
-  for( int i = 0, int j = 0; i < rpls->num_ref_entries[ listIdx ][ rplsIdx ]; i++) {
+  for( int i = 0, j = 0; i < rpls->num_ref_entries[ listIdx ][ rplsIdx ]; i++) {
     if( sps->sps_inter_layer_prediction_enabled_flag ){
           TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
           rpls->inter_layer_ref_pic_flag[listIdx][rplsIdx][i].push_back(tmp_inter_layer_ref_pic_flag);
@@ -1282,7 +1282,7 @@ H266Parser::Result H266Parser::Vui_Payload(int max_num_sub_layers_minus1,
     if(vui->vui_aspect_ratio_info_present_flag){
       TRUE_OR_RETURN(br->ReadBool(&vui->vui_aspect_ratio_constant_flag));
       TRUE_OR_RETURN(br->ReadBits(8,&vui->vui_aspect_ratio_idc));
-      if(vuid>vui_aspect_ratio_idc == 255){
+      if(vuid->vui_aspect_ratio_idc == 255){
         TRUE_OR_RETURN(br->ReadBits(16,&vui->vui_sar_width));
         TRUE_OR_RETURN(br->ReadBits(16,&vui->vui_sar_width));
       }
@@ -1373,7 +1373,7 @@ H266Parser::Result H266Parser::Ols_Timing_Hrd_parameters(int firstsublayer, int 
                             H266OlsTimingHrdParameters* olf){
 LOG(INFO) << "Parsing H.266 Ols Timing Hrd parameters";
   //7.3.5.2 OLS timing and HRD parameters 
-  int tmp_fixed_pic_rate_general_flag = 0;
+  bool tmp_fixed_pic_rate_general_flag = 0;
   int tmp_fixed_pic_rate_within_cvs_flag = 0;
   int tmp_elemental_duration_in_tc_minus1 = 0;
   int tmp_low_delay_hrd_flag = 0;
@@ -1387,7 +1387,7 @@ LOG(INFO) << "Parsing H.266 Ols Timing Hrd parameters";
       if(tmp_fixed_pic_rate_within_cvs_flag){
         TRUE_OR_RETURN(br->ReadBool(&tmp_elemental_duration_in_tc_minus1));
         olf->elemental_duration_in_tc_minus1.push_back(tmp_elemental_duration_in_tc_minus1);
-      }else if (( sps->timing.general_nal_hrd_params_present_flag || sps->timing.general_vcl_hrd_params_present_flag ) && sps->timing.hrd_cpb_cnt_minus1 == 0){
+      }else if (( sps.general_timing_hrd_parameters.general_nal_hrd_params_present_flag || sps.general_timing_hrd_parameters.general_vcl_hrd_params_present_flag ) && sps->timing.hrd_cpb_cnt_minus1 == 0){
         TRUE_OR_RETURN(br->ReadBool(&tmp_low_delay_hrd_flag));
         olf->low_delay_hrd_flag.push_back(tmp_low_delay_hrd_flag);
 
@@ -1397,7 +1397,7 @@ LOG(INFO) << "Parsing H.266 Ols Timing Hrd parameters";
         int tmp_bit_rate_du_value_minus1 = 0;
         int tmp_cbr_flag = 0;
 
-        if(sps->timing.general_nal_hrd_params_present_flag ){
+        if(sps.general_timing_hrd_parameters.general_nal_hrd_params_present_flag ){
           //todo make function for this 
           for( int j = 0; j <= sps->timing.hrd_cpb_cnt_minus1; j++ ) {
             TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
