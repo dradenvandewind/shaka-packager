@@ -1263,18 +1263,19 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
 
 
 
-  if( sps->sps_long_term_ref_pics_flag && rplsIdx < sps->sps_num_ref_pic_lists[listIdx] && rpls->num_ref_entries[listIdx][rplsIdx] > 0 ){
+  if( sps.sps_long_term_ref_pics_flag && rplsIdx < sps->sps_num_ref_pic_lists[listIdx] && rpls->num_ref_entries[listIdx][rplsIdx] > 0 ){
     TRUE_OR_RETURN(br->ReadBool(&tmp_ltrp_in_header_flag));
     rpls->ltrp_in_header_flag[ listIdx ][ rplsIdx ].push_back(tmp_ltrp_in_header_flag);
   }
-  
-  for( int i = 0, j = 0; i < rpls->num_ref_entries[ listIdx ][ rplsIdx ]; i++) {
-    if( sps->sps_inter_layer_prediction_enabled_flag ){
+  int num_ref_entries = rpls->num_ref_entries[listIdx][rplsIdx];
+
+  for( int i = 0, j = 0; i <  num_ref_entries; i++) {
+    if( sps.sps_inter_layer_prediction_enabled_flag ){
           TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
           rpls->inter_layer_ref_pic_flag[listIdx][rplsIdx][i].push_back(tmp_inter_layer_ref_pic_flag);
     }
     if( !rpls->inter_layer_ref_pic_flag[listIdx][rplsIdx][i] ) {
-      if( sps->sps_long_term_ref_pics_flag ){
+      if( sps.sps_long_term_ref_pics_flag ){
         TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
         rpls->st_ref_pic_flag[listIdx][rplsIdx][i].push_back(tmp_inter_layer_ref_pic_flag);
       }
@@ -1283,7 +1284,7 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
         rpls->abs_delta_poc_st[listIdx][rplsIdx][i].push_back(tmp_st_ref_pic_flag);
         //compute AbsDeltaPocSt
         int abs_delta_poc_st_value = 0;
-        if( ( sps->sps_weighted_pred_flag || sps->sps_weighted_bipred_flag ) && i != 0 )
+        if( ( sps.sps_weighted_pred_flag || sps.sps_weighted_bipred_flag ) && i != 0 )
         {
           AbsDeltaPocSt[listIdx][rplsIdx][i] = rpls->abs_delta_poc_st[listIdx][rplsIdx][i];
         }
@@ -1427,9 +1428,9 @@ H266Parser::Result H266Parser::Ols_Timing_Hrd_parameters(int firstsublayer, int 
 LOG(INFO) << "Parsing H.266 Ols Timing Hrd parameters";
   //7.3.5.2 OLS timing and HRD parameters 
   bool tmp_fixed_pic_rate_general_flag = false;
-  bool tmp_fixed_pic_rate_within_cvs_flag = false;;
+  bool tmp_fixed_pic_rate_within_cvs_flag = false;
   int tmp_elemental_duration_in_tc_minus1 = 0;
-  int tmp_low_delay_hrd_flag = 0;
+  bool tmp_low_delay_hrd_flag = false;
   for( int i = firstsublayer; i <= sps_max_sublayers_minus1; i++ ) {
 
     TRUE_OR_RETURN(br->ReadBool(&tmp_fixed_pic_rate_general_flag));  
@@ -1457,15 +1458,15 @@ LOG(INFO) << "Parsing H.266 Ols Timing Hrd parameters";
         int tmp_cbr_flag = 0;
         const auto& timing_hrd = sps.general_timing_hrd_parameters.value();
 
-        if(sps.general_timing_hrd_parameters.general_nal_hrd_params_present_flag ){
+        if(timing_hrd.general_nal_hrd_params_present_flag ){
           //todo make function for this 
-          for( int j = 0; j <= sps.timing.hrd_cpb_cnt_minus1; j++ ) {
+          for( int j = 0; j <= timing_hrd.hrd_cpb_cnt_minus1; j++ ) {
             TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
             olf->bit_rate_value_minus1[i][j].push_back(tmp_elemental_duration_in_tc_minus1);
 
             TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_value_minus1));
             olf->bit_rate_value_minus1[i][j].push_back(tmp_cpb_size_value_minus1);
-            if( sps->timing.general_du_hrd_params_present_flag ) {
+            if( timing_hrd.general_du_hrd_params_present_flag ) {
               TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_du_value_minus1));
               olf->cpb_size_du_value_minus1[i][j].push_back(tmp_cpb_size_du_value_minus1);
               
@@ -1477,7 +1478,7 @@ LOG(INFO) << "Parsing H.266 Ols Timing Hrd parameters";
           }
         }
         if(sps->timing.general_vcl_hrd_params_present_flag){
-          for( int j = 0; j <= sps->timing.hrd_cpb_cnt_minus1; j++ ) {
+          for( int j = 0; j <= timing_hrd.hrd_cpb_cnt_minus1; j++ ) {
             TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
             olf->bit_rate_value_minus1[i][j].push_back(tmp_elemental_duration_in_tc_minus1);
 
