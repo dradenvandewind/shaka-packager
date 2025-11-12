@@ -900,13 +900,14 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         if( sps->sps_ptl_dpb_hrd_params_present_flag ) {
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_timing_hrd_params_present_flag));
           if(sps->sps_timing_hrd_params_present_flag){
-            
-            //general_timing_hrd_parameters
-            OK_OR_RETURN(GetGeneralTimingHrdParameters(&sps->timing,br));
-          }
-          if (!sps->general_timing_hrd_parameters) {
+            if (!sps->general_timing_hrd_parameters) {
               sps->general_timing_hrd_parameters = std::make_unique<GeneralTimingHrdParameters>();
             }
+            
+            //general_timing_hrd_parameters
+            OK_OR_RETURN(GetGeneralTimingHrdParameters(&sps->general_timing_hrd_parameters,br));
+          }
+          
           if (sps->max_sublayers_minus1){
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_sublayer_cpb_params_present_flag));
           }
@@ -1052,6 +1053,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 
   return kOk;
 }
+#endif
 
 H266Parser::Result H266Parser::ParseAps(const Nalu& nalu, int* aps_id, int* aps_type) {
   DCHECK(nalu.type() == Nalu::H266_PREFIX_APS_NUT || 
@@ -1076,22 +1078,6 @@ H266Parser::Result H266Parser::ParseAps(const Nalu& nalu, int* aps_id, int* aps_
   return kOk;
 }
 
-  *aps_id = -1;
-  *aps_type = -1;
-  std::unique_ptr<H266Aps> aps(new H266Aps);
-
-  TRUE_OR_RETURN(br->ReadUE(&aps->aps_type));
-  TRUE_OR_RETURN(br->ReadUE(&aps->aps_id));
-
-  // Simplified APS parsing - actual implementation would parse type-specific data
-  // ALF, LMCS, or scaling list parameters would be parsed here based on aps_type
-
-  *aps_id = aps->aps_id;
-  *aps_type = aps->aps_type;
-  active_apses_[*aps_id] = std::move(aps);
-
-  return kOk;
-}
 
 H266Parser::Result H266Parser::ParsePictureHeader(const Nalu& nalu,
                                                   H266PictureHeader* picture_header) {
