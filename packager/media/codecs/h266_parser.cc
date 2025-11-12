@@ -306,7 +306,44 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
   slice_header->header_bit_size = nalu.payload_size() * 8 - br->NumBitsLeft();
   return kOk;
 }
+#if 1 
+H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
+  DCHECK_EQ(Nalu::H266_PPS_NUT, nalu.type());
+  LOG(INFO) << "Parsing H.266 PPS NALU";
 
+  H26xBitReader reader;
+  reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
+  H26xBitReader* br = &reader;
+
+  *pps_id = -1;
+  std::unique_ptr<H266Pps> pps(new H266Pps);
+
+  // Parsing minimal des champs essentiels
+  uint32_t temp_pps_id;
+  TRUE_OR_RETURN(br->ReadBits(6, &temp_pps_id));
+  pps->pic_parameter_set_id = static_cast<int>(temp_pps_id);
+
+  uint32_t temp_sps_id;
+  TRUE_OR_RETURN(br->ReadBits(4, &temp_sps_id));
+  pps->seq_parameter_set_id = static_cast<int>(temp_sps_id);
+
+  TRUE_OR_RETURN(br->ReadBool(&pps->pps_mixed_nalu_types_in_pic_flag));
+
+  // Skip tous les champs complexes pour l'instant
+  // Nous les implémenterons progressivement une fois que la base compile
+  
+  // Byte alignment
+  OK_OR_RETURN(ByteAlignment(br));
+
+  *pps_id = pps->pic_parameter_set_id;
+  active_ppses_[*pps_id] = std::move(pps);
+
+  return kOk;
+}
+
+
+#else 
+//disable all parsesps to build it
 H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   DCHECK_EQ(Nalu::H266_PPS_NUT, nalu.type());
   LOG(INFO) << "Parsing H.266 PPS NALU";
@@ -318,7 +355,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   H26xBitReader* br = &reader;
   uint32_t NumTileColumns = 0;  
   uint32_t NumTileRows = 0;   
-  uint32_t NumTilesInPic = 0; 
+  //uint32_t NumTilesInPic = 0; 
 
 
   *pps_id = -1;
@@ -460,7 +497,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
           TRUE_OR_RETURN(br->ReadUE(&tmp_pps_slice_width_in_tiles_minus1));
           pps->pps_slice_width_in_tiles_minus1.push_back(tmp_pps_slice_width_in_tiles_minus1);  
         }
-        if( SliceTopLeftTileIdx[ i ] / NumTileColumns != NumTileRows-1 && ( pps->pps_tile_idx_delta_present_flag || SliceTopLeftTileIdx[ i ] % NumTileColumns = = 0 ) ){
+        if( static_cast<int>(SliceTopLeftTileIdx[ i ] / NumTileColumns) != NumTileRows-1 && ( pps->pps_tile_idx_delta_present_flag || static_cast<int>(SliceTopLeftTileIdx[ i ] % NumTileColumns) == 0 ) ){
           TRUE_OR_RETURN(br->ReadUE(&tmp_pps_slice_height_in_tiles_minus1));
           pps->pps_slice_height_in_tiles_minus1.push_back(tmp_pps_slice_height_in_tiles_minus1);
         }
@@ -602,7 +639,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
           while( br->more_rbsp_data() ) { 
               bool extension_data_flag;
               TRUE_OR_RETURN(br->ReadBool(&extension_data_flag));
-              pps->pps_extension_data_flags.push_back(extension_data_flag);
+              pps->pps_extension_data_flags = extension_data_flag;
           }
       }
       OK_OR_RETURN(ByteAlignment(br));    
@@ -618,6 +655,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
   return kOk;
 }
+#endif 
 //H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
 H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
@@ -795,7 +833,8 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             
             int tmp_sps_delta_qp_in_val_minus1 = 0;
             int tmp_sps_delta_qp_diff_val = 0;
-            for( int j = 0; j <= sps->sps_num_points_in_qp_table_minus1[ i ]; j++ ) {
+            //for( int j = 0; j <= sps->sps_num_points_in_qp_table_minus1[ i ]; j++ ) {
+            for( size_t j = 0; j <= static_cast<size_t>(sps->sps_num_points_in_qp_table_minus1[ i ]); j++ ) {
               TRUE_OR_RETURN(br->ReadUE(&tmp_sps_delta_qp_in_val_minus1));
               sps->sps_delta_qp_in_val_minus1[i][j].push_back(tmp_sps_delta_qp_in_val_minus1);
               TRUE_OR_RETURN(br->ReadUE(&tmp_sps_delta_qp_diff_val));
@@ -945,8 +984,10 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             }
             
             //general_timing_hrd_parameters
-            OK_OR_RETURN(GetGeneralTimingHrdParameters(&sps->general_timing_hrd_parameters,br));
-          }
+            //OK_OR_RETURN(GetGeneralTimingHrdParameters(&sps->general_timing_hrd_parameters,br));
+            if (sps->general_timing_hrd_parameters.has_value()) {
+               OK_OR_RETURN(GetGeneralTimingHrdParameters(&sps->general_timing_hrd_parameters.value(), br));}
+            }
           
           if (sps->max_sublayers_minus1){
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_sublayer_cpb_params_present_flag));
@@ -960,11 +1001,12 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             }
 
  
-
-            Ols_Timing_Hrd_parameters(firstSubLayer, sps->max_sublayers_minus1,
-                            *sps,
-                            br,
-                            sps->ols_parameters);
+            if (sps->ols_parameters.has_value()) {
+                OK_OR_RETURN(Ols_Timing_Hrd_parameters(firstSubLayer, sps->max_sublayers_minus1,
+                                                      *sps,
+                                                      br,
+                                                      &sps->ols_parameters.value()));
+            }
           }
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_field_seq_flag));
@@ -1214,6 +1256,48 @@ const H266Aps* H266Parser::GetAps(int aps_id) {
 H266Parser::Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdParameters *time,
                                       H26xBitReader* br){
   LOG(INFO) << "Parsing H.266 GetGeneralTimingHrdParameters in SPS";
+  
+  uint32_t num_units, time_scale;
+  TRUE_OR_RETURN(br->ReadBits(32, &num_units));
+  TRUE_OR_RETURN(br->ReadBits(32, &time_scale));
+  time->num_units_in_tick = num_units;
+  time->time_scale = time_scale;
+  
+  TRUE_OR_RETURN(br->ReadBool(&time->general_nal_hrd_params_present_flag));
+  TRUE_OR_RETURN(br->ReadBool(&time->general_vcl_hrd_params_present_flag));
+  
+  if( time->general_nal_hrd_params_present_flag || time->general_vcl_hrd_params_present_flag ) {
+    TRUE_OR_RETURN(br->ReadBool(&time->general_same_pic_timing_in_all_ols_flag));
+    TRUE_OR_RETURN(br->ReadBool(&time->general_du_hrd_params_present_flag));
+    
+    if( time->general_du_hrd_params_present_flag ){
+      uint32_t tick_divisor;
+      TRUE_OR_RETURN(br->ReadBits(8, &tick_divisor));
+      time->tick_divisor_minus2 = static_cast<uint8_t>(tick_divisor);
+    }
+    
+    uint32_t bit_rate_scale, cpb_size_scale;
+    TRUE_OR_RETURN(br->ReadBits(4, &bit_rate_scale));
+    TRUE_OR_RETURN(br->ReadBits(4, &cpb_size_scale));
+    time->bit_rate_scale = static_cast<uint8_t>(bit_rate_scale);
+    time->cpb_size_scale = static_cast<uint8_t>(cpb_size_scale);
+    
+    if( time->general_du_hrd_params_present_flag ){
+      uint32_t cpb_size_du_scale;
+      TRUE_OR_RETURN(br->ReadBits(4, &cpb_size_du_scale));
+      time->cpb_size_du_scale = static_cast<uint8_t>(cpb_size_du_scale);
+    }
+    
+    TRUE_OR_RETURN(br->ReadUE(&time->hrd_cpb_cnt_minus1));
+  }
+  
+  return kOk;
+}
+
+#if 0
+H266Parser::Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdParameters *time,
+                                      H26xBitReader* br){
+  LOG(INFO) << "Parsing H.266 GetGeneralTimingHrdParameters in SPS";
   TRUE_OR_RETURN(br->ReadBits(32,&time->num_units_in_tick));
   TRUE_OR_RETURN(br->ReadBits(32,&time->time_scale));
   TRUE_OR_RETURN(br->ReadBool(&time->general_nal_hrd_params_present_flag));
@@ -1222,7 +1306,9 @@ H266Parser::Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdPar
     TRUE_OR_RETURN(br->ReadBool(&time->general_same_pic_timing_in_all_ols_flag));
     TRUE_OR_RETURN(br->ReadBool(&time->general_du_hrd_params_present_flag));
     if( time->general_du_hrd_params_present_flag ){
-      TRUE_OR_RETURN(br->ReadBits(8,&time->tick_divisor_minus2));
+      uint32_t tick_divisor;
+      TRUE_OR_RETURN(br->ReadBits(8, &tick_divisor));
+      time->tick_divisor_minus2 = static_cast<uint8_t>(tick_divisor);
     }
     TRUE_OR_RETURN(br->ReadBits(4,&time->bit_rate_scale));
     TRUE_OR_RETURN(br->ReadBits(4,&time->cpb_size_scale));
@@ -1233,7 +1319,8 @@ H266Parser::Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdPar
   }
     return kOk;
 }
-
+#endif
+#if 0
 H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
                             const H266Sps& sps,
                             H26xBitReader* br,
@@ -1262,7 +1349,7 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
   rpls->num_ref_entries[listIdx][rplsIdx] = tmp_num_ref_entries;
 
 
-
+  
   if( sps.sps_long_term_ref_pics_flag && rplsIdx < sps->sps_num_ref_pic_lists[listIdx] && rpls->num_ref_entries[listIdx][rplsIdx] > 0 ){
     TRUE_OR_RETURN(br->ReadBool(&tmp_ltrp_in_header_flag));
     rpls->ltrp_in_header_flag[ listIdx ][ rplsIdx ].push_back(tmp_ltrp_in_header_flag);
@@ -1301,7 +1388,9 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
           rpls->strp_entry_sign_flag[ listIdx ][ rplsIdx ][ i ].push_back(tmp_strp_entry_sign_flag);
         }
       
-      } else if( !rpls->ltrp_in_header_flag[listIdx][rplsIdx] ){
+      }     
+      
+      else if( !rpls->ltrp_in_header_flag[listIdx][rplsIdx] ){
         //The length of the rpls_poc_lsb_lt[ listIdx ][ rplsIdx ][ i ] syntax element is sps_log2_max_pic_order_cnt_lsb_minus4 + 4 bits
         int bit_read = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
         int tmp_rpls_poc_lsb_lt = 0;
@@ -1316,6 +1405,80 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
   }
   return kOk;
 }
+#endif
+
+H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
+                            const H266Sps& sps,
+                            H26xBitReader* br,
+                            H266ReferencePicListStruct* rpls) {
+    LOG(INFO) << "Parsing H.266 Reference picture list structure parameters";
+    
+    int tmp_num_ref_entries = 0;
+    bool tmp_ltrp_in_header_flag = false;
+    
+    TRUE_OR_RETURN(br->ReadUE(&tmp_num_ref_entries));
+    
+    rpls->num_ref_entries = tmp_num_ref_entries;
+    
+    if (sps.sps_long_term_ref_pics_flag && rplsIdx < sps.sps_num_ref_pic_lists[listIdx] && 
+        rpls->num_ref_entries > 0) {
+        TRUE_OR_RETURN(br->ReadBool(&tmp_ltrp_in_header_flag));
+        rpls->ltrp_in_header_flag = tmp_ltrp_in_header_flag;
+    }
+    
+    for (int i = 0; i < rpls->num_ref_entries; i++) {
+        H266RefPicListEntry entry;
+        bool tmp_inter_layer_ref_pic_flag = false;
+        
+        if (sps.sps_inter_layer_prediction_enabled_flag) {
+            TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
+            entry.inter_layer_ref_pic_flag = tmp_inter_layer_ref_pic_flag;
+        }
+        
+        if (!entry.inter_layer_ref_pic_flag) {
+            if (sps.sps_long_term_ref_pics_flag) {
+                bool tmp_st_ref_pic_flag = false;
+                TRUE_OR_RETURN(br->ReadBool(&tmp_st_ref_pic_flag));
+                entry.st_ref_pic_flag = tmp_st_ref_pic_flag;
+            }
+            
+            if (entry.st_ref_pic_flag) {
+                int tmp_abs_delta_poc_st = 0;
+                TRUE_OR_RETURN(br->ReadUE(&tmp_abs_delta_poc_st));
+                entry.abs_delta_poc_st = tmp_abs_delta_poc_st;
+                
+                int abs_delta_poc_st_value = 0;
+                if ((sps.sps_weighted_pred_flag || sps.sps_weighted_bipred_flag) && i != 0) {
+                    abs_delta_poc_st_value = entry.abs_delta_poc_st;
+                } else {
+                    abs_delta_poc_st_value = entry.abs_delta_poc_st + 1;
+                }
+                
+                if (abs_delta_poc_st_value > 0) {
+                    bool tmp_strp_entry_sign_flag = false;
+                    TRUE_OR_RETURN(br->ReadBool(&tmp_strp_entry_sign_flag));
+                    entry.strp_entry_sign_flag = tmp_strp_entry_sign_flag;
+                }
+            } else if (!rpls->ltrp_in_header_flag) {
+                uint32_t tmp_rpls_poc_lsb_lt = 0;
+                int bit_length = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
+                TRUE_OR_RETURN(br->ReadBits(bit_length, &tmp_rpls_poc_lsb_lt));
+                entry.rpls_poc_lsb_lt = tmp_rpls_poc_lsb_lt;
+            }
+        } else {
+            int tmp_ilrp_idx = 0;
+            TRUE_OR_RETURN(br->ReadUE(&tmp_ilrp_idx));
+            entry.ilrp_idx = tmp_ilrp_idx;
+        }
+        
+        rpls->entries.push_back(entry);
+    }
+    
+    return kOk;
+}
+
+
+
 
 
 H266Parser::Result H266Parser::Vui_Payload(int max_num_sub_layers_minus1,
@@ -1473,25 +1636,31 @@ LOG(INFO) << "Parsing H.266 Ols Timing Hrd parameters";
               TRUE_OR_RETURN(br->ReadUE(&tmp_bit_rate_du_value_minus1));
               olf->bit_rate_du_value_minus1[i][j].push_back(tmp_bit_rate_du_value_minus1);
             }
-            TRUE_OR_RETURN(br->ReadBool(&tmp_cbr_flag));
+            //TRUE_OR_RETURN(br->ReadBool(&tmp_cbr_flag));
+            bool cbr_flag;
+            TRUE_OR_RETURN(br->ReadBool(&cbr_flag));
+            tmp_cbr_flag = cbr_flag ? 1 : 0; 
             olf->cbr_flag[i][j].push_back(tmp_cbr_flag);
           }
         }
-        if(sps->timing.general_vcl_hrd_params_present_flag){
+        if (sps.general_timing_hrd_parameters.has_value() && 
+                      sps.general_timing_hrd_parameters.value().general_vcl_hrd_params_present_flag){
           for( int j = 0; j <= timing_hrd.hrd_cpb_cnt_minus1; j++ ) {
             TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
             olf->bit_rate_value_minus1[i][j].push_back(tmp_elemental_duration_in_tc_minus1);
 
             TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_value_minus1));
             olf->bit_rate_value_minus1[i][j].push_back(tmp_cpb_size_value_minus1);
-            if( sps->timing.general_du_hrd_params_present_flag ) {
+            if (sps.general_timing_hrd_parameters.has_value() && sps.general_timing_hrd_parameters.value().general_du_hrd_params_present_flag) {
               TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_du_value_minus1));
               olf->cpb_size_du_value_minus1[i][j].push_back(tmp_cpb_size_du_value_minus1);
               
               TRUE_OR_RETURN(br->ReadUE(&tmp_bit_rate_du_value_minus1));
               olf->bit_rate_du_value_minus1[i][j].push_back(tmp_bit_rate_du_value_minus1);
             }
-            TRUE_OR_RETURN(br->ReadBool(&tmp_cbr_flag));
+            bool cbr_flag_bool;
+            TRUE_OR_RETURN(br->ReadBool(&cbr_flag_bool));
+            tmp_cbr_flag = cbr_flag_bool ? 1 : 0;
             olf->cbr_flag[i][j].push_back(tmp_cbr_flag);
           }
 
@@ -1638,12 +1807,24 @@ H266Parser::Result H266Parser::SkipScalingListData(H26xBitReader* br) {
   }
   return kOk;
 }
-
+/* 
 H266Parser::Result H266Parser::ByteAlignment(H26xBitReader* br) {
   LOG(INFO) << "Performing byte alignment";
   TRUE_OR_RETURN(br->SkipBits(1));
   TRUE_OR_RETURN(br->SkipBits(br->NumBitsLeft() % 8));
   return kOk;
+}
+ */
+H266Parser::Result H266Parser::ByteAlignment(H26xBitReader* br) {
+    LOG(INFO) << "Performing byte alignment";
+    
+    // Skip alignment bits
+    int bits_to_align = br->NumBitsLeft() % 8;
+    if (bits_to_align > 0) {
+        TRUE_OR_RETURN(br->SkipBits(bits_to_align));
+    }
+    
+    return kOk;
 }
 
 // Stub implementations for methods that need to be defined
@@ -1820,6 +2001,65 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
                                                      int max_num_sub_layers_minus1,
                                                      H26xBitReader* br,
                                                      H266ProfileTierLevel* ptl) {
+    LOG(INFO) << "Parsing H.266 Profile Tier Level";
+    
+    if (profile_tier_present) {
+        uint32_t temp_profile;
+        TRUE_OR_RETURN(br->ReadBits(7, &temp_profile));
+        ptl->general_profile_idc = static_cast<uint8_t>(temp_profile);
+
+        bool temp_tier;
+        TRUE_OR_RETURN(br->ReadBool(&temp_tier));
+        ptl->general_tier_flag = temp_tier;
+    }
+
+    uint32_t temp_level;
+    TRUE_OR_RETURN(br->ReadBits(8, &temp_level));
+    ptl->general_level_idc = static_cast<uint8_t>(temp_level);
+
+    TRUE_OR_RETURN(br->ReadBool(&ptl->ptl_frame_only_constraint_flag));
+    TRUE_OR_RETURN(br->ReadBool(&ptl->ptl_multilayer_enabled_flag));
+    
+    if (profile_tier_present) {
+        OK_OR_RETURN(ParseGeneralConstraintsInfo(&ptl->gci, br));
+    }
+    
+    // Parsing des flags de sous-couche
+    for (int i = max_num_sub_layers_minus1 - 1; i >= 0; i--) {
+        bool tmp_ptl_sublayer_level_present_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_ptl_sublayer_level_present_flag));
+        ptl->ptl_sublayer_level_present_flag.push_back(tmp_ptl_sublayer_level_present_flag);
+    }
+    
+    // Parsing des niveaux de sous-couche
+    for (int i = max_num_sub_layers_minus1 - 1; i >= 0; i--) {
+        if (ptl->ptl_sublayer_level_present_flag[i]) {
+            uint32_t tmp_sublayer_level_idc;
+            TRUE_OR_RETURN(br->ReadBits(8, &tmp_sublayer_level_idc));
+            ptl->sublayer_level_idc.push_back(static_cast<uint8_t>(tmp_sublayer_level_idc));
+        }
+    }
+    
+    if (profile_tier_present) {
+        uint32_t tmp_ptl_num_sub_profiles;
+        TRUE_OR_RETURN(br->ReadBits(8, &tmp_ptl_num_sub_profiles));
+        ptl->ptl_num_sub_profiles = static_cast<uint8_t>(tmp_ptl_num_sub_profiles);
+        
+        for (int i = 0; i < ptl->ptl_num_sub_profiles; i++) {
+            uint32_t tmp_general_sub_profile_idc;
+            TRUE_OR_RETURN(br->ReadBits(32, &tmp_general_sub_profile_idc));
+            ptl->general_sub_profile_idc.push_back(tmp_general_sub_profile_idc);
+        }
+    }
+    
+    return kOk;
+}
+
+/*
+H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
+                                                     int max_num_sub_layers_minus1,
+                                                     H26xBitReader* br,
+                                                     H266ProfileTierLevel* ptl) {
   LOG(INFO) << "Parsing H.266 Profile Tier Level";
   //7.3.3.1General profile, tier, and level syntax
   bool tmp_ptl_sublayer_level_present_flag = 0;
@@ -1833,7 +2073,7 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
     //TRUE_OR_RETURN(br->ReadBits(7, &ptl->general_profile_idc));
     //TRUE_OR_RETURN(br->ReadBool(&ptl->general_tier_flag));
     //TRUE_OR_RETURN(br->ReadBits(8, &ptl->general_level_idc));
-    int temp_profile;
+    uint32_t temp_profile;
     TRUE_OR_RETURN(br->ReadBits(7, &temp_profile));
     ptl->general_profile_idc = static_cast<uint8_t>(temp_profile);
 
@@ -1874,51 +2114,12 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
       }
     }
 
-
-
-
-   
-
-
-
-
-/*       need to clean thos old code below as                */
-
-#if 0
-    
-    // Constraints flags
-    uint32_t constraint_flags;
-    TRUE_OR_RETURN(br->ReadBits(32, &constraint_flags));
-    
-    // Extra constraint flags for H.266
-    uint32_t general_constraints_info;
-    TRUE_OR_RETURN(br->ReadBits(43, &general_constraints_info));
-    
-    // Multi-layer info
-    TRUE_OR_RETURN(br->ReadBool(&ptl->general_frame_only_constraint_flag));
-    TRUE_OR_RETURN(br->ReadBool(&ptl->general_non_packed_constraint_flag));
-    TRUE_OR_RETURN(br->ReadBool(&ptl->general_interlaced_source_flag));
-    TRUE_OR_RETURN(br->ReadBool(&ptl->general_progressive_source_flag));
-  }
-
-  // Sub-layer profile tier level info
-  for (int i = 0; i < max_num_sub_layers_minus1; i++) {
-    bool sublayer_profile_present_flag, sublayer_level_present_flag;
-    TRUE_OR_RETURN(br->ReadBool(&sublayer_profile_present_flag));
-    TRUE_OR_RETURN(br->ReadBool(&sublayer_level_present_flag));
-    
-    if (sublayer_profile_present_flag) {
-      // Skip sub-layer profile info
-      TRUE_OR_RETURN(br->SkipBits(88)); // 7+1+8+32+43+1
-    }
-    if (sublayer_level_present_flag) {
-      TRUE_OR_RETURN(br->SkipBits(8)); // sub_layer_level_idc[i]
-    }
-  }
-#endif
-
   return kOk;
 }
+#endif 
+*/
+
+
 bool H266Parser::ParseNalUnits(const uint8_t* data,
                                size_t size,
                                std::vector<NalUnit>* nal_units) {

@@ -215,7 +215,7 @@ struct H266ProfileTierLevel{
   H266GeneralConstraintsInfo gci;
 
   std::vector <bool> ptl_sublayer_level_present_flag;
-  std::vector <int> sublayer_level_idc;
+  std::vector <bool> sublayer_level_idc;
   int ptl_num_sub_profiles;
   std::vector <u_int32_t> general_sub_profile_idc;
 };
@@ -362,26 +362,41 @@ struct H266Pps {
   bool pps_picture_header_extension_present_flag = false;
   bool pps_slice_header_extension_present_flag = false;
   bool pps_extension_flag = false;
-
+  bool pps_extension_data_flags = false;
   bool pps_extension_data_flag = false;
   int CtbSizeY;
 
 };
-struct GeneralTimingHrdParameters{
-  uint32_t num_units_in_tick;
-  uint32_t time_scale;
-  bool general_nal_hrd_params_present_flag;
-  bool general_vcl_hrd_params_present_flag;
-  bool general_same_pic_timing_in_all_ols_flag;
-  bool general_du_hrd_params_present_flag;
-  uint8_t tick_divisor_minus2;
-  int bit_rate_scale;
-  int cpb_size_scale;
-  int cpb_size_du_scale;
-  int hrd_cpb_cnt_minus1;
+// Dans h266_parser.h, ajouter :
+struct GeneralTimingHrdParameters {
+    uint32_t num_units_in_tick = 0;
+    uint32_t time_scale = 0;
+    bool general_nal_hrd_params_present_flag = false;
+    bool general_vcl_hrd_params_present_flag = false;
+    bool general_same_pic_timing_in_all_ols_flag = false;
+    bool general_du_hrd_params_present_flag = false;
+    uint8_t tick_divisor_minus2 = 0;
+    uint8_t bit_rate_scale = 0;
+    uint8_t cpb_size_scale = 0;
+    uint8_t cpb_size_du_scale = 0;
+    int hrd_cpb_cnt_minus1 = 0;
 };
 
+// struct GeneralTimingHrdParameters{
+//   uint32_t num_units_in_tick;
+//   uint32_t time_scale;
+//   bool general_nal_hrd_params_present_flag;
+//   bool general_vcl_hrd_params_present_flag;
+//   bool general_same_pic_timing_in_all_ols_flag;
+//   bool general_du_hrd_params_present_flag;
+//   uint8_t tick_divisor_minus2;
+//   int bit_rate_scale;
+//   int cpb_size_scale;
+//   int cpb_size_du_scale;
+//   int hrd_cpb_cnt_minus1;
+// };
 
+/* 
 //ref_pic_list_struct( i, j )
 struct H266ReferencePicListStruct{
   std::vector<std::vector<std::vector<int>>> num_ref_entries;
@@ -392,6 +407,21 @@ struct H266ReferencePicListStruct{
   std::vector<std::vector<std::vector<std::vector<bool>>>> strp_entry_sign_flag;
   std::vector<std::vector<std::vector<std::vector<bool>>>> rpls_poc_lsb_lt;
   std::vector<std::vector<std::vector<std::vector<int>>>> ilrp_idx;
+};
+ */
+struct H266RefPicListEntry {
+    bool inter_layer_ref_pic_flag = false;
+    bool st_ref_pic_flag = false;
+    int abs_delta_poc_st = 0;
+    bool strp_entry_sign_flag = false;
+    uint32_t rpls_poc_lsb_lt = 0;
+    int ilrp_idx = 0;
+};
+
+struct H266ReferencePicListStruct {
+    int num_ref_entries = 0;
+    bool ltrp_in_header_flag = false;
+    std::vector<H266RefPicListEntry> entries;
 };
 
 struct H266ReferencePicList{
