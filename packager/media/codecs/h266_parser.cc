@@ -917,7 +917,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
               sps->ols_parameters = std::make_unique<H266OlsTimingHrdParameters>();
             }
 
-
+ 
 
             Ols_Timing_Hrd_parameters(firstSubLayer, sps->max_sublayers_minus1,
                             *sps,
@@ -948,6 +948,14 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           if( sps->sps_range_extension_flag ){
             //todo
             //sps_range_extension( )
+            TRUE_OR_RETURN(br->ReadBool(&sps->sps_extended_precision_flag));
+            if( sps->sps_transform_skip_enabled_flag ){
+                 TRUE_OR_RETURN(br->ReadBool(&sps->sps_ts_residual_coding_rice_present_in_sh_flag));
+            }
+            TRUE_OR_RETURN(br->ReadBool(&sps->sps_rrc_rice_extension_flag));
+            TRUE_OR_RETURN(br->ReadBool(&sps->sps_persistent_rice_adaptation_enabled_flag));
+            TRUE_OR_RETURN(br->ReadBool(&sps->sps_reverse_last_sig_coeff_enabled_flag));
+
           }
         }
         /*

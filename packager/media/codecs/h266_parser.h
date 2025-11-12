@@ -619,6 +619,15 @@ struct H266Sps {
   bool sps_extension_7bits_flag = false;
   int sps_extension_7bits;
   bool sps_extension_data_flag = false;
+ 
+// sp_range_extension  
+// todo make struct and funct
+bool sps_extended_precision_flag;
+bool sps_ts_residual_coding_rice_present_in_sh_flag;
+bool sps_rrc_rice_extension_flag;
+bool sps_persistent_rice_adaptation_enabled_flag;
+bool sps_reverse_last_sig_coeff_enabled_flag;
+
 
  // end H.266 specific fields
 
