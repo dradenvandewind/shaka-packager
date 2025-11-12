@@ -11,6 +11,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <optional>
 
 #include <packager/macros/classes.h>
 #include <packager/media/codecs/h26x_bit_reader.h>
@@ -602,7 +603,8 @@ struct H266Sps {
   std::vector <int> sps_virtual_boundary_pos_y_minus1;//i = sps_num_hor_virtual_boundaries  
 
   bool sps_timing_hrd_params_present_flag = false;
-  GeneralTimingHrdParameters general_timing_hrd_parameters;
+  //GeneralTimingHrdParameters general_timing_hrd_parameters = null;
+  std::optional<H266OlsTimingHrdParameters> general_timing_hrd_parameters;
   bool sps_sublayer_cpb_params_present_flag = false;
 
 
@@ -664,7 +666,9 @@ bool sps_reverse_last_sig_coeff_enabled_flag;
   // Strong intra smoothing
   bool sps_strong_intra_smoothing_enabled_flag = false;
   // OLS timing hrd parameters
-  H266OlsTimingHrdParameters* ols_parameters;
+  //H266OlsTimingHrdParameters* ols_parameters = null;
+  std::optional<H266OlsTimingHrdParameters> ols_parameters;
+
 
   // VUI parameters
   bool vui_parameters_present = false;

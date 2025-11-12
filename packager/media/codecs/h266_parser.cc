@@ -901,7 +901,8 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_timing_hrd_params_present_flag));
           if(sps->sps_timing_hrd_params_present_flag){
             if (!sps->general_timing_hrd_parameters) {
-              sps->general_timing_hrd_parameters = std::make_unique<GeneralTimingHrdParameters>();
+              //sps->general_timing_hrd_parameters = std::make_unique<GeneralTimingHrdParameters>();
+              sps->general_timing_hrd_parameters.emplace();
             }
             
             //general_timing_hrd_parameters
@@ -915,7 +916,8 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
 
 
             if (!sps->ols_parameters) {
-              sps->ols_parameters = std::make_unique<H266OlsTimingHrdParameters>();
+              //sps->ols_parameters = std::make_unique<H266OlsTimingHrdParameters>();
+              sps->ols_parameters.emplace();
             }
 
  
