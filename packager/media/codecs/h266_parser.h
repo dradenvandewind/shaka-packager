@@ -604,7 +604,9 @@ struct H266Sps {
 
   bool sps_timing_hrd_params_present_flag = false;
   //GeneralTimingHrdParameters general_timing_hrd_parameters = null;
-  std::optional<H266OlsTimingHrdParameters> general_timing_hrd_parameters;
+  std::optional<GeneralTimingHrdParameters> general_timing_hrd_parameters;
+  std::optional<H266OlsTimingHrdParameters> ols_parameters;
+  //std::optional<H266OlsTimingHrdParameters> general_timing_hrd_parameters;
   bool sps_sublayer_cpb_params_present_flag = false;
 
 
@@ -667,7 +669,7 @@ bool sps_reverse_last_sig_coeff_enabled_flag;
   bool sps_strong_intra_smoothing_enabled_flag = false;
   // OLS timing hrd parameters
   //H266OlsTimingHrdParameters* ols_parameters = null;
-  std::optional<H266OlsTimingHrdParameters> ols_parameters;
+  //std::optional<H266OlsTimingHrdParameters> ols_parameters;
 
 
   // VUI parameters
@@ -1031,10 +1033,6 @@ class H266Parser {
                             H26xBitReader* br,
                             H266OlsTimingHrdParameters* olf);
                             
-
-  Result ParseProfileTierLevel(bool profile_tier_present,
-                              int max_num_sub_layers_minus1,
-                              H26xBitReader* br);
   Result ParseProfileTierLevel(bool profile_tier_present,
                                int max_num_sub_layers_minus1,
                                H26xBitReader* br,
