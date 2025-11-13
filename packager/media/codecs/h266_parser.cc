@@ -27,9 +27,8 @@ struct H266GeneralConstraintsInfo;
 #define TRUE_OR_RETURN_DEBUG(a, b)                            \
   do {                                               \
     bool _result = (a);                              \
-    DVLOG(1) << "Processing " << #a << ": " << (_result ? "true" : "false"); \
     if (!_result) {                                  \
-      DVLOG(1) << "Failure while processing " << #a << " with parameter " << #b << ": " << b; \
+      DVLOG(1) << "Failure while processing " << #a  << a << " with parameter " << #b << ": " << b; \
       return kInvalidStream;                         \
     }                                                \
   } while (0)
@@ -2036,7 +2035,7 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
     // Parsing des flags de sous-couche
     for (int i = max_num_sub_layers_minus1 - 1; i >= 0; i--) {
         bool tmp_ptl_sublayer_level_present_flag = false;
-        TRUE_OR_RETURN_DEBUG(br->ReadBool(&tmp_ptl_sublayer_level_present_flag),"ptl_sublayer_level_present_flag"));
+        TRUE_OR_RETURN_DEBUG(br->ReadBool(&tmp_ptl_sublayer_level_present_flag),"ptl_sublayer_level_present_flag");
         ptl->ptl_sublayer_level_present_flag.push_back(tmp_ptl_sublayer_level_present_flag);
     }
     
