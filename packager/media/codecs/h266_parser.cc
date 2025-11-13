@@ -306,7 +306,7 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
   slice_header->header_bit_size = nalu.payload_size() * 8 - br->NumBitsLeft();
   return kOk;
 }
-#if 1 
+#if 0 
 H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   DCHECK_EQ(Nalu::H266_PPS_NUT, nalu.type());
   LOG(INFO) << "Parsing H.266 PPS NALU";
