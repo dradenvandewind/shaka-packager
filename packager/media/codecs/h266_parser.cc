@@ -24,6 +24,7 @@ struct H266OlsTimingHrdParameters;
 struct H266ProfileTierLevel;
 struct H266GeneralConstraintsInfo;
 
+<<<<<<< HEAD
 #define TRUE_OR_RETURN_DEBUG(a, b)                            \
   do {                                               \
     bool _result = (a);                              \
@@ -32,6 +33,8 @@ struct H266GeneralConstraintsInfo;
       return kInvalidStream;                         \
     }                                                \
   } while (0)
+=======
+>>>>>>> parent of 77892d9a (add log to debug)
 
 #define TRUE_OR_RETURN(a)                            \
   do {                                               \
@@ -681,26 +684,26 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   std::unique_ptr<H266Pps> pps(new H266Pps);
 
 
-  TRUE_OR_RETURN_DEBUG(br->ReadBits(4,&sps->sps_seq_parameter_set_id),"sps_seq_parameter_set_id");
-  TRUE_OR_RETURN_DEBUG(br->ReadBits(4,&sps->sps_video_parameter_set_id),"sps_video_parameter_set_id");
-  TRUE_OR_RETURN_DEBUG(br->ReadBits(3, &sps->max_sublayers_minus1),"max_sublayers_minus1");
-  TRUE_OR_RETURN_DEBUG(br->ReadBits(2, &sps->sps_chroma_format_idc),"sps_chroma_format_idc");
-  TRUE_OR_RETURN_DEBUG(br->ReadBits(2, &sps->sps_log2_ctu_size_minus5),"sps_log2_ctu_size_minus5");
-  TRUE_OR_RETURN_DEBUG(br->ReadBool(&sps->sps_ptl_dpb_hrd_params_present_flag),"sps_ptl_dpb_hrd_params_present_flag");
+  TRUE_OR_RETURN(br->ReadBits(4,&sps->sps_seq_parameter_set_id));
+  TRUE_OR_RETURN(br->ReadBits(4,&sps->sps_video_parameter_set_id));
+  TRUE_OR_RETURN(br->ReadBits(3, &sps->max_sublayers_minus1));
+  TRUE_OR_RETURN(br->ReadBits(2, &sps->sps_chroma_format_idc));
+  TRUE_OR_RETURN(br->ReadBits(2, &sps->sps_log2_ctu_size_minus5));
+  TRUE_OR_RETURN(br->ReadBool(&sps->sps_ptl_dpb_hrd_params_present_flag));
   if( sps->sps_ptl_dpb_hrd_params_present_flag) {
     //todo
     //profile_tier_level( 1, sps_max_sublayers_minus1 )
     ParseProfileTierLevel(true, sps->max_sublayers_minus1, br, &sps->sps_profile_level);
 
   }
-  TRUE_OR_RETURN_DEBUG(br->ReadBool(&sps->sps_gdr_enabled_flag),"sps_gdr_enabled_flag");
-  TRUE_OR_RETURN_DEBUG(br->ReadBool(&sps->sps_ref_pic_resampling_enabled_flag),"sps_ref_pic_resampling_enabled_flag");
+  TRUE_OR_RETURN(br->ReadBool(&sps->sps_gdr_enabled_flag));
+  TRUE_OR_RETURN(br->ReadBool(&sps->sps_ref_pic_resampling_enabled_flag));
   if( sps->sps_ref_pic_resampling_enabled_flag) {
-    TRUE_OR_RETURN_DEBUG(br->ReadBool(&sps->sps_res_change_in_clvs_allowed_flag),"sps_res_change_in_clvs_allowed_flag");
+    TRUE_OR_RETURN(br->ReadBool(&sps->sps_res_change_in_clvs_allowed_flag));
   }
-  TRUE_OR_RETURN_DEBUG(br->ReadUE(&sps->sps_pic_width_max_in_luma_samples),"sps_pic_width_max_in_luma_samples");
-  TRUE_OR_RETURN_DEBUG(br->ReadUE(&sps->sps_pic_height_max_in_luma_samples),"sps_pic_height_max_in_luma_samples");
-  TRUE_OR_RETURN_DEBUG(br->ReadBool(&sps->sps_conformance_window_flag),"sps_conformance_window_flag");
+  TRUE_OR_RETURN(br->ReadUE(&sps->sps_pic_width_max_in_luma_samples));
+  TRUE_OR_RETURN(br->ReadUE(&sps->sps_pic_height_max_in_luma_samples));
+  TRUE_OR_RETURN(br->ReadBool(&sps->sps_conformance_window_flag));
   if (sps->sps_conformance_window_flag) {
     TRUE_OR_RETURN(br->ReadUE(&sps->sps_conf_win_left_offset));
     TRUE_OR_RETURN(br->ReadUE(&sps->sps_conf_win_right_offset));
@@ -1685,7 +1688,7 @@ return kOk;
 H266Parser::Result H266Parser::ParseGeneralConstraintsInfo(H266GeneralConstraintsInfo *gci,
                                                      H26xBitReader* br) {
     
-TRUE_OR_RETURN_DEBUG(br->ReadBool(&gci->gci_present_flag),"gci_present_flag");
+TRUE_OR_RETURN(br->ReadBool(&gci->gci_present_flag));
 int numAdditionalBitsUsed = 0;
                                                       /* general */
 if (gci->gci_present_flag){
@@ -1784,7 +1787,7 @@ if (gci->gci_present_flag){
   }
   bool gci_alignment_zero_bit;  
   while( !br->byte_aligned()){
-    TRUE_OR_RETURN_DEBUG(br->ReadBool(&gci_alignment_zero_bit),"gci_alignment_zero_bit");
+    TRUE_OR_RETURN(br->ReadBool(&gci_alignment_zero_bit));
   } 
   return kOk;
 }
@@ -2013,20 +2016,20 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
     
     if (profile_tier_present) {
         uint32_t temp_profile;
-        TRUE_OR_RETURN_DEBUG(br->ReadBits(7, &temp_profile),"general_profile_idc");
+        TRUE_OR_RETURN(br->ReadBits(7, &temp_profile));
         ptl->general_profile_idc = static_cast<uint8_t>(temp_profile);
 
         bool temp_tier;
-        TRUE_OR_RETURN_DEBUG(br->ReadBool(&temp_tier),"general_tier_flag");
+        TRUE_OR_RETURN(br->ReadBool(&temp_tier));
         ptl->general_tier_flag = temp_tier;
     }
 
     uint32_t temp_level;
-    TRUE_OR_RETURN_DEBUG(br->ReadBits(8, &temp_level),"general_level_idc");
+    TRUE_OR_RETURN(br->ReadBits(8, &temp_level));
     ptl->general_level_idc = static_cast<uint8_t>(temp_level);
 
-    TRUE_OR_RETURN_DEBUG(br->ReadBool(&ptl->ptl_frame_only_constraint_flag),"ptl_frame_only_constraint_flag");
-    TRUE_OR_RETURN_DEBUG(br->ReadBool(&ptl->ptl_multilayer_enabled_flag),"ptl_multilayer_enabled_flag");
+    TRUE_OR_RETURN(br->ReadBool(&ptl->ptl_frame_only_constraint_flag));
+    TRUE_OR_RETURN(br->ReadBool(&ptl->ptl_multilayer_enabled_flag));
     
     if (profile_tier_present) {
         OK_OR_RETURN(ParseGeneralConstraintsInfo(&ptl->gci, br));
@@ -2035,7 +2038,11 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
     // Parsing des flags de sous-couche
     for (int i = max_num_sub_layers_minus1 - 1; i >= 0; i--) {
         bool tmp_ptl_sublayer_level_present_flag = false;
+<<<<<<< HEAD
         TRUE_OR_RETURN_DEBUG(br->ReadBool(&tmp_ptl_sublayer_level_present_flag),"ptl_sublayer_level_present_flag");
+=======
+        TRUE_OR_RETURN(br->ReadBool(&tmp_ptl_sublayer_level_present_flag));
+>>>>>>> parent of 77892d9a (add log to debug)
         ptl->ptl_sublayer_level_present_flag.push_back(tmp_ptl_sublayer_level_present_flag);
     }
     
@@ -2043,19 +2050,19 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
     for (int i = max_num_sub_layers_minus1 - 1; i >= 0; i--) {
         if (ptl->ptl_sublayer_level_present_flag[i]) {
             uint32_t tmp_sublayer_level_idc;
-            TRUE_OR_RETURN_DEBUG(br->ReadBits(8, &tmp_sublayer_level_idc),"sublayer_level_idc");
+            TRUE_OR_RETURN(br->ReadBits(8, &tmp_sublayer_level_idc));
             ptl->sublayer_level_idc.push_back(static_cast<uint8_t>(tmp_sublayer_level_idc));
         }
     }
     
     if (profile_tier_present) {
         uint32_t tmp_ptl_num_sub_profiles;
-        TRUE_OR_RETURN_DEBUG(br->ReadBits(8, &tmp_ptl_num_sub_profiles),"ptl_num_sub_profiles");
+        TRUE_OR_RETURN(br->ReadBits(8, &tmp_ptl_num_sub_profiles));
         ptl->ptl_num_sub_profiles = static_cast<uint8_t>(tmp_ptl_num_sub_profiles);
         
         for (int i = 0; i < ptl->ptl_num_sub_profiles; i++) {
             uint32_t tmp_general_sub_profile_idc;
-            TRUE_OR_RETURN_DEBUG(br->ReadBits(32, &tmp_general_sub_profile_idc),"general_sub_profile_idc");
+            TRUE_OR_RETURN(br->ReadBits(32, &tmp_general_sub_profile_idc));
             ptl->general_sub_profile_idc.push_back(tmp_general_sub_profile_idc);
         }
     }
