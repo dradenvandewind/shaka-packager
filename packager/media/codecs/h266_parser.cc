@@ -1664,6 +1664,7 @@ H266Parser::Result H266Parser::ParseGeneralConstraintsInfo(H266GeneralConstraint
                                                      H26xBitReader* br) {
     
 TRUE_OR_RETURN(br->ReadBool(&gci->gci_present_flag));
+DLOG(INFO) << "gci_present_flag : " << (gci_present_flag ? "1" : "0");
 int numAdditionalBitsUsed = 0;
                                                       /* general */
 if (gci->gci_present_flag){
@@ -1757,12 +1758,14 @@ if (gci->gci_present_flag){
     for( int i = 0; i < gci->gci_num_additional_bits-numAdditionalBitsUsed; i++ )
     {
       TRUE_OR_RETURN(br->ReadBool(&tmp_gci_reserved_bit));
+      DLOG(INFO) << "gci_reserved_bit : " << (tmp_gci_reserved_bit ? "1" : "0");
     }
 
   }
   bool gci_alignment_zero_bit;  
   while( !br->byte_aligned()){
     TRUE_OR_RETURN(br->ReadBool(&gci_alignment_zero_bit));
+    DLOG(INFO) << "gci_alignment_zero_bit : " << (gci_alignment_zero_bit ? "1" : "0");
   } 
   return kOk;
 }
@@ -2067,6 +2070,7 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
     uint32_t temp_level;
     TRUE_OR_RETURN(br->ReadBits(8, &temp_level));
     ptl->general_level_idc = static_cast<uint8_t>(temp_level);
+    DLOG(INFO) << "## ptl->general_level_idc : " << temp_level;
 
     TRUE_OR_RETURN(br->ReadBool(&ptl->ptl_frame_only_constraint_flag));
     DLOG(INFO) << "## ptl->ptl_frame_only_constraint_flag : " << ( ptl->ptl_frame_only_constraint_flag ? "1" : "0");
