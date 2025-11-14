@@ -684,7 +684,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   TRUE_OR_RETURN(br->ReadBits(2, &sps->sps_log2_ctu_size_minus5));
   DLOG(INFO) << "## sps->sps_log2_ctu_size_minus5 : " << sps->sps_log2_ctu_size_minus5;
   TRUE_OR_RETURN(br->ReadBool(&sps->sps_ptl_dpb_hrd_params_present_flag));
-  DLOG(INFO) << "## sps->sps_ptl_dpb_hrd_params_present_flag : " << sps->sps_ptl_dpb_hrd_params_present_flag;
+  DLOG(INFO) << "## sps->sps_ptl_dpb_hrd_params_present_flag : " <<  ( sps->sps_ptl_dpb_hrd_params_present_flag ? "1" : "0");
   if( sps->sps_ptl_dpb_hrd_params_present_flag) {
     //todo
     //profile_tier_level( 1, sps_max_sublayers_minus1 )
@@ -692,12 +692,12 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
 
   }
   TRUE_OR_RETURN(br->ReadBool(&sps->sps_gdr_enabled_flag));
-  DLOG(INFO) << "## sps->sps_gdr_enabled_flag : " << sps->sps_gdr_enabled_flag;
+  DLOG(INFO) << "## sps->sps_gdr_enabled_flag : " << ( sps->sps_gdr_enabled_flag ? "1" : "0");
   TRUE_OR_RETURN(br->ReadBool(&sps->sps_ref_pic_resampling_enabled_flag));
-  DLOG(INFO) << "## sps_ref_pic_resampling_enabled_flag : " << sps->sps_ref_pic_resampling_enabled_flag;
+  DLOG(INFO) << "## sps_ref_pic_resampling_enabled_flag : " << ( sps->sps_ref_pic_resampling_enabled_flag ? "1" : "0");
   if( sps->sps_ref_pic_resampling_enabled_flag) {
     TRUE_OR_RETURN(br->ReadBool(&sps->sps_res_change_in_clvs_allowed_flag));
-    DLOG(INFO) << "## sps->sps_ref_pic_resampling_enabled_flag : " << sps->sps_ref_pic_resampling_enabled_flag; 
+    DLOG(INFO) << "## sps->sps_ref_pic_resampling_enabled_flag : " << ( sps->sps_ref_pic_resampling_enabled_flag ? "1" : "0"); 
   }
   TRUE_OR_RETURN(br->ReadUE(&sps->sps_pic_width_max_in_luma_samples));
   DLOG(INFO) << "## sps_pic_width_max_in_luma_samples : " << sps->sps_pic_width_max_in_luma_samples;
@@ -1925,38 +1925,52 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 
   // VPS header
   TRUE_OR_RETURN(br->ReadUE(&vps->vps_video_parameter_set_id));
+  DLOG(INFO) << "## vps->vps_video_parameter_set_id : " << vps->vps_video_parameter_set_id;
   TRUE_OR_RETURN(br->ReadBits(6, &vps->vps_max_layers_minus1));
+  DLOG(INFO) << "## vps->vps_max_layers_minus1 : " << vps->vps_max_layers_minus1;
   TRUE_OR_RETURN(br->ReadBits(3, &vps->vps_max_sublayers_minus1));
+  DLOG(INFO) << "## vps->vps_max_sublayers_minus1 :  " << vps->vps_max_sublayers_minus1;
   
   // VPS base layer info
   TRUE_OR_RETURN(br->ReadBool(&vps->vps_all_independent_layers_flag));
+  DLOG(INFO) << "## vps->vps_all_independent_layers_flag " << (vps->vps_all_independent_layers_flag ? "1" : "0");
   TRUE_OR_RETURN(br->ReadBool(&vps->vps_default_output_layer_idc));
+  DLOG(INFO) << "## vps->vps_default_output_layer_idc :" << vps->vps_default_output_layer_idc;
 
   // Layer IDs
   vps->layer_id_included_flag.resize(vps->vps_max_layers_minus1 + 1, false);
 for (uint32_t i = 1; i <= (vps->vps_max_layers_minus1); i++) {
        bool temp_flag;
        TRUE_OR_RETURN(br->ReadBool(&temp_flag));
+       DLOG(INFO) << "## vps->layer_id_included_flag[i] : " << ( temp_flag  ? "1" : "0");
        vps->layer_id_included_flag[i] = temp_flag;
       //TRUE_OR_RETURN(br->ReadBool(&vps->layer_id_included_flag[i]));
   }
 
   // Timing info
   TRUE_OR_RETURN(br->ReadBool(&vps->vps_timing_info_present_flag));
+  DLOG(INFO) << "## vps->vps_timing_info_present_flag : " << ( vps->vps_timing_info_present_flag ? "1" : "0");
+
   if (vps->vps_timing_info_present_flag) {
     READ_LONG_OR_RETURN(&vps->vps_num_units_in_tick);
+    DLOG(INFO) << "## vps->vps_num_units_in_tick :" << vps->vps_num_units_in_tick;
     READ_LONG_OR_RETURN(&vps->vps_time_scale);
+    DLOG(INFO) << "## vps->vps_time_scale : " << vps->vps_time_scale;
     
     TRUE_OR_RETURN(br->ReadBool(&vps->vps_poc_proportional_to_timing_flag));
+    DLOG(INFO) << "## vps->vps_poc_proportional_to_timing_flag : " << ( vps->vps_poc_proportional_to_timing_flag ? "1" : "0");
     if (vps->vps_poc_proportional_to_timing_flag) {
       
     int temp_int;
     TRUE_OR_RETURN(br->ReadUE(&temp_int));
-    vps->vps_num_ticks_poc_diff_one_minus1 = static_cast<uint32_t>(temp_int);    }
+    vps->vps_num_ticks_poc_diff_one_minus1 = static_cast<uint32_t>(temp_int); 
+    DLOG(INFO) << "## vps->vps_num_ticks_poc_diff_one_minus1 : " << temp_int;   
+    }
   }
 
   // Output layer sets
   TRUE_OR_RETURN(br->ReadUE(&vps->vps_num_output_layer_sets));
+  DLOG(INFO) << "## vps->vps_num_output_layer_sets : " << vps->vps_num_output_layer_sets;
   
   // Allocate and parse output layer flags
   vps->output_layer_flag.resize(vps->vps_num_output_layer_sets);
@@ -1968,6 +1982,7 @@ for (uint32_t i = 1; i <= (vps->vps_max_layers_minus1); i++) {
       bool temp_output_bool;
       TRUE_OR_RETURN(br->ReadBool(&temp_output_bool));
       vps->output_layer_flag[i][j] = temp_output_bool;
+      DLOG(INFO) << "## vps->output_layer_flag[i][j] : " << ( temp_output_bool ? "1" : "0");
     }
   }
 
@@ -1987,6 +2002,8 @@ for (uint32_t i = 1; i <= (vps->vps_max_layers_minus1); i++) {
         bool temp_dep_bool;
         TRUE_OR_RETURN(br->ReadBool(&temp_dep_bool));
         vps->direct_dependency_flag[i][j] = temp_dep_bool;
+        DLOG(INFO) << "## vps->direct_dependency_flag[i][j]" << ( temp_dep_bool ? "1" : "0");
+        
 
       }
     }
@@ -1996,6 +2013,7 @@ for (uint32_t i = 1; i <= (vps->vps_max_layers_minus1); i++) {
       bool temp_tid_bool;
       TRUE_OR_RETURN(br->ReadBool(&temp_tid_bool));
       vps->max_tid_ref_present_flag[i] = temp_tid_bool;
+      DLOG(INFO) << "## vps->max_tid_ref_present_flag[i] :" << ( temp_tid_bool ? "1" : "0");
 
     }
   }
@@ -2028,7 +2046,7 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
         bool temp_tier;
         TRUE_OR_RETURN(br->ReadBool(&temp_tier));
         ptl->general_tier_flag = temp_tier;
-        DLOG(INFO) << "## ptl->general_tier_flag : " << ptl->general_tier_flag;
+        DLOG(INFO) << "## ptl->general_tier_flag : " << ( ptl->general_tier_flag ? "1" : "0");
 
     }
 
@@ -2039,10 +2057,10 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
 
 
     TRUE_OR_RETURN(br->ReadBool(&ptl->ptl_frame_only_constraint_flag));
-    DLOG(INFO) << "## ptl->ptl_frame_only_constraint_flag : " << ptl->ptl_frame_only_constraint_flag;
+    DLOG(INFO) << "## ptl->ptl_frame_only_constraint_flag : " << ( ptl->ptl_frame_only_constraint_flag ? "1" : "0");
 
     TRUE_OR_RETURN(br->ReadBool(&ptl->ptl_multilayer_enabled_flag));
-    DLOG(INFO) << "## ptl->ptl_multilayer_enabled_flag : " << ptl->ptl_multilayer_enabled_flag;
+    DLOG(INFO) << "## ptl->ptl_multilayer_enabled_flag : " << ( ptl->ptl_multilayer_enabled_flag ? "1" : "0");
 
     
     if (profile_tier_present) {
@@ -2056,12 +2074,12 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
 
 
         ptl->ptl_sublayer_level_present_flag.push_back(tmp_ptl_sublayer_level_present_flag);
-        DLOG(INFO) << "## ptl->ptl_sublayer_level_present_flag : " << ptl->ptl_sublayer_level_present_flag;
+        DLOG(INFO) << "## ptl->ptl_sublayer_level_present_flag : " << ( ptl->ptl_sublayer_level_present_flag ? "1" : "0");
     }
     while( !br->byte_aligned()){
       bool tmp_ptl_reserved_zero_bit;
       TRUE_OR_RETURN(br->ReadBool( &tmp_ptl_reserved_zero_bit));
-      DLOG(INFO) << "## ptl_reserved_zero_bit" << tmp_ptl_reserved_zero_bit;
+      DLOG(INFO) << "## ptl_reserved_zero_bit" << ( tmp_ptl_reserved_zero_bit ? "1" : "0");
     }
     
     // Parsing des niveaux de sous-couche
