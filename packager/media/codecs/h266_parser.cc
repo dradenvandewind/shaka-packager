@@ -682,17 +682,25 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   TRUE_OR_RETURN(br->ReadBool(&sps->sps_conformance_window_flag));
   if (sps->sps_conformance_window_flag) {
     TRUE_OR_RETURN(br->ReadUE(&sps->sps_conf_win_left_offset));
+    DLOG(INFO) << "## sps->sps_conf_win_left_offset  : " << sps->sps_conf_win_left_offset;
     TRUE_OR_RETURN(br->ReadUE(&sps->sps_conf_win_right_offset));
+    DLOG(INFO) << "##  : sps->sps_conf_win_right_offset " << sps->sps_conf_win_right_offset;
     TRUE_OR_RETURN(br->ReadUE(&sps->sps_conf_win_top_offset));
+    DLOG(INFO) << "##  : sps->sps_conf_win_top_offset" << sps->sps_conf_win_top_offset;
     TRUE_OR_RETURN(br->ReadUE(&sps->sps_conf_win_bottom_offset));
+    DLOG(INFO) << "## sps->sps_conf_win_bottom_offset : " << sps->sps_conf_win_bottom_offset;
   }
     TRUE_OR_RETURN(br->ReadBool(&sps->sps_subpic_info_present_flag));
+    DLOG(INFO) << "## sps->sps_subpic_info_present_flag : " << (sps->sps_subpic_info_present_flag  ? "1" : "0");
     if(sps->sps_subpic_info_present_flag) {
       TRUE_OR_RETURN(br->ReadUE(&sps->sps_num_subpics_minus1));
+      DLOG(INFO) << "## sps->sps_num_subpics_minus1 : " << sps->sps_num_subpics_minus1;
     }
     if(sps->sps_num_subpics_minus1 > 0) {
       TRUE_OR_RETURN(br->ReadBool(&sps->sps_independent_subpics_flag));
+      DLOG(INFO) << "## sps->sps_independent_subpics_flag : " << (sps->sps_independent_subpics_flag ? "1" : "0");
       TRUE_OR_RETURN(br->ReadBool(&sps->sps_subpic_same_size_flag));
+      DLOG(INFO) << "## sps->sps_subpic_same_size_flag : " << ( sps->sps_subpic_same_size_flag ? "1" : "0");
     }
 
     if(sps->sps_num_subpics_minus1 > 0){
@@ -710,22 +718,26 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             if(i>0 && sps->sps_pic_width_max_in_luma_samples > CtbSizeY) {
               TRUE_OR_RETURN(br->ReadBits(bit_read,&tmp_sps_subpic_ctu_top_left_x));  // u(v)  NOT SURE
               sps->sps_subpic_ctu_top_left_x.push_back(tmp_sps_subpic_ctu_top_left_x);
+              DLOG(INFO) << "## SPS->sps_subpic_ctu_top_left_x : " << tmp_sps_subpic_ctu_top_left_x;
             }
             int tmp_sps_subpic_ctu_top_left_y = 0;
             if( i > 0 && sps->sps_pic_height_max_in_luma_samples > CtbSizeY ){
               TRUE_OR_RETURN(br->ReadBits(tmpHeightVal,&tmp_sps_subpic_ctu_top_left_y));  // u(v)  NOT SURE
               sps->sps_subpic_ctu_top_left_y.push_back(tmp_sps_subpic_ctu_top_left_y);
+              DLOG(INFO) << "## sps_subpic_ctu_top_left_y : " << tmp_sps_subpic_ctu_top_left_y;
             }
             int tmp_sps_subpic_width_minus1 = 0;
             if( i < sps->sps_num_subpics_minus1 && sps->sps_pic_width_max_in_luma_samples > CtbSizeY ){              
               TRUE_OR_RETURN(br->ReadBits(tmpWidthVal,&tmp_sps_subpic_width_minus1));  // u(v)  NOT SURE
               sps->sps_subpic_width_minus1.push_back(tmp_sps_subpic_width_minus1);
+              DLOG(INFO) << "## sps_subpic_width_minus1 : " << tmp_sps_subpic_width_minus1;
             }
             int tmp_sps_subpic_height_minus1 = 0;
             if( i < sps->sps_num_subpics_minus1 && sps->sps_pic_height_max_in_luma_samples > CtbSizeY ){
               //sps_subpic_height_minus1[
               TRUE_OR_RETURN(br->ReadBits(tmpHeightVal,&tmp_sps_subpic_height_minus1));  // u(v)  NOT SURE
               sps->sps_subpic_ctu_top_left_y.push_back(tmp_sps_subpic_height_minus1);
+              DLOG(INFO) << "## sps_subpic_height_minus1 : " << tmp_sps_subpic_height_minus1;
             }
               
           }
@@ -735,144 +747,211 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
 
           TRUE_OR_RETURN(br->ReadBool(&tmp_sps_subpic_treated_as_pic_flag));
           sps->sps_subpic_treated_as_pic_flag.push_back(tmp_sps_subpic_treated_as_pic_flag);
+          DLOG(INFO) << "## sps_subpic_treated_as_pic_flag : " << ( tmp_sps_subpic_treated_as_pic_flag ? "1" : "0");
           TRUE_OR_RETURN(br->ReadBool(&tmp_sps_loop_filter_across_subpic_enabled_flag));
           sps->sps_loop_filter_across_subpic_enabled_flag.push_back(tmp_sps_loop_filter_across_subpic_enabled_flag);
+          DLOG(INFO) << "## tmp_sps_loop_filter_across_subpic_enabled_flag : " << ( tmp_sps_loop_filter_across_subpic_enabled_flag ? "1" : "0");
           }
         } //for 
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_subpic_id_len_minus1));
+        DLOG(INFO) << "## sps->sps_subpic_id_len_minus1 : " << sps->sps_subpic_id_len_minus1;
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_subpic_id_mapping_explicitly_signalled_flag));
+        DLOG(INFO) << "## sps->sps_subpic_id_mapping_explicitly_signalled_flag : " << ( sps->sps_subpic_id_mapping_explicitly_signalled_flag ? "1" : "0");
 
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_entry_point_offsets_present_flag));
+        DLOG(INFO) << "## sps->sps_entry_point_offsets_present_flag : " << ( sps->sps_entry_point_offsets_present_flag ? "1" : "0");
         TRUE_OR_RETURN(br->ReadBits(4,&sps->sps_log2_max_pic_order_cnt_lsb_minus4));
+        DLOG(INFO) << "## sps->sps_log2_max_pic_order_cnt_lsb_minus4 : " << sps->sps_log2_max_pic_order_cnt_lsb_minus4;
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_poc_msb_cycle_flag));
+        DLOG(INFO) << "## sps->sps_poc_msb_cycle_flag : " << ( sps->sps_poc_msb_cycle_flag ? "1" : "0");
+
+        DLOG(INFO) << "##  : " << (  ? "1" : "0");
+
         if(sps->sps_poc_msb_cycle_flag){
             TRUE_OR_RETURN(br->ReadUE(&sps->sps_poc_msb_cycle_len_minus1));
+            DLOG(INFO) << "## sps->sps_poc_msb_cycle_len_minus1 : " << sps->sps_poc_msb_cycle_len_minus1;
         }
         TRUE_OR_RETURN(br->ReadBits(2,&sps->sps_num_extra_ph_bytes));
+        DLOG(INFO) << "## sps->sps_num_extra_ph_bytes : " << sps->sps_num_extra_ph_bytes;
         bool tmp_sps_extra_sh_bit_present_flag = 0;
         for( int i = 0; i < (sps->sps_num_extra_sh_bytes * 8 ); i++ ){
           TRUE_OR_RETURN(br->ReadBool(&tmp_sps_extra_sh_bit_present_flag));
           sps->sps_extra_sh_bit_present_flag.push_back(tmp_sps_extra_sh_bit_present_flag);
+          DLOG(INFO) << "##  : " << (  ? "1" : "0");
         }
         if( sps->sps_ptl_dpb_hrd_params_present_flag ) {
           if( sps->max_sublayers_minus1 > 0 ){
               TRUE_OR_RETURN(br->ReadBool(&sps->sps_sublayer_dpb_params_flag));
+              DLOG(INFO) << "##  : " << (  ? "1" : "0");
               //TODO
              //dpb_parameters( sps_max_sublayers_minus1, sps_sublayer_dpb_params_flag )
           }
         }
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
+        DLOG(INFO) << "## sps->sps_log2_min_luma_coding_block_size_minus2 : " << sps->sps_log2_min_luma_coding_block_size_minus2;
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_partition_constraints_override_enabled_flag));
+        DLOG(INFO) << "##  : " << (  ? "1" : "0");
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma));
+        DLOG(INFO) << "## sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma : " << sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma;
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_max_mtt_hierarchy_depth_intra_slice_luma));
+        DLOG(INFO) << "## sps->sps_max_mtt_hierarchy_depth_intra_slice_luma : " << sps->sps_max_mtt_hierarchy_depth_intra_slice_luma;
         if( sps->sps_max_mtt_hierarchy_depth_intra_slice_luma != 0 ) {
            TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_max_bt_min_qt_intra_slice_luma));
+           DLOG(INFO) << "## sps->sps_log2_diff_max_bt_min_qt_intra_slice_luma : " << sps->sps_log2_diff_max_bt_min_qt_intra_slice_luma;
            TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_max_tt_min_qt_intra_slice_luma));
+           DLOG(INFO) << "## sps->sps_log2_diff_max_tt_min_qt_intra_slice_luma : " << sps->sps_log2_diff_max_tt_min_qt_intra_slice_luma;
         }
         if( sps->sps_chroma_format_idc != 0 ){
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_qtbtt_dual_tree_intra_flag));
+          DLOG(INFO) << "##  : " << (  ? "1" : "0");
         }
         if( sps->sps_qtbtt_dual_tree_intra_flag ) {
 
             TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_min_qt_min_cb_intra_slice_chroma));
+            DLOG(INFO) << "## sps->sps_log2_diff_min_qt_min_cb_intra_slice_chroma : " << sps->sps_log2_diff_min_qt_min_cb_intra_slice_chroma;
             TRUE_OR_RETURN(br->ReadUE(&sps->sps_max_mtt_hierarchy_depth_intra_slice_chroma));
+            DLOG(INFO) << "## sps->sps_max_mtt_hierarchy_depth_intra_slice_chroma : " << sps->sps_max_mtt_hierarchy_depth_intra_slice_chroma;
             if( sps->sps_max_mtt_hierarchy_depth_intra_slice_chroma != 0 ) {
                 TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_max_bt_min_qt_intra_slice_chroma));
+                DLOG(INFO) << "## sps->sps_log2_diff_max_bt_min_qt_intra_slice_chroma : " << sps->sps_log2_diff_max_bt_min_qt_intra_slice_chroma;
                 TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_max_tt_min_qt_intra_slice_chroma));
+                DLOG(INFO) << "## sps->sps_log2_diff_max_tt_min_qt_intra_slice_chroma : " << sps->sps_log2_diff_max_tt_min_qt_intra_slice_chroma;
             }
         }
 
 
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_min_qt_min_cb_inter_slice));
+        DLOG(INFO) << "## sps->sps_log2_diff_min_qt_min_cb_inter_slice : " << sps->sps_log2_diff_min_qt_min_cb_inter_slice;
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_max_mtt_hierarchy_depth_inter_slice));
+        DLOG(INFO) << "## sps->sps_max_mtt_hierarchy_depth_inter_slice : " << sps->sps_max_mtt_hierarchy_depth_inter_slice;
         if( sps->sps_max_mtt_hierarchy_depth_inter_slice != 0 ) {
           TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_max_bt_min_qt_inter_slice));
+          DLOG(INFO) << "## sps->sps_log2_diff_max_bt_min_qt_inter_slice : " << sps->sps_log2_diff_max_bt_min_qt_inter_slice;
           TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_max_tt_min_qt_inter_slice));
+          DLOG(INFO) << "## sps->sps_log2_diff_max_tt_min_qt_inter_slice : " << sps->sps_log2_diff_max_tt_min_qt_inter_slice;
         }
         if( pps->CtbSizeY > 32 )
         {
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_max_luma_transform_size_64_flag));
+          DLOG(INFO) << "##  : " << (  ? "1" : "0");
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_transform_skip_enabled_flag));
+        DLOG(INFO) << "##  : " << (  ? "1" : "0");
         if( sps->sps_transform_skip_enabled_flag ) {
             TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_transform_skip_max_size_minus2));
+            DLOG(INFO) << "## sps->sps_log2_transform_skip_max_size_minus2 : " << sps->sps_log2_transform_skip_max_size_minus2;
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_bdpcm_enabled_flag));
+            DLOG(INFO) << "##  : " << (  ? "1" : "0");
+            
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_mts_enabled_flag));
+        DLOG(INFO) << "##  : " << (  ? "1" : "0");
         if( sps->sps_mts_enabled_flag ) {
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_explicit_mts_intra_enabled_flag));
+          DLOG(INFO) << "##  : " << (  ? "1" : "0");
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_explicit_mts_inter_enabled_flag));
+          DLOG(INFO) << "##  : " << (  ? "1" : "0");
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_lfnst_enabled_flag));
+        DLOG(INFO) << "##  : " << (  ? "1" : "0");
 
         if( sps->sps_chroma_format_idc != 0 ) {
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_joint_cbcr_enabled_flag));
+          DLOG(INFO) << "##  : " << (  ? "1" : "0");
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_same_qp_table_for_chroma_flag));
+          DLOG(INFO) << "##  : " << (  ? "1" : "0");
           int numQpTables = sps->sps_same_qp_table_for_chroma_flag ? 1 : ( sps->sps_joint_cbcr_enabled_flag ? 3 : 2 );
           int tmp_sps_qp_table_start_minus26 = 0;
           int tmp_sps_num_points_in_qp_table_minus1 = 0;
           for( int i = 0; i < numQpTables; i++ ) {
 
             TRUE_OR_RETURN(br->ReadSE(&tmp_sps_qp_table_start_minus26));
+            DLOG(INFO) << "## sps_qp_table_start_minus26 : " << tmp_sps_qp_table_start_minus26;
             sps->sps_qp_table_start_minus26.push_back(tmp_sps_qp_table_start_minus26);
             TRUE_OR_RETURN(br->ReadUE(&tmp_sps_num_points_in_qp_table_minus1));
             sps->sps_num_points_in_qp_table_minus1.push_back(tmp_sps_num_points_in_qp_table_minus1);
+            DLOG(INFO) << "## sps_num_points_in_qp_table_minus1 : " << tmp_sps_num_points_in_qp_table_minus1;
             
             int tmp_sps_delta_qp_in_val_minus1 = 0;
             int tmp_sps_delta_qp_diff_val = 0;
             //for( int j = 0; j <= sps->sps_num_points_in_qp_table_minus1[ i ]; j++ ) {
             for( size_t j = 0; j <= static_cast<size_t>(sps->sps_num_points_in_qp_table_minus1[ i ]); j++ ) {
               TRUE_OR_RETURN(br->ReadUE(&tmp_sps_delta_qp_in_val_minus1));
+              DLOG(INFO) << "## sps_delta_qp_in_val_minus1 : " << tmp_sps_delta_qp_in_val_minus1;
               sps->sps_delta_qp_in_val_minus1[i][j].push_back(tmp_sps_delta_qp_in_val_minus1);
               TRUE_OR_RETURN(br->ReadUE(&tmp_sps_delta_qp_diff_val));
               sps->sps_delta_qp_diff_val[i][j].push_back(tmp_sps_delta_qp_diff_val);
+              DLOG(INFO) << "## sps_delta_qp_diff_val : " << tmp_sps_delta_qp_diff_val;
             }
           }
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_sao_enabled_flag));
+        DLOG(INFO) << "## sps->sps_sao_enabled_flag : " << ( sps->sps_sao_enabled_flag ? "1" : "0");
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_alf_enabled_flag));
+        DLOG(INFO) << "## sps->sps_alf_enabled_flag : " << ( sps->sps_alf_enabled_flag ? "1" : "0");
         if( sps->sps_alf_enabled_flag && sps->sps_chroma_format_idc != 0 ){
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_ccalf_enabled_flag));
+          DLOG(INFO) << "## sps->sps_ccalf_enabled_flag : " << ( sps->sps_ccalf_enabled_flag ? "1" : "0");
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_lmcs_enabled_flag));
+        DLOG(INFO) << "## sps->sps_lmcs_enabled_flag : " << ( sps->sps_lmcs_enabled_flag ? "1" : "0");
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_weighted_pred_flag));
+        DLOG(INFO) << "## sps->sps_weighted_pred_flag : " << ( sps->sps_weighted_pred_flag ? "1" : "0");
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_weighted_bipred_flag));
+        DLOG(INFO) << "## sps->sps_weighted_bipred_flag : " << ( sps->sps_weighted_bipred_flag ? "1" : "0");
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_long_term_ref_pics_flag));
+        DLOG(INFO) << "## sps->sps_long_term_ref_pics_flag : " << ( sps->sps_long_term_ref_pics_flag ? "1" : "0");
         if( sps->sps_video_parameter_set_id > 0 ){
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_inter_layer_prediction_enabled_flag));
+          DLOG(INFO) << "## sps->sps_inter_layer_prediction_enabled_flag : " << ( sps->sps_inter_layer_prediction_enabled_flag ? "1" : "0");
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_idr_rpl_present_flag));
+        DLOG(INFO) << "## sps->sps_idr_rpl_present_flag : " << ( sps->sps_idr_rpl_present_flag ? "1" : "0");
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_long_term_ref_pics_flag));
+        DLOG(INFO) << "## sps->sps_long_term_ref_pics_flag : " << ( sps->sps_long_term_ref_pics_flag ? "1" : "0");
         int tmp_sps_num_ref_pic_lists = 0;
         for( int i = 0; i < ( sps->sps_rpl1_same_as_rpl0_flag ? 1 : 2 ); i++ ) {
 
           TRUE_OR_RETURN(br->ReadUE(&tmp_sps_num_ref_pic_lists));
+          DLOG(INFO) << "## sps_num_ref_pic_lists : " << tmp_sps_num_ref_pic_lists;
           sps->sps_num_ref_pic_lists.push_back(tmp_sps_num_ref_pic_lists);
           for( int j = 0; j < sps->sps_num_ref_pic_lists[ i ]; j++){
             Ref_Pic_List_Struct(i,j, *sps, br, &sps->reference_pic_list_struct);
           }
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_ref_wraparound_enabled_flag));
+        DLOG(INFO) << "## sps->sps_ref_wraparound_enabled_flag : " << ( sps->sps_ref_wraparound_enabled_flag ? "1" : "0");
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_temporal_mvp_enabled_flag));
+        DLOG(INFO) << "## sps->sps_temporal_mvp_enabled_flag : " << ( sps->sps_temporal_mvp_enabled_flag ? "1" : "0");
         if( sps->sps_temporal_mvp_enabled_flag ){
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_sbtmvp_enabled_flag));
+            DLOG(INFO) << "## sps->sps_sbtmvp_enabled_flag : " << ( sps->sps_sbtmvp_enabled_flag ? "1" : "0");
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_amvr_enabled_flag));
+        DLOG(INFO) << "## sps->sps_amvr_enabled_flag : " << ( sps->sps_amvr_enabled_flag ? "1" : "0");
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_bdof_enabled_flag));
+        DLOG(INFO) << "## sps->sps_bdof_enabled_flag : " << ( sps->sps_bdof_enabled_flag ? "1" : "0");
         if(sps->sps_bdof_enabled_flag){
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_bdof_control_present_in_ph_flag));
+        DLOG(INFO) << "## sps->sps_bdof_control_present_in_ph_flag : " << ( sps->sps_bdof_control_present_in_ph_flag ? "1" : "0");
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_smvd_enabled_flag));
+        DLOG(INFO) << "## sps->sps_smvd_enabled_flag : " << ( sps->sps_smvd_enabled_flag ? "1" : "0");
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_dmvr_enabled_flag));
+        DLOG(INFO) << "## sps->sps_dmvr_enabled_flag : " << ( sps->sps_dmvr_enabled_flag ? "1" : "0");
         if(sps->sps_dmvr_enabled_flag){
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_dmvr_control_present_in_ph_flag));
+        DLOG(INFO) << "## sps->sps_dmvr_control_present_in_ph_flag : " << ( sps->sps_dmvr_control_present_in_ph_flag ? "1" : "0");
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_mmvd_enabled_flag));
+        DLOG(INFO) << "## sps->sps_mmvd_enabled_flag : " << ( sps->sps_mmvd_enabled_flag ? "1" : "0");
         if(sps->sps_mmvd_enabled_flag){
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_mmvd_fullpel_only_enabled_flag));
+        DLOG(INFO) << "## sps->sps_mmvd_fullpel_only_enabled_flag : " << ( sps->sps_mmvd_fullpel_only_enabled_flag ? "1" : "0");
         }    
 
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_six_minus_max_num_merge_cand));
+        DLOG(INFO) << "## sps->sps_six_minus_max_num_merge_cand : " << sps->sps_six_minus_max_num_merge_cand;
 
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_sbt_enabled_flag));
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_affine_enabled_flag));
@@ -1664,7 +1743,7 @@ H266Parser::Result H266Parser::ParseGeneralConstraintsInfo(H266GeneralConstraint
                                                      H26xBitReader* br) {
     
 TRUE_OR_RETURN(br->ReadBool(&gci->gci_present_flag));
-DLOG(INFO) << "gci_present_flag : " << (gci_present_flag ? "1" : "0");
+DLOG(INFO) << "gci_present_flag : " << (gci->gci_present_flag ? "1" : "0");
 int numAdditionalBitsUsed = 0;
                                                       /* general */
 if (gci->gci_present_flag){
@@ -1762,7 +1841,7 @@ if (gci->gci_present_flag){
     }
 
   }
-  bool gci_alignment_zero_bit;  
+  bool gci_alignment_zero_bit = false;  
   while( !br->byte_aligned()){
     TRUE_OR_RETURN(br->ReadBool(&gci_alignment_zero_bit));
     DLOG(INFO) << "gci_alignment_zero_bit : " << (gci_alignment_zero_bit ? "1" : "0");
@@ -2121,7 +2200,7 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
         for (int i = 0; i < ptl->ptl_num_sub_profiles; i++) {
             uint32_t tmp_general_sub_profile_idc;
             TRUE_OR_RETURN(br->ReadBits(32, &tmp_general_sub_profile_idc));
-            DLOG(INFO) << "## general_sub_profile_idc : " << tmp_general_sub_profile_idc;
+            DLOG(INFO) << "## general_sub_profile_idc 32 bits : " << tmp_general_sub_profile_idc;
 
             ptl->general_sub_profile_idc.push_back(tmp_general_sub_profile_idc);
         }
