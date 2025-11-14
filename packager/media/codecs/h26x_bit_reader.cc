@@ -237,6 +237,7 @@ bool H26xBitReader::ReadUE(int* val) {
       return false;
     *val += rest;
   }
+  bit_position_ += num_bits;
 
   return true;
 }
@@ -315,6 +316,16 @@ bool H26xBitReader::ReadUE(uint32_t* val) {
   *val = static_cast<uint32_t>(temp);
   return true;
 }
+
+// bool H26xBitReader::more_rbsp_data() {
+//  bool rbsp_stop_one_bit = false;
+//  bool rbsp_alignment_zero_bit = false;
+//  ReadBool(&rbsp_stop_one_bit);
+//  while(!byte_aligned()){
+//   ReadBool(&rbsp_alignment_zero_bit);
+//  }
+//  return(true);
+// }
 
 }  // namespace media
 }  // namespace shaka

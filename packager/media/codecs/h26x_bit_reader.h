@@ -77,6 +77,7 @@ class H26xBitReader {
 
   bool IsAtRBSPTrailingBits();
   bool more_rbsp_data();
+  //bool rbsp_trailing_bits();
 
 
 

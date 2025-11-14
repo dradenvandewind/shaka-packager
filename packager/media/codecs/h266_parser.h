@@ -1085,6 +1085,8 @@ class H266Parser {
 #endif
 
   Result ByteAlignment(H26xBitReader* br);
+
+  Result rbsp_trailing_bits(H26xBitReader* br);
 #if 0   
 //future update perhaps
   // H.266 specific parsing helpers
