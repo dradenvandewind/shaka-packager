@@ -2099,7 +2099,7 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
         if (ptl->ptl_sublayer_level_present_flag[i]) {
             uint32_t tmp_sublayer_level_idc;
             TRUE_OR_RETURN(br->ReadBits(8, &tmp_sublayer_level_idc));
-            DLOG(INFO) << "## ptl_reserved_zero_bit" << ( tmp_ptl_reserved_zero_bit ? "1" : "0");
+            DLOG(INFO) << "## ptl_reserved_zero_bit :" << ( tmp_sublayer_level_idc ? "1" : "0");
 
             ptl->sublayer_level_idc.push_back(static_cast<uint8_t>(tmp_sublayer_level_idc));
         }
@@ -2108,15 +2108,16 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
     if (profile_tier_present) {
         int tmp_ptl_num_sub_profiles;
         TRUE_OR_RETURN(br->ReadBits(8, &tmp_ptl_num_sub_profiles));
-        DLOG(INFO) << "## ptl_num_sub_profiles" << tmp_ptl_num_sub_profiles;
+        DLOG(INFO) << "## ptl_num_sub_profiles : " << tmp_ptl_num_sub_profiles;
 
         ptl->ptl_num_sub_profiles = tmp_ptl_num_sub_profiles ;
         //static_cast<uint8_t>(tmp_ptl_num_sub_profiles);
+        //readbits car t read 32 bits need to write another func tu support it
         
         for (int i = 0; i < ptl->ptl_num_sub_profiles; i++) {
             uint32_t tmp_general_sub_profile_idc;
             TRUE_OR_RETURN(br->ReadBits(32, &tmp_general_sub_profile_idc));
-            DLOG(INFO) << "## general_sub_profile_idc" << tmp_general_sub_profile_idc;
+            DLOG(INFO) << "## general_sub_profile_idc : " << tmp_general_sub_profile_idc;
 
             ptl->general_sub_profile_idc.push_back(tmp_general_sub_profile_idc);
         }

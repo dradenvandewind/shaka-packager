@@ -145,7 +145,7 @@ bool H26xBitReader::IsAtRBSPTrailingBits() {
   int saved_prev_two_bytes = prev_two_bytes_;
   size_t saved_bit_position = bit_position_;
 
-  // Check if we're at the beginning of rbsp_trailing_bits
+  // Check if we're at the beginning of
   // which starts with a '1' bit followed by zero or more '0' bits
   bool is_at_trailing_bits = false;
   
@@ -182,7 +182,7 @@ bool H26xBitReader::IsAtRBSPTrailingBits() {
 bool H26xBitReader::ReadBits(int num_bits, int* out) {
   int bits_left = num_bits;
   *out = 0;
-  DCHECK(num_bits <= 31);
+  DCHECK(num_bits <= 32);
 
   while (num_remaining_bits_in_curr_byte_ < bits_left) {
     // Take all that's left in current byte, shift to make space for the rest.
