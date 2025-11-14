@@ -2058,7 +2058,11 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
         ptl->ptl_sublayer_level_present_flag.push_back(tmp_ptl_sublayer_level_present_flag);
         DLOG(INFO) << "## ptl->ptl_sublayer_level_present_flag : " << ptl->ptl_sublayer_level_present_flag;
     }
-
+    while( !br->byte_aligned()){
+      bool tmp_ptl_reserved_zero_bit;
+      TRUE_OR_RETURN(br->ReadBool( &tmp_ptl_reserved_zero_bit));
+      DLOG(INFO) << "## ptl_reserved_zero_bit" << tmp_ptl_reserved_zero_bit;
+    }
     
     // Parsing des niveaux de sous-couche
     for (int i = max_num_sub_layers_minus1 - 1; i >= 0; i--) {
