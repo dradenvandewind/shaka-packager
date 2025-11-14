@@ -237,7 +237,6 @@ bool H26xBitReader::ReadUE(int* val) {
       return false;
     *val += rest;
   }
-  bit_position_ += num_bits;
 
   return true;
 }

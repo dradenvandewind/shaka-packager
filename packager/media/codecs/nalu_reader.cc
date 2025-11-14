@@ -248,6 +248,7 @@ bool Nalu::InitializeFromH266(const uint8_t* data, uint64_t size) {
   // forbidden_zero_bit (1) | nuh_reserved_zero_bit (1) | nuh_layer_id (6) | nal_unit_type (5) | nuh_temporal_id_plus1 (3)
   nuh_layer_id_ = (header >> 8) & 0x3F;  // Bits 9-14 (corrected from 8-13)
   type_ = (header >> 3) & 0x1F;          // Bits 3-7
+  LOG(INFO)  << "nal type" << type_ ;
   const int nuh_temporal_id_plus1 = header & 0x7;  // Bits 0-2
 
   // H.266: nuh_temporal_id_plus1 shall be in range 1-7
@@ -257,6 +258,8 @@ bool Nalu::InitializeFromH266(const uint8_t* data, uint64_t size) {
     return false;
   }
   nuh_temporal_id_ = nuh_temporal_id_plus1 - 1;
+  LOG(INFO)  << "nal type" << type_ ;
+
 
   // H.266 specific constraints
 
