@@ -213,7 +213,7 @@ bool H26xBitReader::SkipBits(int num_bits) {
   bit_position_ += num_bits;
   return true;
 }
-
+#if 0
 bool H26xBitReader::ReadUE(int* val) {
   int num_bits = -1;
   int bit;
@@ -241,6 +241,37 @@ bool H26xBitReader::ReadUE(int* val) {
 
   return true;
 }
+#else
+bool H26xBitReader::ReadUE(int* val) {
+  int leadingZeroBits = -1;
+  int b = 0;
+  
+  // Count leading zero bits (equation 1513)
+  do {
+    if (!ReadBits(1, &b))
+      return false;
+    leadingZeroBits++;
+  } while (b == 0);
+
+  // Calculate codeNum (equation 1514 with k = 0)
+  if (leadingZeroBits > 31)
+    return false;
+
+  int codeNum = (1 << leadingZeroBits) - 1;
+  
+  if (leadingZeroBits > 0) {
+    int rest;
+    if (!ReadBits(leadingZeroBits, &rest))
+      return false;
+    codeNum += rest;
+  }
+  
+  *val = codeNum;
+  return true;
+}
+
+#endif
+
 
 bool H26xBitReader::ReadSE(int* val) {
   int ue;
