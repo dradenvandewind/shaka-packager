@@ -833,33 +833,33 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         if( pps->CtbSizeY > 32 )
         {
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_max_luma_transform_size_64_flag));
-          DLOG(INFO) << "##  : " << (  ? "1" : "0");
+          DLOG(INFO) << "## sps->sps_max_luma_transform_size_64_flag : " << ( sps->sps_max_luma_transform_size_64_flag ? "1" : "0");
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_transform_skip_enabled_flag));
-        DLOG(INFO) << "##  : " << (  ? "1" : "0");
+        DLOG(INFO) << "## sps->sps_transform_skip_enabled_flag : " << ( sps->sps_transform_skip_enabled_flag ? "1" : "0");
         if( sps->sps_transform_skip_enabled_flag ) {
             TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_transform_skip_max_size_minus2));
             DLOG(INFO) << "## sps->sps_log2_transform_skip_max_size_minus2 : " << sps->sps_log2_transform_skip_max_size_minus2;
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_bdpcm_enabled_flag));
-            DLOG(INFO) << "##  : " << (  ? "1" : "0");
+            DLOG(INFO) << "## sps->sps_bdpcm_enabled_flag : " << ( sps->sps_bdpcm_enabled_flag ? "1" : "0");
             
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_mts_enabled_flag));
-        DLOG(INFO) << "##  : " << (  ? "1" : "0");
+        DLOG(INFO) << "## sps->sps_mts_enabled_flag : " << ( sps->sps_mts_enabled_flag ? "1" : "0");
         if( sps->sps_mts_enabled_flag ) {
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_explicit_mts_intra_enabled_flag));
-          DLOG(INFO) << "##  : " << (  ? "1" : "0");
+          DLOG(INFO) << "## sps->sps_explicit_mts_intra_enabled_flag : " << ( sps->sps_explicit_mts_intra_enabled_flag ? "1" : "0");
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_explicit_mts_inter_enabled_flag));
-          DLOG(INFO) << "##  : " << (  ? "1" : "0");
+          DLOG(INFO) << "## sps->sps_explicit_mts_inter_enabled_flag : " << ( sps->sps_explicit_mts_inter_enabled_flag ? "1" : "0");
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_lfnst_enabled_flag));
-        DLOG(INFO) << "##  : " << (  ? "1" : "0");
+        DLOG(INFO) << "## sps->sps_lfnst_enabled_flag : " << ( sps->sps_lfnst_enabled_flag ? "1" : "0");
 
         if( sps->sps_chroma_format_idc != 0 ) {
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_joint_cbcr_enabled_flag));
-          DLOG(INFO) << "##  : " << (  ? "1" : "0");
+          DLOG(INFO) << "## sps->sps_joint_cbcr_enabled_flag : " << ( sps->sps_joint_cbcr_enabled_flag ? "1" : "0");
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_same_qp_table_for_chroma_flag));
-          DLOG(INFO) << "##  : " << (  ? "1" : "0");
+          DLOG(INFO) << "## sps->sps_same_qp_table_for_chroma_flag : " << ( sps->sps_same_qp_table_for_chroma_flag ? "1" : "0");
           int numQpTables = sps->sps_same_qp_table_for_chroma_flag ? 1 : ( sps->sps_joint_cbcr_enabled_flag ? 3 : 2 );
           int tmp_sps_qp_table_start_minus26 = 0;
           int tmp_sps_num_points_in_qp_table_minus1 = 0;
