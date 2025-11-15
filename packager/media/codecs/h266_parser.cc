@@ -765,7 +765,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_poc_msb_cycle_flag));
         DLOG(INFO) << "## sps->sps_poc_msb_cycle_flag : " << ( sps->sps_poc_msb_cycle_flag ? "1" : "0");
 
-        DLOG(INFO) << "##  : " << (  ? "1" : "0");
+
 
         if(sps->sps_poc_msb_cycle_flag){
             TRUE_OR_RETURN(br->ReadUE(&sps->sps_poc_msb_cycle_len_minus1));
@@ -777,12 +777,12 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         for( int i = 0; i < (sps->sps_num_extra_sh_bytes * 8 ); i++ ){
           TRUE_OR_RETURN(br->ReadBool(&tmp_sps_extra_sh_bit_present_flag));
           sps->sps_extra_sh_bit_present_flag.push_back(tmp_sps_extra_sh_bit_present_flag);
-          DLOG(INFO) << "##  : " << (  ? "1" : "0");
+          DLOG(INFO) << "## sps_extra_sh_bit_present_flag : " << ( tmp_sps_extra_sh_bit_present_flag ? "1" : "0");
         }
         if( sps->sps_ptl_dpb_hrd_params_present_flag ) {
           if( sps->max_sublayers_minus1 > 0 ){
               TRUE_OR_RETURN(br->ReadBool(&sps->sps_sublayer_dpb_params_flag));
-              DLOG(INFO) << "##  : " << (  ? "1" : "0");
+              DLOG(INFO) << "## sps->sps_sublayer_dpb_params_flag : " << ( sps->sps_sublayer_dpb_params_flag ? "1" : "0");
               //TODO
              //dpb_parameters( sps_max_sublayers_minus1, sps_sublayer_dpb_params_flag )
           }
@@ -790,7 +790,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
         DLOG(INFO) << "## sps->sps_log2_min_luma_coding_block_size_minus2 : " << sps->sps_log2_min_luma_coding_block_size_minus2;
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_partition_constraints_override_enabled_flag));
-        DLOG(INFO) << "##  : " << (  ? "1" : "0");
+        DLOG(INFO) << "## sps->sps_partition_constraints_override_enabled_flag : " << ( sps->sps_partition_constraints_override_enabled_flag ? "1" : "0");
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma));
         DLOG(INFO) << "## sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma : " << sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma;
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_max_mtt_hierarchy_depth_intra_slice_luma));
@@ -803,7 +803,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         }
         if( sps->sps_chroma_format_idc != 0 ){
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_qtbtt_dual_tree_intra_flag));
-          DLOG(INFO) << "##  : " << (  ? "1" : "0");
+          DLOG(INFO) << "## sps->sps_qtbtt_dual_tree_intra_flag : " << ( sps->sps_qtbtt_dual_tree_intra_flag ? "1" : "0");
         }
         if( sps->sps_qtbtt_dual_tree_intra_flag ) {
 
