@@ -12,6 +12,7 @@
 #include <packager/media/base/rcheck.h>
 #include <packager/media/codecs/avc_decoder_configuration_record.h>
 #include <packager/media/codecs/hevc_decoder_configuration_record.h>
+#include "video_slice_header_parser.h"
 
 namespace shaka {
 namespace media {
@@ -135,6 +136,94 @@ int64_t H265VideoSliceHeaderParser::GetHeaderSize(const Nalu& nalu) {
     return -1;
 
   return NumBitsToNumBytes(slice_header.header_bit_size);
+}
+
+H266VideoSliceHeaderParser::H266VideoSliceHeaderParser() {}
+H266VideoSliceHeaderParser::~H266VideoSliceHeaderParser() {}
+
+#if 0
+bool H266VideoSliceHeaderParser::ParseParameterSets(
+    const HEVCDecoderConfigurationRecord& config) {
+  int id;
+  for (size_t i = 0; i < config.nalu_count(); i++) {
+    const Nalu& nalu = config.nalu(i);
+    if (nalu.type() == Nalu::H266_SPS_NUT) {
+      RCHECK(parser_.ParseSps(nalu, &id) == H266Parser::kOk);
+    } else if (nalu.type() == Nalu::H266_PPS_NUT) {
+      RCHECK(parser_.ParsePps(nalu, &id) == H266Parser::kOk);
+    } else if (nalu.type() == Nalu::H266_VPS_NUT) {
+      RCHECK(parser_.ParseVps(nalu, &id) == H266Parser::kOk);
+    } else {
+      VLOG(1) << "Ignoring decoder configuration Nalu of unknown type "
+              << nalu.type();
+    }
+  }
+
+  return true;
+}
+#endif
+
+bool H266VideoSliceHeaderParser::Initialize(
+    const std::vector<uint8_t>& decoder_configuration) {
+  VvcDecoderConfigurationRecord vvc_config;
+  RCHECK(vvc_config.Parse(decoder_configuration));
+  return ParseParameterSets(vvc_config);
+}
+
+bool H266VideoSliceHeaderParser::InitializeLayered(
+    const std::vector<uint8_t>& layered_decoder_configuration) {
+  if (layered_decoder_configuration.size() > 0) {
+    VvcDecoderConfigurationRecord lvvc_config;
+    lvvc_config.SetParser(&parser_);
+    RCHECK(lvvc_config.ParseLVVCConfig(layered_decoder_configuration));
+    return ParseParameterSets(lvvc_config);
+  } else {
+    return true;
+  }
+}
+
+bool H266VideoSliceHeaderParser::ProcessNalu(const Nalu& nalu) {
+  int id;
+  switch (nalu.type()) {
+    case Nalu::H266_SPS_NUT:
+      return parser_.ParseSps(nalu, &id) == H266Parser::kOk;
+    case Nalu::H266_PPS_NUT:
+      return parser_.ParsePps(nalu, &id) == H266Parser::kOk;
+    case Nalu::H266_VPS_NUT:
+      return parser_.ParseVps(nalu, &id) == H266Parser::kOk;
+    default:
+      return true;
+  }
+}
+
+
+int64_t H266VideoSliceHeaderParser::GetHeaderSize(const Nalu& nalu) {
+  DCHECK(nalu.is_video_slice());
+  H266SliceHeader slice_header;
+  if (parser_.ParseSliceHeader(nalu, &slice_header) != H266Parser::kOk)
+    return -1;
+
+  return NumBitsToNumBytes(slice_header.header_bit_size);
+}
+
+bool H266VideoSliceHeaderParser::ParseParameterSets(
+    const VvcDecoderConfigurationRecord& config) {
+  int id;
+  for (size_t i = 0; i < config.nalu_count(); i++) {
+    const Nalu& nalu = config.nalu(i);
+    if (nalu.type() == Nalu::H266_SPS_NUT) {
+      RCHECK(parser_.ParseSps(nalu, &id) == H266Parser::kOk);
+    } else if (nalu.type() == Nalu::H266_PPS_NUT) {
+      RCHECK(parser_.ParsePps(nalu, &id) == H266Parser::kOk);
+    } else if (nalu.type() == Nalu::H266_VPS_NUT) {
+      RCHECK(parser_.ParseVps(nalu, &id) == H266Parser::kOk);
+    } else {
+      VLOG(1) << "Ignoring decoder configuration Nalu of unknown type "
+              << nalu.type();
+    }
+  }
+
+  return true;
 }
 
 }  // namespace media

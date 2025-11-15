@@ -14,6 +14,8 @@
 #include <packager/media/codecs/h264_parser.h>
 #include <packager/media/codecs/h265_parser.h>
 #include <packager/media/codecs/hevc_decoder_configuration_record.h>
+#include <packager/media/codecs/h266_parser.h>
+#include <packager/media/codecs/vvc_decoder_configuration_record.h>
 
 namespace shaka {
 namespace media {
@@ -89,6 +91,28 @@ class H265VideoSliceHeaderParser : public VideoSliceHeaderParser {
   H265Parser parser_;
 
   DISALLOW_COPY_AND_ASSIGN(H265VideoSliceHeaderParser);
+};
+
+class H266VideoSliceHeaderParser : public VideoSliceHeaderParser {
+ public:
+  H266VideoSliceHeaderParser();
+  ~H266VideoSliceHeaderParser() override;
+
+  /// @name VideoSliceHeaderParser implementation overrides.
+  /// @{
+  bool Initialize(const std::vector<uint8_t>& decoder_configuration) override;
+  bool InitializeLayered(
+      const std::vector<uint8_t>& decoder_configuration) override;
+  bool ProcessNalu(const Nalu& nalu) override;
+  int64_t GetHeaderSize(const Nalu& nalu) override;
+  /// @}
+
+ private:
+  bool ParseParameterSets(const VvcDecoderConfigurationRecord& config);
+
+  H266Parser parser_;
+
+  DISALLOW_COPY_AND_ASSIGN(H266VideoSliceHeaderParser);
 };
 
 }  // namespace media
