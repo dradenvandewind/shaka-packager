@@ -1845,7 +1845,7 @@ if (gci->gci_present_flag){
   while( !br->byte_aligned()){
     TRUE_OR_RETURN(br->ReadBool(&gci_alignment_zero_bit));
     DLOG(INFO) << "gci_alignment_zero_bit : " << (gci_alignment_zero_bit ? "1" : "0");
-  } 
+  }
   return kOk;
 }
 

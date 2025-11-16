@@ -74,7 +74,7 @@ bool H26xBitReader::UpdateCurrByte() {
   return true;
 }
   bool H26xBitReader::byte_aligned() const { 
-    return (bit_position_ % 8) == 0;
+    return (num_remaining_bits_in_curr_byte_ % 8) == 0;
   }
 
   size_t H26xBitReader::GetBitPosition() const {
@@ -89,7 +89,7 @@ bool H26xBitReader::UpdateCurrByte() {
   return more_rbsp_data();
 } */
 
-
+#if 0
 bool H26xBitReader::more_rbsp_data() {
   // If there are no bits left, return false
   if (NumBitsLeft() == 0)
@@ -134,6 +134,41 @@ bool H26xBitReader::more_rbsp_data() {
   // If we didn't find a stop bit but have bits left, there's definitely more data
   return !found_stop_bit || bits_checked > 1;
 }
+#else
+bool H26xBitReader::more_rbsp_data() {
+  // If we're already byte-aligned, check if we have the RBSP stop bit
+  if (byte_aligned()) {
+    // Save current state for lookahead
+    const uint8_t* saved_data = data_;
+    off_t saved_bytes_left = bytes_left_;
+    int saved_curr_byte = curr_byte_;
+    int saved_num_remaining_bits = num_remaining_bits_in_curr_byte_;
+    int saved_prev_two_bytes = prev_two_bytes_;
+    size_t saved_bit_position = bit_position_;
+
+    // Try to read the stop bit
+    int stop_bit;
+    bool has_stop_bit = ReadBits(1, &stop_bit) && stop_bit == 1;
+
+    // Restore state
+    data_ = saved_data;
+    bytes_left_ = saved_bytes_left;
+    curr_byte_ = saved_curr_byte;
+    num_remaining_bits_in_curr_byte_ = saved_num_remaining_bits;
+    prev_two_bytes_ = saved_prev_two_bytes;
+    bit_position_ = saved_bit_position;
+
+    // If we have a stop bit, then there's no more RBSP data
+    // Otherwise, there might be more data or we need to check further
+    return !has_stop_bit && NumBitsLeft() > 0;
+  }
+
+  // If we're not byte-aligned, we definitely have more RBSP data
+  return NumBitsLeft() > 0;
+}
+#endif
+
+
 
 
 bool H26xBitReader::IsAtRBSPTrailingBits() {
