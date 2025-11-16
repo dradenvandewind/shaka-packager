@@ -175,7 +175,7 @@ bool H266VideoSliceHeaderParser::InitializeLayered(
   if (layered_decoder_configuration.size() > 0) {
     VvcDecoderConfigurationRecord lvvc_config;
     lvvc_config.SetParser(&parser_);
-    RCHECK(lvvc_config.ParseLVVCConfig(layered_decoder_configuration));
+    RCHECK(lvvc_config.ParseVVCConfig(layered_decoder_configuration));
     return ParseParameterSets(lvvc_config);
   } else {
     return true;

@@ -172,6 +172,17 @@ std::vector<uint8_t> GetLHEVCDecoderConfig(
   return std::vector<uint8_t>();
 }
 
+std::vector<uint8_t> GetVVCDecoderConfig(
+    const std::vector<CodecConfiguration>& configs) {
+  for (const CodecConfiguration& config : configs) {
+    // NOT sore between 3 choices
+    if (config.box_type == FOURCC_vvc1 || config.box_type == FOURCC_vvc1 ){
+      return config.data;
+    }
+  }
+  return std::vector<uint8_t>();
+}
+
 bool UpdateCodecStringForDolbyVision(
     FourCC actual_format,
     const std::vector<CodecConfiguration>& configs,
@@ -201,6 +212,11 @@ bool UpdateCodecStringForDolbyVision(
       break;
     case FOURCC_av01:
       *codec_string += ";" + dovi_config.GetCodecString(FOURCC_dav1);
+      break;
+    case FOURCC_vvc1:
+    case FOURCC_vvi1:
+        DLOG(INFO) << "need to change  dolby vision for VVC";
+       *codec_string += ";" + dovi_config.GetCodecString(FOURCC_dvvC);
       break;
     default:
       LOG(ERROR) << "Unsupported format with extra codec "
@@ -262,6 +278,18 @@ bool UpdateLHEVCInfo(FourCC actual_format,
     return false;
   }
   *codec_string = hevc_config.GetCodecString(actual_format);
+  return true;
+}
+bool UpdateVVCInfo(FourCC actual_format,
+                     VvcDecoderConfigurationRecord& vvc_config,
+                     const std::vector<CodecConfiguration>& configs,
+                     std::string* codec_string) {
+  if (!vvc_config.ParseVVCConfig(GetVVCDecoderConfig(configs))) {
+    LOG(ERROR) << "Failed to parse VVC decoder "
+                  "configuration record.";
+    return false;
+  }
+  *codec_string = vvc_config.GetCodecString(actual_format);
   return true;
 }
 
@@ -844,6 +872,7 @@ bool MP4MediaParser::ParseMoov(BoxReader* reader) {
                 return false;
               }
             }
+            
           }
           break;
         }
@@ -873,6 +902,18 @@ bool MP4MediaParser::ParseMoov(BoxReader* reader) {
           }
           codec_string = vvc_config.GetCodecString(actual_format);
           nalu_length_size = vvc_config.nalu_length_size();
+          transfer_characteristics = vvc_config.transfer_characteristics();
+          color_primaries = vvc_config.color_primaries();
+          matrix_coefficients = vvc_config.matrix_coefficients();
+          nalu_length_size = vvc_config.nalu_length_size();
+          if (!entry.extra_codec_configs.empty()) {
+            if (entry.HaveVVCConfig()) {
+              if (!UpdateVVCInfo(actual_format, vvc_config,
+                                   entry.extra_codec_configs, &codec_string)) {
+                return false;
+              }
+            }
+          }
           break;
         }
         default:
@@ -906,8 +947,16 @@ bool MP4MediaParser::ParseMoov(BoxReader* reader) {
             dovi_supplemental_codec_string);
         video_stream_info->set_compatible_brand(dovi_compatible_brand);
       }
+      
+      
       video_stream_info->set_layered_codec_config(
           GetLHEVCDecoderConfig(entry.extra_codec_configs));
+      ///  add H266 ?????  
+      DLOG(INFO) << "!!!! add VVC encryp ";
+
+      if( (actual_format == FOURCC_vvc1) || (actual_format == FOURCC_vvi1)){
+         video_stream_info->set_layered_codec_config(GetVVCDecoderConfig(entry.extra_codec_configs));
+      }
       video_stream_info->set_extra_config(entry.ExtraCodecConfigsAsVector());
       video_stream_info->set_colr_data((entry.colr.raw_box).data(),
                                        (entry.colr.raw_box).size());
