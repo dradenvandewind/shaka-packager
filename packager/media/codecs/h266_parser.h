@@ -21,20 +21,20 @@ namespace media {
 
 class Nalu;
 
-enum H266SliceType { kBSlice = 0, kPSlice = 1, kISlice = 2 };
+enum H266SliceType { kVvcBSlice = 0, kVvcPSlice = 1, kVvcISlice = 2 };
 
-const int kMaxRefPicSetCount = 16;
+const int kVvcMaxRefPicSetCount = 16;
 
 // H.266 profile_tier_level structure is more complex than H.265
-const int kGeneralProfileTierLevelBytes = 12;
-const int kMaxNumProfileTierLevels = 8;  // Increased for H.266
-const int kMaxLayers = 8;  // Increased for H.266 scalability
-const int kMaxScalabilityTypes = 8;
-const int kMaxLayerIdPlus1 = 64;
-const int kMaxLayerSets = 16;
-const int kMaxOuputLayerSets = kMaxLayerSets;
+const int kVvcGeneralProfileTierLevelBytes = 12;
+const int kVvcMaxNumProfileTierLevels = 8;  // Increased for H.266
+const int kVvcMaxLayers = 8;  // Increased for H.266 scalability
+const int kVvcMaxScalabilityTypes = 8;
+const int kVvcMaxLayerIdPlus1 = 64;
+const int kVvcMaxLayerSets = 16;
+const int kVvcMaxOuputLayerSets = kVvcMaxLayerSets;
 
-const int kInvalidId = -1;
+const int kVvcInvalidId = -1;
 
 // On success, |coded_width| and |coded_height| contains coded resolution after
 // cropping; |pixel_width:pixel_height| contains pixel aspect ratio, 1:1 is
@@ -47,10 +47,10 @@ bool ExtractResolutionFromSps(const H266Sps& sps,
                               uint32_t* pixel_height);
 
 struct H266ReferencePictureSet {
-  int delta_poc_s0[kMaxRefPicSetCount];
-  int delta_poc_s1[kMaxRefPicSetCount];
-  bool used_by_curr_pic_s0[kMaxRefPicSetCount];
-  bool used_by_curr_pic_s1[kMaxRefPicSetCount];
+  int delta_poc_s0[kVvcMaxRefPicSetCount];
+  int delta_poc_s1[kVvcMaxRefPicSetCount];
+  bool used_by_curr_pic_s0[kVvcMaxRefPicSetCount];
+  bool used_by_curr_pic_s1[kVvcMaxRefPicSetCount];
 
   int num_negative_pics;
   int num_positive_pics;
@@ -767,8 +767,8 @@ struct H266Vps {
   int vps_num_ptls_minus1;
 
   // Profile tier level
-  int general_profile_tier_level_data[kMaxNumProfileTierLevels]
-                                     [kGeneralProfileTierLevelBytes];
+  int general_profile_tier_level_data[kVvcMaxNumProfileTierLevels]
+                                     [kVvcGeneralProfileTierLevelBytes];
 
   // Layer sets
   int vps_num_layer_sets_minus1;
@@ -815,6 +815,94 @@ struct H266Aps {
 
   // Adaptation parameter set type specific data would go here
   // This is a simplified version
+};
+struct H266PictureHeaderStructure{
+  //7.3.2.8 Picture header structure syntax
+  
+ bool ph_gdr_or_irap_pic_flag = false;
+ bool ph_non_ref_pic_flag = false;
+ bool ph_gdr_pic_flag = false;
+ bool ph_inter_slice_allowed_flag = false;
+ bool ph_intra_slice_allowed_flag = false;
+ int ph_pic_parameter_set_id = 0;
+ int ph_pic_order_cnt_lsb = 0;
+ int ph_recovery_poc_cnt = 0;
+ std::vector <bool> ph_extra_bit;
+
+ bool ph_poc_msb_cycle_present_flag = false;
+ int ph_poc_msb_cycle_val = 0;
+ bool ph_alf_enabled_flag = false;
+ int ph_num_alf_aps_ids_luma = 0;
+ std::vector <int> ph_alf_aps_id_luma;
+
+ bool ph_alf_cc_cr_enabled_flag = false;
+ int ph_alf_cc_cr_aps_id = 0;
+ bool ph_lmcs_enabled_flag = false;
+ int ph_lmcs_aps_id = 0;
+ bool ph_chroma_residual_scale_flag = false;
+ bool ph_explicit_scaling_list_enabled_flag = false;
+ int ph_scaling_list_aps_id = 0;
+
+ bool ph_virtual_boundaries_present_flag = false;
+ int ph_num_ver_virtual_boundaries = 0;
+ std::vector<int> ph_virtual_boundary_pos_x_minus1;
+ int ph_num_hor_virtual_boundaries;
+ std::vector <int> ph_virtual_boundary_pos_y_minus1;
+ bool ph_pic_output_flag = false;
+ //ref_pic_lists
+ bool ph_partition_constraints_override_flag = false;
+ int ph_log2_diff_min_qt_min_cb_intra_slice_luma = 0;
+ int ph_max_mtt_hierarchy_depth_intra_slice_luma = 0;
+ int ph_log2_diff_max_bt_min_qt_intra_slice_luma = 0;
+ int ph_log2_diff_max_tt_min_qt_intra_slice_luma = 0;
+ int ph_log2_diff_min_qt_min_cb_intra_slice_chroma = 0;
+ int ph_max_mtt_hierarchy_depth_intra_slice_chroma = 0;
+ int ph_log2_diff_max_bt_min_qt_intra_slice_chroma = 0;
+ int ph_log2_diff_max_tt_min_qt_intra_slice_chroma = 0;
+ int ph_cu_qp_delta_subdiv_intra_slice = 0;
+ int ph_cu_chroma_qp_offset_subdiv_intra_slice = 0;
+ int ph_log2_diff_min_qt_min_cb_inter_slice = 0;
+ int ph_max_mtt_hierarchy_depth_inter_slice = 0;
+ int ph_log2_diff_max_bt_min_qt_inter_slice = 0;
+ int ph_log2_diff_max_tt_min_qt_inter_slice = 0;
+ int ph_cu_qp_delta_subdiv_inter_slice = 0;
+ int ph_cu_chroma_qp_offset_subdiv_inter_slice = 0;
+
+
+ bool ph_temporal_mvp_enabled_flag = false;
+ bool ph_collocated_from_l0_flag = false;
+ int ph_collocated_ref_idx = 0;
+ bool ph_mmvd_fullpel_only_flag = false;
+
+ bool ph_mvd_l1_zero_flag = false;
+ bool ph_bdof_disabled_flag = false;
+
+ bool ph_dmvr_disabled_flag = false;
+
+
+ bool ph_prof_disabled_flag = false;
+ int ph_qp_delta = 0;
+
+ bool ph_joint_cbcr_sign_flag = false;
+
+ bool ph_sao_luma_enabled_flag = false;
+ bool ph_sao_chroma_enabled_flag = false;
+
+ bool ph_deblocking_params_present_flag = false;
+ bool ph_deblocking_filter_disabled_flag = false;
+ int ph_luma_beta_offset_div2 = 0;
+ int ph_luma_tc_offset_div2 = 0;
+ int ph_cb_beta_offset_div2 = 0;
+ int ph_cb_tc_offset_div2 = 0;
+ int ph_cr_beta_offset_div2 = 0;
+ int ph_cr_tc_offset_div2 = 0;
+
+
+
+ bool ph_extension_length = false;
+ std::vector <int> ph_extension_data_byte; //u_int8_t
+
+
 };
 
 struct H266PictureHeader {

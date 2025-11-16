@@ -265,13 +265,13 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
     }
 
     // Reference picture lists in H.266
-    if (slice_header->slice_type == kPSlice ||
-        slice_header->slice_type == kBSlice) {
+    if (slice_header->slice_type == kVvcPSlice ||
+        slice_header->slice_type == kVvcBSlice) {
       TRUE_OR_RETURN(br->ReadBool(&slice_header->slice_rpl_present_flag));
       
       if (slice_header->slice_rpl_present_flag) {
         TRUE_OR_RETURN(br->ReadUE(&slice_header->num_ref_idx_l0_active_minus1));
-        if (slice_header->slice_type == kBSlice) {
+        if (slice_header->slice_type == kVvcBSlice) {
           TRUE_OR_RETURN(br->ReadUE(&slice_header->num_ref_idx_l1_active_minus1));
         }
       }
@@ -1181,7 +1181,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 
   // Profile tier level data
   for (int i = 0; i <= vps->vps_num_ptls_minus1; i++) {
-    for (int j = 0; j < kGeneralProfileTierLevelBytes; j++) {
+    for (int j = 0; j < kVvcGeneralProfileTierLevelBytes; j++) {
       TRUE_OR_RETURN(br->ReadBits(8, &vps->general_profile_tier_level_data[i][j]));
     }
   }
