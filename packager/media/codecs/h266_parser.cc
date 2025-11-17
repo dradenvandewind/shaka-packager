@@ -155,6 +155,625 @@ bool ExtractResolutionFromSps(const H266Sps& sps,
   GetAspectRatioInfo(sps, pixel_width, pixel_height);
   return true;
 }
+/* ####################################################################################################################################*/
+void DisplayH266SPS(const H266Sps& sps) {
+    DLOG(INFO) << "=== H.266 SPS Parameters ===";
+    
+    // Basic parameters
+    DLOG(INFO) << "## sps_seq_parameter_set_id : " << sps.sps_seq_parameter_set_id;
+    DLOG(INFO) << "## vps_id : " << sps.vps_id;
+    DLOG(INFO) << "## sps_video_parameter_set_id : " << sps.sps_video_parameter_set_id;
+    DLOG(INFO) << "## max_sublayers_minus1 : " << sps.max_sublayers_minus1;
+    DLOG(INFO) << "## sps_chroma_format_idc : " << sps.sps_chroma_format_idc;
+    DLOG(INFO) << "## sps_log2_ctu_size_minus5 : " << sps.sps_log2_ctu_size_minus5;
+    DLOG(INFO) << "## sps_ptl_dpb_hrd_params_present_flag : " << (sps.sps_ptl_dpb_hrd_params_present_flag ? "1" : "0");
+    
+    // GDR and resolution parameters
+    DLOG(INFO) << "## sps_gdr_enabled_flag : " << (sps.sps_gdr_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_ref_pic_resampling_enabled_flag : " << (sps.sps_ref_pic_resampling_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_res_change_in_clvs_allowed_flag : " << (sps.sps_res_change_in_clvs_allowed_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_pic_width_in_luma_samples : " << sps.sps_pic_width_in_luma_samples;
+    DLOG(INFO) << "## sps_pic_width_max_in_luma_samples : " << sps.sps_pic_width_max_in_luma_samples;
+    DLOG(INFO) << "## sps_pic_height_max_in_luma_samples : " << sps.sps_pic_height_max_in_luma_samples;
+    DLOG(INFO) << "## sps_pic_height_in_luma_samples : " << sps.sps_pic_height_in_luma_samples;
+    
+    // Conformance window
+    DLOG(INFO) << "## sps_conformance_window_flag : " << (sps.sps_conformance_window_flag ? "1" : "0");
+    if (sps.sps_conformance_window_flag) {
+        DLOG(INFO) << "## sps_conf_win_left_offset : " << sps.sps_conf_win_left_offset;
+        DLOG(INFO) << "## sps_conf_win_right_offset : " << sps.sps_conf_win_right_offset;
+        DLOG(INFO) << "## sps_conf_win_top_offset : " << sps.sps_conf_win_top_offset;
+        DLOG(INFO) << "## sps_conf_win_bottom_offset : " << sps.sps_conf_win_bottom_offset;
+    }
+    
+    // Subpicture parameters
+    DLOG(INFO) << "## sps_subpic_info_present_flag : " << (sps.sps_subpic_info_present_flag ? "1" : "0");
+    if (sps.sps_subpic_info_present_flag) {
+        DLOG(INFO) << "## sps_num_subpics_minus1 : " << sps.sps_num_subpics_minus1;
+        DLOG(INFO) << "## sps_independent_subpics_flag : " << (sps.sps_independent_subpics_flag ? "1" : "0");
+        DLOG(INFO) << "## sps_subpic_same_size_flag : " << (sps.sps_subpic_same_size_flag ? "1" : "0");
+        DLOG(INFO) << "## sps_subpic_id_mapping_explicitly_signalled_flag : " << (sps.sps_subpic_id_mapping_explicitly_signalled_flag ? "1" : "0");
+        DLOG(INFO) << "## sps_subpic_id_mapping_present_flag : " << (sps.sps_subpic_id_mapping_present_flag ? "1" : "0");
+        
+        for (size_t i = 0; i < sps.sps_subpic_id.size(); ++i) {
+            DLOG(INFO) << "## sps_subpic_id[" << i << "] : " << sps.sps_subpic_id[i];
+        }
+    }
+    
+    // Bit depth and coding parameters
+    DLOG(INFO) << "## sps_bitdepth_minus8 : " << sps.sps_bitdepth_minus8;
+    DLOG(INFO) << "## sps_entropy_coding_sync_enabled_flag : " << (sps.sps_entropy_coding_sync_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_entry_point_offsets_present_flag : " << (sps.sps_entry_point_offsets_present_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_log2_max_pic_order_cnt_lsb_minus4 : " << sps.sps_log2_max_pic_order_cnt_lsb_minus4;
+    DLOG(INFO) << "## sps_poc_msb_cycle_flag : " << (sps.sps_poc_msb_cycle_flag ? "1" : "0");
+    if (sps.sps_poc_msb_cycle_flag) {
+        DLOG(INFO) << "## sps_poc_msb_cycle_len_minus1 : " << sps.sps_poc_msb_cycle_len_minus1;
+    }
+    
+    DLOG(INFO) << "## sps_num_extra_ph_bytes : " << sps.sps_num_extra_ph_bytes;
+    DLOG(INFO) << "## sps_num_extra_sh_bytes : " << sps.sps_num_extra_sh_bytes;
+    DLOG(INFO) << "## sps_sublayer_dpb_params_flag : " << (sps.sps_sublayer_dpb_params_flag ? "1" : "0");
+    
+    // Coding block parameters
+    DLOG(INFO) << "## sps_log2_min_luma_coding_block_size_minus2 : " << sps.sps_log2_min_luma_coding_block_size_minus2;
+    DLOG(INFO) << "## sps_partition_constraints_override_enabled_flag : " << (sps.sps_partition_constraints_override_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_log2_diff_min_qt_min_cb_intra_slice_luma : " << sps.sps_log2_diff_min_qt_min_cb_intra_slice_luma;
+    DLOG(INFO) << "## sps_max_mtt_hierarchy_depth_intra_slice_luma : " << sps.sps_max_mtt_hierarchy_depth_intra_slice_luma;
+    DLOG(INFO) << "## sps_log2_diff_max_bt_min_qt_intra_slice_luma : " << sps.sps_log2_diff_max_bt_min_qt_intra_slice_luma;
+    DLOG(INFO) << "## sps_log2_diff_max_tt_min_qt_intra_slice_luma : " << sps.sps_log2_diff_max_tt_min_qt_intra_slice_luma;
+    
+    // Chroma parameters
+    DLOG(INFO) << "## sps_qtbtt_dual_tree_intra_flag : " << (sps.sps_qtbtt_dual_tree_intra_flag ? "1" : "0");
+    if (sps.sps_qtbtt_dual_tree_intra_flag) {
+        DLOG(INFO) << "## sps_log2_diff_min_qt_min_cb_intra_slice_chroma : " << sps.sps_log2_diff_min_qt_min_cb_intra_slice_chroma;
+        DLOG(INFO) << "## sps_log2_diff_max_tt_min_qt_intra_slice_chroma : " << sps.sps_log2_diff_max_tt_min_qt_intra_slice_chroma;
+        DLOG(INFO) << "## sps_max_mtt_hierarchy_depth_intra_slice_chroma : " << sps.sps_max_mtt_hierarchy_depth_intra_slice_chroma;
+        DLOG(INFO) << "## sps_log2_diff_max_bt_min_qt_intra_slice_chroma : " << sps.sps_log2_diff_max_bt_min_qt_intra_slice_chroma;
+    }
+    
+    // Inter slice parameters
+    DLOG(INFO) << "## sps_log2_diff_min_qt_min_cb_inter_slice : " << sps.sps_log2_diff_min_qt_min_cb_inter_slice;
+    DLOG(INFO) << "## sps_max_mtt_hierarchy_depth_inter_slice : " << sps.sps_max_mtt_hierarchy_depth_inter_slice;
+    DLOG(INFO) << "## sps_log2_diff_max_bt_min_qt_inter_slice : " << sps.sps_log2_diff_max_bt_min_qt_inter_slice;
+    DLOG(INFO) << "## sps_log2_diff_max_tt_min_qt_inter_slice : " << sps.sps_log2_diff_max_tt_min_qt_inter_slice;
+    
+    // Transform parameters
+    DLOG(INFO) << "## sps_max_luma_transform_size_64_flag : " << (sps.sps_max_luma_transform_size_64_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_transform_skip_enabled_flag : " << (sps.sps_transform_skip_enabled_flag ? "1" : "0");
+    if (sps.sps_transform_skip_enabled_flag) {
+        DLOG(INFO) << "## sps_log2_transform_skip_max_size_minus2 : " << sps.sps_log2_transform_skip_max_size_minus2;
+    }
+    
+    DLOG(INFO) << "## sps_bdpcm_enabled_flag : " << (sps.sps_bdpcm_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_mts_enabled_flag : " << (sps.sps_mts_enabled_flag ? "1" : "0");
+    if (sps.sps_mts_enabled_flag) {
+        DLOG(INFO) << "## sps_explicit_mts_intra_enabled_flag : " << (sps.sps_explicit_mts_intra_enabled_flag ? "1" : "0");
+        DLOG(INFO) << "## sps_explicit_mts_inter_enabled_flag : " << (sps.sps_explicit_mts_inter_enabled_flag ? "1" : "0");
+    }
+    
+    DLOG(INFO) << "## sps_lfnst_enabled_flag : " << (sps.sps_lfnst_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_joint_cbcr_enabled_flag : " << (sps.sps_joint_cbcr_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_same_qp_table_for_chroma_flag : " << (sps.sps_same_qp_table_for_chroma_flag ? "1" : "0");
+    
+    // Filter parameters
+    DLOG(INFO) << "## sps_sao_enabled_flag : " << (sps.sps_sao_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_ccalf_enabled_flag : " << (sps.sps_ccalf_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_alf_enabled_flag : " << (sps.sps_alf_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_lmcs_enabled_flag : " << (sps.sps_lmcs_enabled_flag ? "1" : "0");
+    
+    // Prediction parameters
+    DLOG(INFO) << "## sps_weighted_pred_flag : " << (sps.sps_weighted_pred_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_weighted_bipred_flag : " << (sps.sps_weighted_bipred_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_long_term_ref_pics_flag : " << (sps.sps_long_term_ref_pics_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_inter_layer_prediction_enabled_flag : " << (sps.sps_inter_layer_prediction_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_idr_rpl_present_flag : " << (sps.sps_idr_rpl_present_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_rpl1_same_as_rpl0_flag : " << (sps.sps_rpl1_same_as_rpl0_flag ? "1" : "0");
+    
+    // Motion parameters
+    DLOG(INFO) << "## sps_ref_wraparound_enabled_flag : " << (sps.sps_ref_wraparound_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_temporal_mvp_enabled_flag : " << (sps.sps_temporal_mvp_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_sbtmvp_enabled_flag : " << (sps.sps_sbtmvp_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_amvr_enabled_flag : " << (sps.sps_amvr_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_bdof_enabled_flag : " << (sps.sps_bdof_enabled_flag ? "1" : "0");
+    if (sps.sps_bdof_enabled_flag) {
+        DLOG(INFO) << "## sps_bdof_control_present_in_ph_flag : " << (sps.sps_bdof_control_present_in_ph_flag ? "1" : "0");
+    }
+    
+    DLOG(INFO) << "## sps_smvd_enabled_flag : " << (sps.sps_smvd_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_dmvr_enabled_flag : " << (sps.sps_dmvr_enabled_flag ? "1" : "0");
+    if (sps.sps_dmvr_enabled_flag) {
+        DLOG(INFO) << "## sps_dmvr_control_present_in_ph_flag : " << (sps.sps_dmvr_control_present_in_ph_flag ? "1" : "0");
+    }
+    
+    DLOG(INFO) << "## sps_mmvd_enabled_flag : " << (sps.sps_mmvd_enabled_flag ? "1" : "0");
+    if (sps.sps_mmvd_enabled_flag) {
+        DLOG(INFO) << "## sps_mmvd_fullpel_only_enabled_flag : " << (sps.sps_mmvd_fullpel_only_enabled_flag ? "1" : "0");
+    }
+    
+    DLOG(INFO) << "## sps_six_minus_max_num_merge_cand : " << sps.sps_six_minus_max_num_merge_cand;
+    DLOG(INFO) << "## sps_sbt_enabled_flag : " << (sps.sps_sbt_enabled_flag ? "1" : "0");
+    
+    // Affine parameters
+    DLOG(INFO) << "## sps_affine_enabled_flag : " << (sps.sps_affine_enabled_flag ? "1" : "0");
+    if (sps.sps_affine_enabled_flag) {
+        DLOG(INFO) << "## sps_five_minus_max_num_subblock_merge_cand : " << sps.sps_five_minus_max_num_subblock_merge_cand;
+        DLOG(INFO) << "## sps_6param_affine_enabled_flag : " << (sps.sps_6param_affine_enabled_flag ? "1" : "0");
+        DLOG(INFO) << "## sps_affine_amvr_enabled_flag : " << (sps.sps_affine_amvr_enabled_flag ? "1" : "0");
+        DLOG(INFO) << "## sps_affine_prof_enabled_flag : " << (sps.sps_affine_prof_enabled_flag ? "1" : "0");
+        if (sps.sps_affine_prof_enabled_flag) {
+            DLOG(INFO) << "## sps_prof_control_present_in_ph_flag : " << (sps.sps_prof_control_present_in_ph_flag ? "1" : "0");
+        }
+    }
+    
+    DLOG(INFO) << "## sps_bcw_enabled_flag : " << (sps.sps_bcw_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_ciip_enabled_flag : " << (sps.sps_ciip_enabled_flag ? "1" : "0");
+    
+    // GPM parameters
+    DLOG(INFO) << "## sps_gpm_enabled_flag : " << (sps.sps_gpm_enabled_flag ? "1" : "0");
+    if (sps.sps_gpm_enabled_flag) {
+        DLOG(INFO) << "## sps_max_num_merge_cand_minus_max_num_gpm_cand : " << sps.sps_max_num_merge_cand_minus_max_num_gpm_cand;
+    }
+    
+    DLOG(INFO) << "## sps_log2_parallel_merge_level_minus2 : " << sps.sps_log2_parallel_merge_level_minus2;
+    
+    // Intra prediction parameters
+    DLOG(INFO) << "## sps_isp_enabled_flag : " << (sps.sps_isp_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_mrl_enabled_flag : " << (sps.sps_mrl_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_mip_enabled_flag : " << (sps.sps_mip_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_cclm_enabled_flag : " << (sps.sps_cclm_enabled_flag ? "1" : "0");
+    if (sps.sps_cclm_enabled_flag) {
+        DLOG(INFO) << "## sps_chroma_horizontal_collocated_flag : " << (sps.sps_chroma_horizontal_collocated_flag ? "1" : "0");
+        DLOG(INFO) << "## sps_chroma_vertical_collocated_flag : " << (sps.sps_chroma_vertical_collocated_flag ? "1" : "0");
+    }
+    
+    // Palette and other parameters
+    DLOG(INFO) << "## sps_palette_enabled_flag : " << (sps.sps_palette_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_act_enabled_flag : " << (sps.sps_act_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_min_qp_prime_ts : " << sps.sps_min_qp_prime_ts;
+    
+    // IBC parameters
+    DLOG(INFO) << "## sps_ibc_enabled_flag : " << (sps.sps_ibc_enabled_flag ? "1" : "0");
+    if (sps.sps_ibc_enabled_flag) {
+        DLOG(INFO) << "## sps_six_minus_max_num_ibc_merge_cand : " << sps.sps_six_minus_max_num_ibc_merge_cand;
+    }
+    
+    // LADF parameters
+    DLOG(INFO) << "## sps_ladf_enabled_flag : " << (sps.sps_ladf_enabled_flag ? "1" : "0");
+    if (sps.sps_ladf_enabled_flag) {
+        DLOG(INFO) << "## sps_num_ladf_intervals_minus2 : " << sps.sps_num_ladf_intervals_minus2;
+        DLOG(INFO) << "## sps_ladf_lowest_interval_qp_offset : " << sps.sps_ladf_lowest_interval_qp_offset;
+        for (size_t i = 0; i < sps.sps_ladf_qp_offset.size(); ++i) {
+            DLOG(INFO) << "## sps_ladf_qp_offset[" << i << "] : " << sps.sps_ladf_qp_offset[i];
+            DLOG(INFO) << "## sps_ladf_delta_threshold_minus1[" << i << "] : " << sps.sps_ladf_delta_threshold_minus1[i];
+        }
+    }
+    
+    // Scaling list parameters
+    DLOG(INFO) << "## sps_explicit_scaling_list_enabled_flag : " << (sps.sps_explicit_scaling_list_enabled_flag ? "1" : "0");
+    if (sps.sps_explicit_scaling_list_enabled_flag) {
+        DLOG(INFO) << "## sps_scaling_matrix_for_lfnst_disabled_flag : " << (sps.sps_scaling_matrix_for_lfnst_disabled_flag ? "1" : "0");
+        DLOG(INFO) << "## sps_scaling_matrix_for_alternative_colour_space_disabled_flag : " << (sps.sps_scaling_matrix_for_alternative_colour_space_disabled_flag ? "1" : "0");
+        DLOG(INFO) << "## sps_scaling_matrix_designated_colour_space_flag : " << (sps.sps_scaling_matrix_designated_colour_space_flag ? "1" : "0");
+    }
+    
+    // Quantization parameters
+    DLOG(INFO) << "## sps_dep_quant_enabled_flag : " << (sps.sps_dep_quant_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_sign_data_hiding_enabled_flag : " << (sps.sps_sign_data_hiding_enabled_flag ? "1" : "0");
+    
+    // Virtual boundaries
+    DLOG(INFO) << "## sps_virtual_boundaries_enabled_flag : " << (sps.sps_virtual_boundaries_enabled_flag ? "1" : "0");
+    if (sps.sps_virtual_boundaries_enabled_flag) {
+        DLOG(INFO) << "## sps_virtual_boundaries_present_flag : " << (sps.sps_virtual_boundaries_present_flag ? "1" : "0");
+        if (sps.sps_virtual_boundaries_present_flag) {
+            DLOG(INFO) << "## sps_num_ver_virtual_boundaries : " << sps.sps_num_ver_virtual_boundaries;
+            for (int i = 0; i < sps.sps_num_ver_virtual_boundaries; ++i) {
+                DLOG(INFO) << "## sps_virtual_boundary_pos_x_minus1[" << i << "] : " << sps.sps_virtual_boundary_pos_x_minus1[i];
+            }
+            DLOG(INFO) << "## sps_num_hor_virtual_boundaries : " << sps.sps_num_hor_virtual_boundaries;
+            for (int i = 0; i < sps.sps_num_hor_virtual_boundaries; ++i) {
+                DLOG(INFO) << "## sps_virtual_boundary_pos_y_minus1[" << i << "] : " << sps.sps_virtual_boundary_pos_y_minus1[i];
+            }
+        }
+    }
+    
+    // Timing and HRD
+    DLOG(INFO) << "## sps_timing_hrd_params_present_flag : " << (sps.sps_timing_hrd_params_present_flag ? "1" : "0");
+    
+    DLOG(INFO) << "=== End of H.266 SPS Parameters ===";
+}
+/* ####################################################################################################################################*/
+void DisplayH266PPS(const H266Pps& pps) {
+    DLOG(INFO) << "=== H.266 PPS Parameters ===";
+    
+    // Basic parameters
+    DLOG(INFO) << "## pic_parameter_set_id : " << pps.pic_parameter_set_id;
+    DLOG(INFO) << "## seq_parameter_set_id : " << pps.seq_parameter_set_id;
+    DLOG(INFO) << "## pps_pic_parameter_set_id : " << pps.pps_pic_parameter_set_id;
+    DLOG(INFO) << "## pps_seq_parameter_set_id : " << pps.pps_seq_parameter_set_id;
+    
+    // Picture type and size
+    DLOG(INFO) << "## pps_mixed_nalu_types_in_pic_flag : " << (pps.pps_mixed_nalu_types_in_pic_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_pic_width_in_luma_samples : " << pps.pps_pic_width_in_luma_samples;
+    DLOG(INFO) << "## pps_pic_height_in_luma_samples : " << pps.pps_pic_height_in_luma_samples;
+    
+    // Conformance window
+    DLOG(INFO) << "## pps_conformance_window_flag : " << (pps.pps_conformance_window_flag ? "1" : "0");
+    if (pps.pps_conformance_window_flag) {
+        DLOG(INFO) << "## pps_conf_win_left_offset : " << pps.pps_conf_win_left_offset;
+        DLOG(INFO) << "## pps_conf_win_right_offset : " << pps.pps_conf_win_right_offset;
+        DLOG(INFO) << "## pps_conf_win_top_offset : " << pps.pps_conf_win_top_offset;
+        DLOG(INFO) << "## pps_conf_win_bottom_offset : " << pps.pps_conf_win_bottom_offset;
+    }
+    
+    // Scaling window
+    DLOG(INFO) << "## pps_scaling_window_explicit_signalling_flag : " << (pps.pps_scaling_window_explicit_signalling_flag ? "1" : "0");
+    if (pps.pps_scaling_window_explicit_signalling_flag) {
+        DLOG(INFO) << "## pps_scaling_win_left_offset : " << pps.pps_scaling_win_left_offset;
+        DLOG(INFO) << "## pps_scaling_win_right_offset : " << pps.pps_scaling_win_right_offset;
+        DLOG(INFO) << "## pps_scaling_win_top_offset : " << pps.pps_scaling_win_top_offset;
+        DLOG(INFO) << "## pps_scaling_win_bottom_offset : " << pps.pps_scaling_win_bottom_offset;
+    }
+    
+    // Output and partition flags
+    DLOG(INFO) << "## pps_output_flag_present_flag : " << (pps.pps_output_flag_present_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_no_pic_partition_flag : " << (pps.pps_no_pic_partition_flag ? "1" : "0");
+    
+    // Subpicture parameters
+    DLOG(INFO) << "## pps_subpic_id_mapping_present_flag : " << (pps.pps_subpic_id_mapping_present_flag ? "1" : "0");
+    if (pps.pps_subpic_id_mapping_present_flag) {
+        DLOG(INFO) << "## pps_num_subpics_minus1 : " << pps.pps_num_subpics_minus1;
+        DLOG(INFO) << "## pps_subpic_id_len_minus1 : " << pps.pps_subpic_id_len_minus1;
+        for (size_t i = 0; i < pps.pps_subpic_id.size(); ++i) {
+            DLOG(INFO) << "## pps_subpic_id[" << i << "] : " << pps.pps_subpic_id[i];
+        }
+    }
+    
+    // CTU and tile parameters
+    DLOG(INFO) << "## pps_log2_ctu_size_minus5 : " << pps.pps_log2_ctu_size_minus5;
+    DLOG(INFO) << "## CtbSizeY : " << pps.CtbSizeY;
+    
+    if (!pps.pps_no_pic_partition_flag) {
+        DLOG(INFO) << "## pps_num_exp_tile_columns_minus1 : " << pps.pps_num_exp_tile_columns_minus1;
+        DLOG(INFO) << "## pps_num_exp_tile_rows_minus1 : " << pps.pps_num_exp_tile_rows_minus1;
+        
+        for (size_t i = 0; i < pps.pps_tile_column_width_minus1.size(); ++i) {
+            DLOG(INFO) << "## pps_tile_column_width_minus1[" << i << "] : " << pps.pps_tile_column_width_minus1[i];
+        }
+        
+        for (size_t i = 0; i < pps.pps_tile_row_height_minus1.size(); ++i) {
+            DLOG(INFO) << "## pps_tile_row_height_minus1[" << i << "] : " << pps.pps_tile_row_height_minus1[i];
+        }
+        
+        DLOG(INFO) << "## pps_loop_filter_across_tiles_enabled_flag : " << (pps.pps_loop_filter_across_tiles_enabled_flag ? "1" : "0");
+        
+        // Slice parameters
+        DLOG(INFO) << "## pps_rect_slice_flag : " << (pps.pps_rect_slice_flag ? "1" : "0");
+        if (pps.pps_rect_slice_flag) {
+            DLOG(INFO) << "## pps_single_slice_per_subpic_flag : " << (pps.pps_single_slice_per_subpic_flag ? "1" : "0");
+            if (!pps.pps_single_slice_per_subpic_flag) {
+                DLOG(INFO) << "## pps_num_slices_in_pic_minus1 : " << pps.pps_num_slices_in_pic_minus1;
+                DLOG(INFO) << "## pps_tile_idx_delta_present_flag : " << (pps.pps_tile_idx_delta_present_flag ? "1" : "0");
+                
+                for (size_t i = 0; i < pps.pps_slice_width_in_tiles_minus1.size(); ++i) {
+                    DLOG(INFO) << "## pps_slice_width_in_tiles_minus1[" << i << "] : " << pps.pps_slice_width_in_tiles_minus1[i];
+                }
+                
+                for (size_t i = 0; i < pps.pps_slice_height_in_tiles_minus1.size(); ++i) {
+                    DLOG(INFO) << "## pps_slice_height_in_tiles_minus1[" << i << "] : " << pps.pps_slice_height_in_tiles_minus1[i];
+                }
+                
+                for (size_t i = 0; i < pps.pps_num_exp_slices_in_tile.size(); ++i) {
+                    DLOG(INFO) << "## pps_num_exp_slices_in_tile[" << i << "] : " << pps.pps_num_exp_slices_in_tile[i];
+                }
+                
+                for (size_t i = 0; i < pps.pps_exp_slice_height_in_ctus_minus1.size(); ++i) {
+                    for (size_t j = 0; j < pps.pps_exp_slice_height_in_ctus_minus1[i].size(); ++j) {
+                        DLOG(INFO) << "## pps_exp_slice_height_in_ctus_minus1[" << i << "][" << j << "] : " << pps.pps_exp_slice_height_in_ctus_minus1[i][j];
+                    }
+                }
+                
+                for (size_t i = 0; i < pps.pps_tile_idx_delta_val.size(); ++i) {
+                    DLOG(INFO) << "## pps_tile_idx_delta_val[" << i << "] : " << pps.pps_tile_idx_delta_val[i];
+                }
+            }
+        }
+        
+        DLOG(INFO) << "## pps_loop_filter_across_slices_enabled_flag : " << (pps.pps_loop_filter_across_slices_enabled_flag ? "1" : "0");
+    }
+    
+    // CABAC and reference picture parameters
+    DLOG(INFO) << "## pps_cabac_init_present_flag : " << (pps.pps_cabac_init_present_flag ? "1" : "0");
+    for (size_t i = 0; i < pps.pps_num_ref_idx_default_active_minus1.size(); ++i) {
+        DLOG(INFO) << "## pps_num_ref_idx_default_active_minus1[" << i << "] : " << pps.pps_num_ref_idx_default_active_minus1[i];
+    }
+    
+    DLOG(INFO) << "## pps_rpl1_idx_present_flag : " << (pps.pps_rpl1_idx_present_flag ? "1" : "0");
+    
+    // Weighted prediction
+    DLOG(INFO) << "## weighted_pred_flag : " << (pps.weighted_pred_flag ? "1" : "0");
+    DLOG(INFO) << "## weighted_bipred_flag : " << (pps.weighted_bipred_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_weighted_pred_flag : " << (pps.pps_weighted_pred_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_weighted_bipred_flag : " << (pps.pps_weighted_bipred_flag ? "1" : "0");
+    
+    // Reference wraparound
+    DLOG(INFO) << "## pps_ref_wraparound_enabled_flag : " << (pps.pps_ref_wraparound_enabled_flag ? "1" : "0");
+    if (pps.pps_ref_wraparound_enabled_flag) {
+        DLOG(INFO) << "## pps_pic_width_minus_wraparound_offset : " << pps.pps_pic_width_minus_wraparound_offset;
+    }
+    
+    // QP parameters
+    DLOG(INFO) << "## no_qp_delta_flag : " << (pps.no_qp_delta_flag ? "1" : "0");
+    DLOG(INFO) << "## init_qp_minus26 : " << pps.init_qp_minus26;
+    DLOG(INFO) << "## pps_init_qp_minus26 : " << pps.pps_init_qp_minus26;
+    DLOG(INFO) << "## cu_qp_delta_enabled_flag : " << (pps.cu_qp_delta_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_cu_qp_delta_enabled_flag : " << (pps.pps_cu_qp_delta_enabled_flag ? "1" : "0");
+    
+    // Chroma QP offsets
+    DLOG(INFO) << "## pps_chroma_tool_offsets_present_flag : " << (pps.pps_chroma_tool_offsets_present_flag ? "1" : "0");
+    if (pps.pps_chroma_tool_offsets_present_flag) {
+        DLOG(INFO) << "## pps_cb_qp_offset : " << pps.pps_cb_qp_offset;
+        DLOG(INFO) << "## pps_cr_qp_offset : " << pps.pps_cr_qp_offset;
+        DLOG(INFO) << "## pps_joint_cbcr_qp_offset_present_flag : " << (pps.pps_joint_cbcr_qp_offset_present_flag ? "1" : "0");
+        if (pps.pps_joint_cbcr_qp_offset_present_flag) {
+            DLOG(INFO) << "## pps_joint_cbcr_qp_offset_value : " << pps.pps_joint_cbcr_qp_offset_value;
+        }
+        DLOG(INFO) << "## pps_slice_chroma_qp_offsets_present_flag : " << (pps.pps_slice_chroma_qp_offsets_present_flag ? "1" : "0");
+        DLOG(INFO) << "## pps_cu_chroma_qp_offset_list_enabled_flag : " << (pps.pps_cu_chroma_qp_offset_list_enabled_flag ? "1" : "0");
+    }
+    
+    DLOG(INFO) << "## cu_chroma_qp_offset_list_len_minus1 : " << pps.cu_chroma_qp_offset_list_len_minus1;
+    DLOG(INFO) << "## pps_cu_chroma_qp_offset_list_len_minus1 : " << pps.pps_cu_chroma_qp_offset_list_len_minus1;
+    DLOG(INFO) << "## pps_chroma_qp_offset_list_len_minus1 : " << pps.pps_chroma_qp_offset_list_len_minus1;
+    
+    // QP offset lists
+    for (size_t i = 0; i < pps.pps_cb_qp_offset_list.size(); ++i) {
+        DLOG(INFO) << "## pps_cb_qp_offset_list[" << i << "] : " << pps.pps_cb_qp_offset_list[i];
+    }
+    
+    for (size_t i = 0; i < pps.pps_cr_qp_offset_list.size(); ++i) {
+        DLOG(INFO) << "## pps_cr_qp_offset_list[" << i << "] : " << pps.pps_cr_qp_offset_list[i];
+    }
+    
+    for (size_t i = 0; i < pps.pps_joint_cbcr_qp_offset_list.size(); ++i) {
+        DLOG(INFO) << "## pps_joint_cbcr_qp_offset_list[" << i << "] : " << pps.pps_joint_cbcr_qp_offset_list[i];
+    }
+    
+    for (size_t i = 0; i < pps.pps_qp_offset_list.size(); ++i) {
+        DLOG(INFO) << "## pps_qp_offset_list[" << i << "] : " << pps.pps_qp_offset_list[i];
+    }
+    
+    // Deblocking filter parameters
+    DLOG(INFO) << "## deblocking_filter_override_enabled_flag : " << (pps.deblocking_filter_override_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## deblocking_filter_disabled_flag : " << (pps.deblocking_filter_disabled_flag ? "1" : "0");
+    DLOG(INFO) << "## deblocking_filter_beta_offset_div2 : " << pps.deblocking_filter_beta_offset_div2;
+    DLOG(INFO) << "## deblocking_filter_tc_offset_div2 : " << pps.deblocking_filter_tc_offset_div2;
+    
+    DLOG(INFO) << "## pps_deblocking_filter_control_present_flag : " << (pps.pps_deblocking_filter_control_present_flag ? "1" : "0");
+    if (pps.pps_deblocking_filter_control_present_flag) {
+        DLOG(INFO) << "## pps_deblocking_filter_override_enabled_flag : " << (pps.pps_deblocking_filter_override_enabled_flag ? "1" : "0");
+        DLOG(INFO) << "## pps_deblocking_filter_disabled_flag : " << (pps.pps_deblocking_filter_disabled_flag ? "1" : "0");
+        if (!pps.pps_deblocking_filter_disabled_flag) {
+            DLOG(INFO) << "## pps_luma_beta_offset_div2 : " << pps.pps_luma_beta_offset_div2;
+            DLOG(INFO) << "## pps_luma_tc_offset_div2 : " << pps.pps_luma_tc_offset_div2;
+            DLOG(INFO) << "## pps_cb_beta_offset_div2 : " << pps.pps_cb_beta_offset_div2;
+            DLOG(INFO) << "## pps_cb_tc_offset_div2 : " << pps.pps_cb_tc_offset_div2;
+            DLOG(INFO) << "## pps_cr_beta_offset_div2 : " << pps.pps_cr_beta_offset_div2;
+            DLOG(INFO) << "## pps_cr_tc_offset_div2 : " << pps.pps_cr_tc_offset_div2;
+        }
+    }
+    
+    // Picture header info flags
+    DLOG(INFO) << "## rpl_info_in_ph_flag : " << (pps.rpl_info_in_ph_flag ? "1" : "0");
+    DLOG(INFO) << "## dbf_info_in_ph_flag : " << (pps.dbf_info_in_ph_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_rpl_info_in_ph_flag : " << (pps.pps_rpl_info_in_ph_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_sao_info_in_ph_flag : " << (pps.pps_sao_info_in_ph_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_alf_info_in_ph_flag : " << (pps.pps_alf_info_in_ph_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_wp_info_in_ph_flag : " << (pps.pps_wp_info_in_ph_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_qp_delta_info_in_ph_flag : " << (pps.pps_qp_delta_info_in_ph_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_dbf_info_in_ph_flag : " << (pps.pps_dbf_info_in_ph_flag ? "1" : "0");
+    
+    // Other flags
+    DLOG(INFO) << "## cross_component_prediction_enabled_flag : " << (pps.cross_component_prediction_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## chroma_tool_offsets_present_flag : " << (pps.chroma_tool_offsets_present_flag ? "1" : "0");
+    DLOG(INFO) << "## log2_sao_offset_scale_luma : " << pps.log2_sao_offset_scale_luma;
+    DLOG(INFO) << "## log2_sao_offset_scale_chroma : " << pps.log2_sao_offset_scale_chroma;
+    
+    // Tiles (legacy fields)
+    DLOG(INFO) << "## tiles_enabled_flag : " << (pps.tiles_enabled_flag ? "1" : "0");
+    if (pps.tiles_enabled_flag) {
+        DLOG(INFO) << "## uniform_tile_spacing_flag : " << (pps.uniform_tile_spacing_flag ? "1" : "0");
+        DLOG(INFO) << "## num_tile_columns_minus1 : " << pps.num_tile_columns_minus1;
+        DLOG(INFO) << "## num_tile_rows_minus1 : " << pps.num_tile_rows_minus1;
+        
+        for (size_t i = 0; i < pps.tile_column_width_minus1.size(); ++i) {
+            DLOG(INFO) << "## tile_column_width_minus1[" << i << "] : " << pps.tile_column_width_minus1[i];
+        }
+        
+        for (size_t i = 0; i < pps.tile_row_height_minus1.size(); ++i) {
+            DLOG(INFO) << "## tile_row_height_minus1[" << i << "] : " << pps.tile_row_height_minus1[i];
+        }
+        
+        DLOG(INFO) << "## loop_filter_across_tiles_enabled_flag : " << (pps.loop_filter_across_tiles_enabled_flag ? "1" : "0");
+    }
+    
+    // Extension flags
+    DLOG(INFO) << "## slice_header_extension_present_flag : " << (pps.slice_header_extension_present_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_picture_header_extension_present_flag : " << (pps.pps_picture_header_extension_present_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_slice_header_extension_present_flag : " << (pps.pps_slice_header_extension_present_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_extension_flag : " << (pps.pps_extension_flag ? "1" : "0");
+    DLOG(INFO) << "## pps_extension_data_flags : " << (pps.pps_extension_data_flags ? "1" : "0");
+    DLOG(INFO) << "## pps_extension_data_flag : " << (pps.pps_extension_data_flag ? "1" : "0");
+    
+    DLOG(INFO) << "=== End of H.266 PPS Parameters ===";
+}
+
+/* ####################################################################################################################################*/
+void DisplayGeneralTimingHrdParameters(const GeneralTimingHrdParameters& hrd) {
+    DLOG(INFO) << "=== H.266 General Timing HRD Parameters ===";
+    
+    // Timing parameters
+    DLOG(INFO) << "## num_units_in_tick : " << hrd.num_units_in_tick;
+    DLOG(INFO) << "## time_scale : " << hrd.time_scale;
+    
+    // HRD presence flags
+    DLOG(INFO) << "## general_nal_hrd_params_present_flag : " << (hrd.general_nal_hrd_params_present_flag ? "1" : "0");
+    DLOG(INFO) << "## general_vcl_hrd_params_present_flag : " << (hrd.general_vcl_hrd_params_present_flag ? "1" : "0");
+    
+    // Timing flags
+    DLOG(INFO) << "## general_same_pic_timing_in_all_ols_flag : " << (hrd.general_same_pic_timing_in_all_ols_flag ? "1" : "0");
+    DLOG(INFO) << "## general_du_hrd_params_present_flag : " << (hrd.general_du_hrd_params_present_flag ? "1" : "0");
+    
+    // DU parameters (only if decoding unit HRD params are present)
+    if (hrd.general_du_hrd_params_present_flag) {
+        DLOG(INFO) << "## tick_divisor_minus2 : " << static_cast<int>(hrd.tick_divisor_minus2);
+    }
+    
+    // Scale parameters
+    DLOG(INFO) << "## bit_rate_scale : " << static_cast<int>(hrd.bit_rate_scale);
+    DLOG(INFO) << "## cpb_size_scale : " << static_cast<int>(hrd.cpb_size_scale);
+    
+    if (hrd.general_du_hrd_params_present_flag) {
+        DLOG(INFO) << "## cpb_size_du_scale : " << static_cast<int>(hrd.cpb_size_du_scale);
+    }
+    
+    // CPB count
+    DLOG(INFO) << "## hrd_cpb_cnt_minus1 : " << hrd.hrd_cpb_cnt_minus1;
+    
+    DLOG(INFO) << "=== End of H.266 General Timing HRD Parameters ===";
+}
+/* ####################################################################################################################################*/
+void DisplayH266VPS(const H266Vps& vps) {
+    DLOG(INFO) << "=== H.266 VPS Parameters ===";
+    
+    // Basic parameters
+    DLOG(INFO) << "## vps_video_parameter_set_id : " << vps.vps_video_parameter_set_id;
+    DLOG(INFO) << "## vps_max_layers_minus1 : " << vps.vps_max_layers_minus1;
+    DLOG(INFO) << "## vps_max_sublayers_minus1 : " << vps.vps_max_sublayers_minus1;
+    
+    // Default flags
+    DLOG(INFO) << "## vps_default_ptl_dpb_hrd_max_tid_flag : " << (vps.vps_default_ptl_dpb_hrd_max_tid_flag ? "1" : "0");
+    DLOG(INFO) << "## vps_all_independent_layers_flag : " << (vps.vps_all_independent_layers_flag ? "1" : "0");
+    
+    // Layer IDs
+    for (size_t i = 0; i < vps.vps_layer_id.size(); ++i) {
+        DLOG(INFO) << "## vps_layer_id[" << i << "] : " << static_cast<int>(vps.vps_layer_id[i]);
+    }
+    
+    // Independent layer flags
+    for (size_t i = 0; i < vps.vps_independent_layer_flag.size(); ++i) {
+        DLOG(INFO) << "## vps_independent_layer_flag[" << i << "] : " << (vps.vps_independent_layer_flag[i] ? "1" : "0");
+    }
+    
+    // Max TID ref present flags
+    for (size_t i = 0; i < vps.vps_max_tid_ref_present_flag.size(); ++i) {
+        DLOG(INFO) << "## vps_max_tid_ref_present_flag[" << i << "] : " << (vps.vps_max_tid_ref_present_flag[i] ? "1" : "0");
+    }
+    
+    // Direct reference layer flags (2D)
+    for (size_t i = 0; i < vps.vps_direct_ref_layer_flag.size(); ++i) {
+        for (size_t j = 0; j < vps.vps_direct_ref_layer_flag[i].size(); ++j) {
+            DLOG(INFO) << "## vps_direct_ref_layer_flag[" << i << "][" << j << "] : " << (vps.vps_direct_ref_layer_flag[i][j] ? "1" : "0");
+        }
+    }
+    
+    // Max TID inter-layer reference pictures (2D)
+    for (size_t i = 0; i < vps.vps_max_tid_il_ref_pics_plus1.size(); ++i) {
+        for (size_t j = 0; j < vps.vps_max_tid_il_ref_pics_plus1[i].size(); ++j) {
+            DLOG(INFO) << "## vps_max_tid_il_ref_pics_plus1[" << i << "][" << j << "] : " << vps.vps_max_tid_il_ref_pics_plus1[i][j];
+        }
+    }
+    
+    // OLS (Output Layer Set) parameters
+    DLOG(INFO) << "## vps_each_layer_is_an_ols_flag : " << (vps.vps_each_layer_is_an_ols_flag ? "1" : "0");
+    
+    if (!vps.vps_each_layer_is_an_ols_flag) {
+        DLOG(INFO) << "## vps_ols_mode_idc : " << vps.vps_ols_mode_idc;
+        
+        if (vps.vps_ols_mode_idc == 2) {
+            DLOG(INFO) << "## vps_num_output_layer_sets_minus2 : " << vps.vps_num_output_layer_sets_minus2;
+            
+            // OLS output layer flags (2D)
+            for (size_t i = 0; i < vps.vps_ols_output_layer_flag.size(); ++i) {
+                for (size_t j = 0; j < vps.vps_ols_output_layer_flag[i].size(); ++j) {
+                    DLOG(INFO) << "## vps_ols_output_layer_flag[" << i << "][" << j << "] : " << (vps.vps_ols_output_layer_flag[i][j] ? "1" : "0");
+                }
+            }
+        }
+    }
+    
+    // PTL (Profile Tier Level) parameters
+    DLOG(INFO) << "## vps_num_ptls_minus1 : " << vps.vps_num_ptls_minus1;
+    
+    for (size_t i = 0; i < vps.vps_pt_present_flag.size(); ++i) {
+        DLOG(INFO) << "## vps_pt_present_flag[" << i << "] : " << (vps.vps_pt_present_flag[i] ? "1" : "0");
+    }
+    
+    for (size_t i = 0; i < vps.vps_ptl_max_tid.size(); ++i) {
+        DLOG(INFO) << "## vps_ptl_max_tid[" << i << "] : " << vps.vps_ptl_max_tid[i];
+    }
+    
+    DLOG(INFO) << "## vps_ptl_alignment_zero_bit : " << (vps.vps_ptl_alignment_zero_bit ? "1" : "0");
+    
+    for (size_t i = 0; i < vps.vps_ols_ptl_idx.size(); ++i) {
+        DLOG(INFO) << "## vps_ols_ptl_idx[" << i << "] : " << vps.vps_ols_ptl_idx[i];
+    }
+    
+    // DPB (Decoded Picture Buffer) parameters
+    DLOG(INFO) << "## vps_num_dpb_params_minus1 : " << vps.vps_num_dpb_params_minus1;
+    DLOG(INFO) << "## vps_sublayer_dpb_params_present_flag : " << (vps.vps_sublayer_dpb_params_present_flag ? "1" : "0");
+    
+    for (size_t i = 0; i < vps.vps_dpb_max_tid.size(); ++i) {
+        DLOG(INFO) << "## vps_dpb_max_tid[" << i << "] : " << vps.vps_dpb_max_tid[i];
+    }
+    
+    for (size_t i = 0; i < vps.vps_ols_dpb_pic_width.size(); ++i) {
+        DLOG(INFO) << "## vps_ols_dpb_pic_width[" << i << "] : " << vps.vps_ols_dpb_pic_width[i];
+    }
+    
+    for (size_t i = 0; i < vps.vps_ols_dpb_pic_height.size(); ++i) {
+        DLOG(INFO) << "## vps_ols_dpb_pic_height[" << i << "] : " << vps.vps_ols_dpb_pic_height[i];
+    }
+    
+    for (size_t i = 0; i < vps.vps_ols_dpb_chroma_format.size(); ++i) {
+        DLOG(INFO) << "## vps_ols_dpb_chroma_format[" << i << "] : " << vps.vps_ols_dpb_chroma_format[i];
+    }
+    
+    for (size_t i = 0; i < vps.vps_ols_dpb_bitdepth_minus8.size(); ++i) {
+        DLOG(INFO) << "## vps_ols_dpb_bitdepth_minus8[" << i << "] : " << vps.vps_ols_dpb_bitdepth_minus8[i];
+    }
+    
+    for (size_t i = 0; i < vps.vps_ols_dpb_params_idx.size(); ++i) {
+        DLOG(INFO) << "## vps_ols_dpb_params_idx[" << i << "] : " << vps.vps_ols_dpb_params_idx[i];
+    }
+    
+    // Timing and HRD parameters
+    DLOG(INFO) << "## vps_timing_hrd_params_present_flag : " << (vps.vps_timing_hrd_params_present_flag ? "1" : "0");
+    
+    if (vps.vps_timing_hrd_params_present_flag) {
+        // general_timing_hrd_parameters() would be called here
+        DLOG(INFO) << "## vps_sublayer_cpb_params_present_flag : " << (vps.vps_sublayer_cpb_params_present_flag ? "1" : "0");
+        DLOG(INFO) << "## vps_num_ols_timing_hrd_params_minus1 : " << vps.vps_num_ols_timing_hrd_params_minus1;
+        
+        for (size_t i = 0; i < vps.vps_hrd_max_tid.size(); ++i) {
+            DLOG(INFO) << "## vps_hrd_max_tid[" << i << "] : " << vps.vps_hrd_max_tid[i];
+        }
+        
+        for (size_t i = 0; i < vps.vps_ols_timing_hrd_idx.size(); ++i) {
+            DLOG(INFO) << "## vps_ols_timing_hrd_idx[" << i << "] : " << vps.vps_ols_timing_hrd_idx[i];
+        }
+    }
+    
+    // Extension flags
+    DLOG(INFO) << "## vps_extension_flag : " << (vps.vps_extension_flag ? "1" : "0");
+    DLOG(INFO) << "## vps_extension_data_flag : " << (vps.vps_extension_data_flag ? "1" : "0");
+    
+    DLOG(INFO) << "=== End of H.266 VPS Parameters ===";
+}
+/* ####################################################################################################################################*/
+
+/* ####################################################################################################################################*/
+
+/* ####################################################################################################################################*/
 
 H266Pps::H266Pps() {}
 H266Pps::~H266Pps() {}
@@ -1127,7 +1746,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
 H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   DCHECK_EQ(Nalu::H266_VPS_NUT, nalu.type());
   LOG(INFO) << "Parsing H.266 VPS NALU";
-  //video_parameter_set_rbsp( )  7.3.2.3
+  //video_parameter_set_rbsp( )  7.3.2.3  from ITU H266
 
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
@@ -1147,52 +1766,227 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
     //TODO layer_id_included_flag parsing per layer
     TRUE_OR_RETURN(br->ReadBool(&vps->vps_all_independent_layers_flag));
   }
-  vps->vpsLayerId.clear();
+  vps->vps_layer_id.clear();
+  int tmp_vps_max_tid_il_ref_pics_plus1 = 0;
+  bool tmp_vps_independent_layer_flag = false;
+  bool tmp_vps_max_tid_ref_present_flag = false;
+
+
   for(uint8_t i=0; i<= vps->vps_max_layers_minus1; i++) {
     uint8_t layerId;
     TRUE_OR_RETURN(br->ReadBits(6, &layerId)); // 6 bits
 
     TRUE_OR_RETURN(br->ReadBits(6, &vps->vps_layer_id[i])); // 6 bits
-    vps->vpsLayerId.push_back(layerId);
+    vps->vps_layer_id.push_back(layerId);
     if(i>0 && !vps->vps_all_independent_layers_flag) {
       //TODO parsing of layer_dependency_info( i )
-
-    }
-
-  }
-
-
-
-  // Timing info in VPS (H.266 specific)
-  TRUE_OR_RETURN(br->ReadBool(&vps->vps_timing_info_present_flag));
-
-  if (vps->vps_timing_info_present_flag) {
-    READ_LONG_OR_RETURN(&vps->vps_num_units_in_tick);
-    READ_LONG_OR_RETURN(&vps->vps_time_scale);
-  }
-
-  // General constraints
-  TRUE_OR_RETURN(br->ReadBool(&vps->vps_each_layer_is_an_ols_flag));
-  TRUE_OR_RETURN(br->ReadBits(2, &vps->vps_ols_mode_idc));
-
-  // Output layer sets
-  TRUE_OR_RETURN(br->ReadUE(&vps->vps_num_output_layer_sets_minus1));
-  TRUE_OR_RETURN(br->ReadUE(&vps->vps_num_ptls_minus1));
-
-  // Profile tier level data
-  for (int i = 0; i <= vps->vps_num_ptls_minus1; i++) {
-    for (int j = 0; j < kVvcGeneralProfileTierLevelBytes; j++) {
-      TRUE_OR_RETURN(br->ReadBits(8, &vps->general_profile_tier_level_data[i][j]));
+      TRUE_OR_RETURN(br->ReadBool(&tmp_vps_independent_layer_flag));
+      vps->vps_independent_layer_flag.pusk_back(tmp_vps_independent_layer_flag);
+      if(!tmp_vps_independent_layer_flag){
+        TRUE_OR_RETURN(br->ReadBool(&tmp_vps_max_tid_ref_present_flag));
+        vps->vps_max_tid_ref_present_flag.push_back(tmp_vps_max_tid_ref_present_flag);
+        if( vps->vps_max_tid_ref_present_flag[i] && vps->vps_direct_ref_layer_flag[i][j] ){
+            TRUE_OR_RETURN(br->ReadBit(3,&tmp_vps_max_tid_il_ref_pics_plus1));
+            sps->vps_max_tid_il_ref_pics_plus1.push_back(tmp_vps_max_tid_il_ref_pics_plus1);
+        }
+      }
     }
   }
+  bool tmp_vps_each_layer_is_an_ols_flag = false;
+  int tmp_vps_ols_mode_idc = 0;
+  if( vps->vps_max_layers_minus1 > 0 ) {
+    if( vps->vps_all_independent_layers_flag ){
+      TRUE_OR_RETURN(br->ReadBool(&tmp_vps_each_layer_is_an_ols_flag));
+      vps->vps_each_layer_is_an_ols_flag.push_back(tmp_vps_each_layer_is_an_ols_flag);
+      if(!tmp_vps_each_layer_is_an_ols_flag){
+          TRUE_OR_RETURN(br->ReadBit(3,&tmp_vps_ols_mode_idc));
+          vps->vps_ols_mode_idc.push_back(tmp_vps_ols_mode_idc);
+          if( vps->vps_ols_mode_idc == 2 ) {
+            int tmp_vps_num_output_layer_sets_minus2 = 0;
+            TRUE_OR_RETURN(br->ReadBit(8,&tmp_vps_num_output_layer_sets_minus2));
+            vps->vps_num_output_layer_sets_minus2.push_back(tmp_vps_num_output_layer_sets_minus2);
+            int tmp_vps_ols_output_layer_flag = false;
+            for( int i = 1; i <= vps.vps_num_output_layer_sets_minus2+1; i ++ ){
+              for( int j = 0; j <= vps.vps_max_layers_minus1; j++ ){
+                TRUE_OR_RETURN(br->ReadBool(&tmp_vps_ols_output_layer_flag));
+                vps->vps_ols_output_layer_flag.push_back(tmp_vps_ols_output_layer_flag);
+              }
+            }
+          }
+          int tmp_vps_num_ptls_minus1=0;
+          TRUE_OR_RETURN(br->ReadBit(8,&tmp_vps_num_ptls_minus1));
+          vps->vps_num_ptls_minus1 = tmp_vps_num_ptls_minus1;
+      }
+    }
+  }
+  bool tmp_vps_pt_present_flag;
+  int tmp_vps_ptl_max_tid = 0;
 
-  // Layer sets
-  TRUE_OR_RETURN(br->ReadUE(&vps->vps_num_layer_sets_minus1));
-  TRUE_OR_RETURN(br->ReadBits(6, &vps->vps_max_layer_id));
+  for( int i = 0; i <= vps.vps_num_ptls_minus1; i++ ) {
+    if( i > 0 ){
+      TRUE_OR_RETURN(br->ReadBool(&tmp_vps_pt_present_flag));
+      vps->vps_pt_present_flag.push_back(tmp_vps_pt_present_flag);
+    }
+    if( !vps.vps_default_ptl_dpb_hrd_max_tid_flag ){
+      TRUE_OR_RETURN(br->ReadBit(3,&tmp_vps_ptl_max_tid));
+      vps->vps_ptl_max_tid.push_back(tmp_vps_ptl_max_tid);
+    }
+  }
+  bool_tmp_vps_ptl_alignment_zero_bit;
+  while(!br->byte_aligned()){
+    TRUE_OR_RETURN(br->ReadBool(&tmp_vps_pt_present_flag));
+    sps->vps_ptl_alignment_zero_bit.push_back(bool_tmp_vps_ptl_alignment_zero_bit);
+  }
+  //profile_tier_level( vps_pt_present_flag[ i ], vps_ptl_max_tid[ i ] )
+  // Profile Tier Level parsing
+  OK_OR_RETURN(ParseProfileTierLevel(vps.vps_pt_present_flag[i], vps->vps_ptl_max_tid[i], br, 
+                                    &vps->vps_ptl));
 
-  // OPI support
-  TRUE_OR_RETURN(br->ReadBool(&vps->vps_opi_present_flag));
+  int tmp_vps_ols_ptl_idx = 0;
+  int olsModeIdc = 0;
 
+  int TotalNumOlss = 0;
+  if( !vps.vps_each_layer_is_an_ols_flag ){
+    olsModeIdc = vps.vps_ols_mode_idc;
+  } else {
+    olsModeIdc = 4;
+  }
+  if( olsModeIdc == 4 || olsModeIdc == 0 || olsModeIdc == 1 ){
+    TotalNumOlss = vps.vps_max_layers_minus1+1;
+  } else if( olsModeIdc == 2 ){
+    TotalNumOlss = vps.vps_num_output_layer_sets_minus2+2;
+  }else{
+    DLOG(info) << "olsModeIdc == 3 ???";
+  }
+  vps->TotalNumOlss = TotalNumOlss;
+
+  for( int i = 0; i < TotalNumOlss; i++ ){
+    if( vps.vps_num_ptls_minus1 > 0 && vps.vps_num_ptls_minus1+1 != TotalNumOlss ){
+      TRUE_OR_RETURN(br->ReadBit(8,&tmp_vps_ols_ptl_idx));
+      vps->vps_ols_ptl_idx.push_back(tmp_vps_ols_ptl_idx);
+    }
+  }
+  int tmp_vps_num_dpb_params_minus1 = 0;
+  if( !vps.vps_each_layer_is_an_ols_flag ) {
+    TRUE_OR_RETURN(br->ReadUE(&tmp_vps_num_dpb_params_minus1));
+    vps->vps_num_dpb_params_minus1 = tmp_vps_num_dpb_params_minus1;
+    bool tmp_vps_sublayer_dpb_params_present_flag = false;
+    if( vps.vps_max_sublayers_minus1 > 0 ){
+      TRUE_OR_RETURN(br->ReadBool(&tmp_vps_sublayer_dpb_params_present_flag));
+      vps->vps_sublayer_dpb_params_present_flag = tmp_vps_sublayer_dpb_params_present_flag;
+      int tmp_vps_dpb_max_tid = 0;
+      for( int i = 0; i < VpsNumDpbParams; i++ ) {
+        if( !vps.vps_default_ptl_dpb_hrd_max_tid_flag ){
+          TRUE_OR_RETURN(br->ReadBit(3,&tmp_vps_dpb_max_tid));
+          vps.vps_dpb_max_tid.push_back(tmp_vps_dpb_max_tid);
+          // TODO
+        //dpb_parameters( vps_dpb_max_tid[ i ],vps_sublayer_dpb_params_present_flag )
+         }
+      }
+    }
+  }
+  //page 100
+   NumLayersInOls[0] = 1;
+   LayerIdInOls.at(0).at(0) = vps.vps_layer_id[0] ;
+   NumMultiLayerOlss = 0;
+   for( int i = 1; i < vps.TotalNumOlss; i++ ) {
+    if( vps.vps_each_layer_is_an_ols_flag ) {
+      vps.NumLayersInOls[i] = 1;
+      vps.LayerIdInOls[i][0] = vps.vps_layer_id[ i ];
+
+    } else if( vps.vps_ols_mode_idc == 0 || vps.vps_ols_mode_idc == 1 ) {
+      vps.NumLayersInOls[i] = i+1;
+      for( int j = 0; j < vps.NumLayersInOls[i]; j++ ){
+        vps.LayerIdInOls[ i ][ j ] = vps.vps_layer_id[ j ];
+      }
+    } else if( vps.vps_ols_mode_idc == 2 ) {
+      for( int k = 0, j = 0; k <= vps.vps_max_layers_minus1; k++ )
+      {
+        //todo p98
+        /* if( vps.layerIncludedInOlsFlag[i][k] ){
+          vps.LayerIdInOls[i][j++] = vps.vps_layer_id[k];
+        } */
+        vps.NumLayersInOls[ i ] = j;
+      }
+    }
+    if( NumLayersInOls[ i ] > 1 ) {
+      vps.MultiLayerOlsIdx[ i ] = NumMultiLayerOlss;
+      vps.NumMultiLayerOlss++;
+    }
+  }
+  int tmp_vps_ols_dpb_pic_width = 0;
+  int tmp_vps_ols_dpb_pic_height = 0;
+  int tmp_vps_ols_dpb_chroma_format = 0;
+  int tmp_vps_ols_dpb_bitdepth_minus8 =0;
+  int tmp_vps_ols_dpb_params_idx = 0;
+  for( int i = 0; i < vps.NumMultiLayerOlss; i++ ) {
+    TRUE_OR_RETURN(br->ReadUE(&tmp_vps_ols_dpb_pic_width));
+    TRUE_OR_RETURN(br->ReadUE(&tmp_vps_ols_dpb_pic_height));
+    TRUE_OR_RETURN(br->ReadBit(2,&tmp_vps_ols_dpb_chroma_format));
+    TRUE_OR_RETURN(br->ReadUE(&tmp_vps_ols_dpb_bitdepth_minus8));
+    vps.vps_ols_dpb_pic_width.push_back(tmp_vps_ols_dpb_pic_width);
+    vps.vps_ols_dpb_pic_height.push_back(tmp_vps_ols_dpb_pic_height);
+    vps.vps_ols_dpb_chroma_format.push_back(tmp_vps_ols_dpb_chroma_format);
+    vps.vps_ols_dpb_bitdepth_minus8.push_back(vps_ols_dpb_bitdepth_minus8);
+  }
+  if( vps.VpsNumDpbParams > 1 && vps.VpsNumDpbParams != vps.NumMultiLayerOlss ){
+        TRUE_OR_RETURN(br->ReadUE(&tmp_vps_ols_dpb_params_idx));
+        vps.vps_ols_dpb_params_idx.push_back(tmp_vps_ols_dpb_params_idx);
+  }
+  bool tmp_vps_timing_hrd_params_present_flag;
+  TRUE_OR_RETURN(br->ReadBool(&tmp_vps_timing_hrd_params_present_flag));
+  vps->vps_timing_hrd_params_present_flag = tmp_vps_timing_hrd_params_present_flag;
+  if(vps.vps_timing_hrd_params_present_flag){
+    //general_timing_hrd_parameters( )}
+      if (!vps->vps_general_timing_hrd_parameters) {
+        vps->vps_general_timing_hrd_parameters.emplace();
+      }
+      OK_OR_RETURN(GetGeneralTimingHrdParameters(&vps->vps_general_timing_hrd_parameters.value(), br));}
+
+      bool tmp_vps_sublayer_cpb_params_present_flag = false;
+      int tmp_vps_num_ols_timing_hrd_params_minus1 = 0;
+      if( vps.vps_max_sublayers_minus1 > 0 ){
+        TRUE_OR_RETURN(br->ReadBool(&tmp_vps_sublayer_cpb_params_present_flag));
+      }
+      TRUE_OR_RETURN(br->ReadUE(&tmp_vps_num_ols_timing_hrd_params_minus1));
+      vps.vps_num_ols_timing_hrd_params_minus1 = tmp_vps_num_ols_timing_hrd_params_minus1;
+      int tmp_vps_hrd_max_tid = 0;
+      for( int i = 0; i <= vps.vps_num_ols_timing_hrd_params_minus1; i++ ) {
+        if( !vps.vps_default_ptl_dpb_hrd_max_tid_flag ){
+          vps.vps_hrd_max_tid.push_back(tmp_vps_hrd_max_tid);
+        }
+        int firstSubLayer = vps.vps_sublayer_cpb_params_present_flag ? 0 : vps.vps_hrd_max_tid[i];
+        //ols_timing_hrd_parameters( firstSubLayer, vps_hrd_max_tid[ i ] );
+        if (!vps->vps_ols_parameters) {
+              vps->vps_ols_parameters.emplace();
+        }
+
+        OK_OR_RETURN(Ols_Timing_Hrd_parameters(firstSubLayer, vps->vps_hrd_max_tid[i],
+                                                      *sps,
+                                                      br,
+                                                      &vps->vps_ols_parameters.value()));
+        
+
+      }
+      int tmp_vps_ols_timing_hrd_idx = 0;
+      if( vps.vps_num_ols_timing_hrd_params_minus1 > 0 && vps.vps_num_ols_timing_hrd_params_minus1+1 != vps.NumMultiLayerOlss ){
+        for( int i = 0; i < vps.NumMultiLayerOlss; i++ ){
+            TRUE_OR_RETURN(br->ReadUE(&tmp_vps_ols_timing_hrd_idx));
+            vps.tmp_vps_ols_timing_hrd_idx.push_back(tmp_vps_ols_timing_hrd_idx)= tmp_vps_ols_timing_hrd_idx;
+        }
+      }
+  }
+  bool tmp_vps_extension_flag = false;
+  TRUE_OR_RETURN(br->ReadBool(&tmp_vps_extension_flag));
+  vps.
+  bool tmp_vps_extension_data_flag = false;
+  if(tmp_vps_extension_flag){
+    while( br->more_rbsp_data() ){
+      TRUE_OR_RETURN(br->ReadBool(&tmp_vps_extension_data_flag));
+      vps.vps_extension_data_flag = tmp_vps_extension_data_flag;
+    }
+  }
+  br->rbsp_trailing_bits();
   // This will replace any existing VPS instance.
   *vps_id = vps->vps_video_parameter_set_id;
   active_vpses_[*vps_id] = std::move(vps);

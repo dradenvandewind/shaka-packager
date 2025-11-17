@@ -750,8 +750,96 @@ struct H266Vps {
   bool vps_default_ptl_dpb_hrd_max_tid_flag; //bool
   bool vps_all_independent_layers_flag; //bool
 
-  std::vector<uint8_t> vpsLayerId; // 6 bits each, size = vpsMaxLayersMinus1 + 1
+  std::vector<uint8_t> vps_layer_id; // 6 bits each, size = vpsMaxLayersMinus1 + 1
   std::vector<bool> vps_independent_layer_flag;
+  
+  std::vector<bool> vps_max_tid_ref_present_flag;
+  std::vector<std::vector<bool>>vps_direct_ref_layer_flag;
+  std::vector<std::vector<int>> vps_max_tid_il_ref_pics_plus1;
+  
+  bool vps_each_layer_is_an_ols_flag = false;
+  int vps_ols_mode_idc = 0;
+  int vps_num_output_layer_sets_minus2 = 0;
+
+  std::vector<std::vector<bool>> vps_ols_output_layer_flag;
+
+  int vps_num_ptls_minus1;
+  std::vector<bool> vps_pt_present_flag;
+  std::vector<int> vps_ptl_max_tid;
+
+  bool vps_ptl_alignment_zero_bit;
+  H266ProfileTierLevel vps_ptl;
+  std::vector<int> vps_ols_ptl_idx;
+ 
+  int vps_num_dpb_params_minus1;
+  bool vps_sublayer_dpb_params_present_flag;
+  std::vector<int> vps_dpb_max_tid;
+
+  //dpb_parameters  params;
+
+  std::vector<int> vps_ols_dpb_pic_width;
+  std::vector<int> vps_ols_dpb_pic_height;
+  std::vector<int> vps_ols_dpb_chroma_format;
+  std::vector<int> vps_ols_dpb_bitdepth_minus8;
+
+  std::vector<int> vps_ols_dpb_params_idx;
+  bool vps_timing_hrd_params_present_flag;
+  //general_timing_hrd_parameters()
+  std::optional<GeneralTimingHrdParameters> vps_general_timing_hrd_parameters;
+  bool vps_sublayer_cpb_params_present_flag;
+  int vps_num_ols_timing_hrd_params_minus1;
+  //general_timing_hrd_parameters( )
+
+  std::vector<int> vps_hrd_max_tid;
+
+  //ols_timing_hrd_parameters
+  std::optional<H266OlsTimingHrdParameters> vps_ols_parameters;
+
+
+  std::vector<int> vps_ols_timing_hrd_idx;
+  bool vps_extension_flag;
+  bool vps_extension_data_flag;
+
+  //extra varianles 
+  int TotalNumOlss = 0;
+  std::vector<std::vector<int>> LayerIdInOls;
+  std::vector<int> NumLayersInOls;
+  int NumMultiLayerOlss = 0;
+
+  std::vector<std::vector<bool>> layerIncludedInOlsFlag;
+  std::vector<int>  MultiLayerOlsIdx;
+  int VpsNumDpbParams = 0;
+  int VpsNumDpbParams = 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  std::vector<std::vector<bool>>
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   // Timing info in VPS (H.266 specific)
   bool vps_timing_info_present_flag;
