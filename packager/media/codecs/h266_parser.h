@@ -774,7 +774,7 @@ struct H266Vps {
   std::vector<int> vps_ptl_max_tid;
 
   bool vps_ptl_alignment_zero_bit;
-  H266ProfileTierLevel vps_ptl;
+  std::optional<H266ProfileTierLevel> vps_ptl;
   std::vector<int> vps_ols_ptl_idx;
  
   int vps_num_dpb_params_minus1;
@@ -806,7 +806,7 @@ struct H266Vps {
   bool vps_extension_flag;
   bool vps_extension_data_flag;
 
-  //extra varianles 
+  //extra variales 
   int TotalNumOlss = 0;
   std::vector<std::vector<int>> LayerIdInOls;
   std::vector<int> NumLayersInOls;
@@ -816,9 +816,10 @@ struct H266Vps {
   std::vector<int>  MultiLayerOlsIdx;
   int VpsNumDpbParams = 0;
 
-
-  std::vector<std::vector<bool>>
-
+  std::vector<int> NumOutputLayersInOls;
+  std::vector<std::vector<int>> OutputLayerIdInOls;
+  std::vector<std::vector<int>> NumSubLayersInLayerInOLS;
+  std::vector<int> LayerUsedAsOutputLayerFlag;
 
 
 

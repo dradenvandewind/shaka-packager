@@ -1837,10 +1837,11 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
     TRUE_OR_RETURN(br->ReadBool(&tmp_vps_pt_present_flag));
     sps->vps_ptl_alignment_zero_bit.push_back(bool_tmp_vps_ptl_alignment_zero_bit);
   }
+  if(vps->vps_ptl.emplace()){
   //profile_tier_level( vps_pt_present_flag[ i ], vps_ptl_max_tid[ i ] )
-  // Profile Tier Level parsing
   OK_OR_RETURN(ParseProfileTierLevel(vps.vps_pt_present_flag[i], vps->vps_ptl_max_tid[i], br, 
-                                    &vps->vps_ptl));
+                                    &vps->vps_ptl.value()));
+  }
 
   int tmp_vps_ols_ptl_idx = 0;
   int olsModeIdc = 0;
@@ -1880,11 +1881,13 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
           TRUE_OR_RETURN(br->ReadBit(3,&tmp_vps_dpb_max_tid));
           vps.vps_dpb_max_tid.push_back(tmp_vps_dpb_max_tid);
           // TODO
-          if(vps->vps_dpd.emplace()){
-            dpb_parameters( vps.vps_dpb_max_tid[i],vps.vps_sublayer_dpb_params_present_flag ,
+          if(!vps->vps_dpd){
+            vps->vps_dpd.emplace();
+          }
+          dpb_parameters( vps.vps_dpb_max_tid[i],vps.vps_sublayer_dpb_params_present_flag ,
                           &vps->vps_dpd.value(),br);
 
-          }
+          
         }
       }
     }
@@ -1906,6 +1909,70 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
     } else if( vps.vps_ols_mode_idc == 2 ) {
       for( int k = 0, j = 0; k <= vps.vps_max_layers_minus1; k++ )
       {
+         /**************************************************** */
+         NumOutputLayersInOls[0] = 1;
+         OutputLayerIdInOls[0][0] = vps.vps_layer_id[0];
+         NumSubLayersInLayerInOLS[0][0] = vps.vps_ptl_max_tid[vps_ols_ptl_idx[0]]+1;
+         for( int i = 1; i <= vps.vps_max_layers_minus1; i++ ) {
+          if( vps.olsModeIdc == 4 || vps.olsModeIdc < 2 ){
+            vps->LayerUsedAsOutputLayerFlag[i] = 1;
+          }else if( vps.vps_ols_mode_idc == 2 ){
+            vps.LayerUsedAsOutputLayerFlag[i] = 0;
+          }
+         }
+         for( int i = 1; i < vps.TotalNumOlss; i++ ){
+          if( vps.olsModeIdc == 4 || vps.olsModeIdc == 0 ) {
+            vps->NumOutputLayersInOls[i] = 1;
+            vps.OutputLayerIdInOls.at(i).at(0) = vps.vps_layer_id[i];
+            if( vps.vps_each_layer_is_an_ols_flag ){
+              vps.NumSubLayersInLayerInOLS[i][0] = vps.vps_ptl_max_tid[vps_ols_ptl_idx[i]]+1;
+            }else{
+              vps.NumSubLayersInLayerInOLS[ i ][ i ] = vps.vps_ptl_max_tid[vps_ols_ptl_idx[i]]+1;
+              int maxSublayerNeeded = 0;
+              for( int k = i -1; k >= 0; k-- ) {
+                vps.NumSubLayersInLayerInOLS[i][k]=0;
+                for( int m = k + 1; m <= i; m++ ) {
+                  maxSublayerNeeded = std::Min(vps.NumSubLayersInLayerInOLS[ i ][ m ],vps.vps_max_tid_il_ref_pics_plus1[m][k]);
+                  if( vps. vps_direct_ref_layer_flag[ m ][ k ] && NumSubLayersInLayerInOLS[ i ][ k ] < maxSublayerNeeded ){
+                    vps.NumSubLayersInLayerInOLS[ i ][ k ] = maxSublayerNeeded;
+                  }
+                }
+              }
+            }
+          } else if ( vps.vps_ols_mode_idc == 1 ) {
+            vps.NumOutputLayersInOls[i] = i+1;
+            for( int j = 0; j < NumOutputLayersInOls[ i ]; j++ ){
+              vps.OutputLayerIdInOls[i][j] = vps.vps_layer_id[j];
+              vps.NumSubLayersInLayerInOLS[i][j] = vps.vps_ptl_max_tid[vps.vps_ols_ptl_idx[i]]+1;
+            }
+          } else if( vps.vps_ols_mode_idc == 2 ) {
+            for( int j = 0; j <= vps.vps_max_layers_minus1; j++ ) {
+              vps.layerIncludedInOlsFlag[i][j] = 0;
+              vps.NumSubLayersInLayerInOLS[i][j] = 0;
+            }
+          }
+          int highestIncludedLayer = 0;
+          for( int k = 0, j = 0; k <= vps.vps_max_layers_minus1; k++ ){
+            if( vps.vps_ols_output_layer_flag[i][k] ) {
+              vps.layerIncludedInOlsFlag[ i ][ k ] = 1;
+              highestIncludedLayer = k;
+              vps.LayerUsedAsOutputLayerFlag[ k ] = 1;
+              vps.OutputLayerIdx[ i ][ j ] = k;
+              vps.OutputLayerIdInOls[ i ][ j++ ] = vps.vps_layer_id[ k ];
+              vps.NumSubLayersInLayerInOLS[i][k] = vps.vps_ptl_max_tid[vps.vps_ols_ptl_idx[i]]+1;
+            }
+          }
+          vps.NumOutputLayersInOls[ i ] = j;
+
+
+         }
+
+
+
+
+
+
+
         //todo p98
         /* if( vps.layerIncludedInOlsFlag[i][k] ){
           vps.LayerIdInOls[i][j++] = vps.vps_layer_id[k];
@@ -1933,13 +2000,12 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
     vps.vps_ols_dpb_chroma_format.push_back(tmp_vps_ols_dpb_chroma_format);
     vps.vps_ols_dpb_bitdepth_minus8.push_back(vps_ols_dpb_bitdepth_minus8);
   }
-  //todo VpsNumDpbParams p 101
+  // VpsNumDpbParams p 101
   if( vps.vps_each_layer_is_an_ols_flag ){
     vps.VpsNumDpbParams = 0;
   } else {
     vps.VpsNumDpbParams = vps.vps_num_dpb_params_minus1 + 1;
   }
-
 
   if( vps.VpsNumDpbParams > 1 && vps.VpsNumDpbParams != vps.NumMultiLayerOlss ){
         TRUE_OR_RETURN(br->ReadUE(&tmp_vps_ols_dpb_params_idx));
