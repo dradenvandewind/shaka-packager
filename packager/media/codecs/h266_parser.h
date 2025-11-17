@@ -68,6 +68,12 @@ struct H266OlsTimingHrdParameters{
     std::vector<std::vector<std::vector<bool>>> cbr_flag;
 
 };
+struct H266DPB_Parameters{
+  std::vector<int> dpb_max_dec_pic_buffering_minus1;
+  std::vector<int> dpb_max_num_reorder_pics;
+  std::vector<int> dpb_max_latency_increase_plus1;
+
+};
 
 struct H266VuiParameters {
   enum { kExtendedSar = 255 };
@@ -774,6 +780,7 @@ struct H266Vps {
   int vps_num_dpb_params_minus1;
   bool vps_sublayer_dpb_params_present_flag;
   std::vector<int> vps_dpb_max_tid;
+  std::optional<H266DPB_Parameters> vps_dpd;
 
   //dpb_parameters  params;
 
@@ -795,7 +802,6 @@ struct H266Vps {
   //ols_timing_hrd_parameters
   std::optional<H266OlsTimingHrdParameters> vps_ols_parameters;
 
-
   std::vector<int> vps_ols_timing_hrd_idx;
   bool vps_extension_flag;
   bool vps_extension_data_flag;
@@ -809,34 +815,9 @@ struct H266Vps {
   std::vector<std::vector<bool>> layerIncludedInOlsFlag;
   std::vector<int>  MultiLayerOlsIdx;
   int VpsNumDpbParams = 0;
-  int VpsNumDpbParams = 0;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
   std::vector<std::vector<bool>>
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1238,6 +1219,10 @@ class H266Parser {
                             const H266Sps& sps, 
                             H26xBitReader* br,
                             H266OlsTimingHrdParameters* olf);
+
+  Result dpb_parameters( int MaxSubLayersMinus1, int subLayerInfoFlag ,
+                          H266DPB_Parameters* dpd,
+                          H26xBitReader* br);
                             
   Result ParseProfileTierLevel(bool profile_tier_present,
                                int max_num_sub_layers_minus1,

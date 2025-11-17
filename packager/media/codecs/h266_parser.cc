@@ -1880,8 +1880,12 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
           TRUE_OR_RETURN(br->ReadBit(3,&tmp_vps_dpb_max_tid));
           vps.vps_dpb_max_tid.push_back(tmp_vps_dpb_max_tid);
           // TODO
-        //dpb_parameters( vps_dpb_max_tid[ i ],vps_sublayer_dpb_params_present_flag )
-         }
+          if(vps->vps_dpd.emplace()){
+            dpb_parameters( vps.vps_dpb_max_tid[i],vps.vps_sublayer_dpb_params_present_flag ,
+                          &vps->vps_dpd.value(),br);
+
+          }
+        }
       }
     }
   }
@@ -1929,6 +1933,14 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
     vps.vps_ols_dpb_chroma_format.push_back(tmp_vps_ols_dpb_chroma_format);
     vps.vps_ols_dpb_bitdepth_minus8.push_back(vps_ols_dpb_bitdepth_minus8);
   }
+  //todo VpsNumDpbParams p 101
+  if( vps.vps_each_layer_is_an_ols_flag ){
+    vps.VpsNumDpbParams = 0;
+  } else {
+    vps.VpsNumDpbParams = vps.vps_num_dpb_params_minus1 + 1;
+  }
+
+
   if( vps.VpsNumDpbParams > 1 && vps.VpsNumDpbParams != vps.NumMultiLayerOlss ){
         TRUE_OR_RETURN(br->ReadUE(&tmp_vps_ols_dpb_params_idx));
         vps.vps_ols_dpb_params_idx.push_back(tmp_vps_ols_dpb_params_idx);
@@ -2441,6 +2453,24 @@ H266Parser::Result H266Parser::Vui_Payload(int max_num_sub_layers_minus1,
   }
 #endif
   return kOk;
+}
+H266Parser::Result dpb_parameters( int MaxSubLayersMinus1, int subLayerInfoFlag ,
+                          H266DPB_Parameters* dpd,
+                          H26xBitReader* br){
+  LOG(INFO) << "Parsing H.266 dpb_parameters";
+
+ int i  = ( subLayerInfoFlag ? 0 : MaxSubLayersMinus1 );
+ int tmp_dpb_max_dec_pic_buffering_minus1;
+ int tmp_dpb_max_num_reorder_pics;
+ int tmp_dpb_max_latency_increase_plus1;          
+ for( i ; i <= MaxSubLayersMinus1; i++ ) {
+    TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_dec_pic_buffering_minus1));
+    TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_num_reorder_pics));
+    TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_latency_increase_plus1));
+    dpd->dpb_max_dec_pic_buffering_minus1.push_back(tmp_dpb_max_latency_increase_plus1);
+    dpd->dpb_max_num_reorder_pics.push_back(tmp_dpb_max_num_reorder_pics);
+    dpd->dpb_max_latency_increase_plus1.push_back(tmp_dpb_max_latency_increase_plus1);
+  }                  
 }
 
 H266Parser::Result H266Parser::Ols_Timing_Hrd_parameters(int firstsublayer, int sps_max_sublayers_minus1,
