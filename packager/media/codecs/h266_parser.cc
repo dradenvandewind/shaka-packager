@@ -1847,11 +1847,13 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
     vps->vps_ptl_alignment_zero_bit = tmp_vps_ptl_alignment_zero_bit;
   }
   for (int i = 0; i <= vps->vps_num_ptls_minus1; i++) {
-      if(vps->vps_ptl.emplace()){
+      if (!vps->vps_ptl.has_value()) {
+        vps->vps_ptl.emplace();
+      }
       //profile_tier_level( vps_pt_present_flag[ i ], vps_ptl_max_tid[ i ] )
       OK_OR_RETURN(ParseProfileTierLevel(vps->vps_pt_present_flag[i], vps->vps_ptl_max_tid[i], br, 
                                         &vps->vps_ptl.value()));
-      }
+      
   }
   
 

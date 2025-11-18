@@ -1138,6 +1138,7 @@ class H266Parser {
     kInvalidStream,      // error in stream
     kUnsupportedStream,  // stream not supported by the parser
     kEOStream,           // end of stream
+    kInvalidArgument,
   };
 
   H266Parser();
