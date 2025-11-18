@@ -1775,9 +1775,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   for(uint8_t i=0; i<= vps->vps_max_layers_minus1; i++) {
     uint8_t layerId;
     TRUE_OR_RETURN(br->ReadBits(6, &layerId)); // 6 bits
-
-    TRUE_OR_RETURN(br->ReadBits(6, &vps->vps_layer_id[i])); // 6 bits
-    vps->vps_layer_id.push_back(layerId);
+    vps->vps_layer_id[i] = layerId;
     if(i>0 && !vps->vps_all_independent_layers_flag) {
       //TODO parsing of layer_dependency_info( i )
       TRUE_OR_RETURN(br->ReadBool(&tmp_vps_independent_layer_flag));
@@ -1785,9 +1783,15 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
       if(!tmp_vps_independent_layer_flag){
         TRUE_OR_RETURN(br->ReadBool(&tmp_vps_max_tid_ref_present_flag));
         vps->vps_max_tid_ref_present_flag.push_back(tmp_vps_max_tid_ref_present_flag);
-        if( vps->vps_max_tid_ref_present_flag[i] && vps->vps_direct_ref_layer_flag[i][j] ){
-            TRUE_OR_RETURN(br->ReadBits(3,&tmp_vps_max_tid_il_ref_pics_plus1));
-            vps->vps_max_tid_il_ref_pics_plus1.push_back(tmp_vps_max_tid_il_ref_pics_plus1);
+        for( int j = 0; j < i; j++ ) {
+          bool tmp_vps_direct_ref_layer_flag = false;
+          TRUE_OR_RETURN(br->ReadBool(&tmp_vps_direct_ref_layer_flag));
+          vps->vps_direct_ref_layer_flag[i][j] = tmp_vps_direct_ref_layer_flag;
+
+            if( vps->vps_max_tid_ref_present_flag[i] && vps->vps_direct_ref_layer_flag[i][j] ){
+                TRUE_OR_RETURN(br->ReadBits(3,&tmp_vps_max_tid_il_ref_pics_plus1));
+                vps->vps_max_tid_il_ref_pics_plus1[i][j] = tmp_vps_max_tid_il_ref_pics_plus1;
+            }
         }
       }
     }
@@ -1809,7 +1813,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
             for( int i = 1; i <= vps->vps_num_output_layer_sets_minus2 + 1; i ++ ){
               for( int j = 0; j <= vps->vps_max_layers_minus1; j++ ){
                 TRUE_OR_RETURN(br->ReadBool(&tmp_vps_ols_output_layer_flag));
-                vps->vps_ols_output_layer_flag.push_back(tmp_vps_ols_output_layer_flag);
+                vps->vps_ols_output_layer_flag[i][j] = tmp_vps_ols_output_layer_flag;
               }
             }
           }
@@ -1913,6 +1917,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   int incr = 0;
   int d = 0;
   int r = 0;
+  vps->NumRefLayers.resize(vps->vps_max_layers_minus1 + 1, 0);
   for( int i = 0; i <= vps->vps_max_layers_minus1; i++ ) {
     for( int j = 0, d = 0, r = 0; j <= vps->vps_max_layers_minus1; j++ ) {
       incd = d++;

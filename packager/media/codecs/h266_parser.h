@@ -822,7 +822,7 @@ struct H266Vps {
   std::vector<std::vector<int>> OutputLayerIdx;
   std::vector<int> LayerUsedAsOutputLayerFlag;
 
-  std::vector<std::vector<int>> NumRefLayers;
+  std::vector<int> NumRefLayers;
   std::vector<std::vector<int>> ReferenceLayerIdx;
   std::vector<std::vector<bool>> dependencyFlag;
   int NumMultiLayerOlss = 0;
