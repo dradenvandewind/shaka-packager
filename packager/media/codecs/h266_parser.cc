@@ -1963,9 +1963,35 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
             }
           }
           vps.NumOutputLayersInOls[ i ] = j;
+          int idx = 0;
+          for( int j = 0; j < vps.NumOutputLayersInOls[ i ]; j++ ) {
+            idx = vps.OutputLayerIdx[ i ][ j ];
+            //NumRefLayers  need to define P97
+            for( int k = 0; k < vps.NumRefLayers[ idx ]; k++ ) {
+              //need to populate ReferenceLayerIdx
+              if (!vps.layerIncludedInOlsFlag[ i ][ vps.ReferenceLayerIdx[ idx ][ k ] ] ){
+                vps.layerIncludedInOlsFlag[ i ][ vps.ReferenceLayerIdx[ idx ][ k ] ] = 1;
+              }
+            }
+          }
+          for( int k = highestIncludedLayer-1; k >= 0; k-- ){
+            if( vps.layerIncludedInOlsFlag[ i ][ k ] && !vps.vps_ols_output_layer_flag[ i ][ k ] ){
+              for( int m = k + 1; m <= highestIncludedLayer; m++ ) {
+                maxSublayerNeeded = std::min( vps.NumSubLayersInLayerInOLS[ i ][ m ], vps.vps_max_tid_il_ref_pics_plus1[ m ][ k ] );
+                if( vps.vps_direct_ref_layer_flag[ m ][ k ] && vps.layerIncludedInOlsFlag[ i ][ m ] && vps.NumSubLayersInLayerInOLS[ i ][ k ] < maxSublayerNeeded ){
+                  vps.NumSubLayersInLayerInOLS[ i ][ k ] = maxSublayerNeeded;
+                }
+
+              }
+            }
+
+          }
+
+        }
 
 
-         }
+
+      }
 
 
 

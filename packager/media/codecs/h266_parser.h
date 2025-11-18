@@ -819,7 +819,12 @@ struct H266Vps {
   std::vector<int> NumOutputLayersInOls;
   std::vector<std::vector<int>> OutputLayerIdInOls;
   std::vector<std::vector<int>> NumSubLayersInLayerInOLS;
+  std::vector<std::vector<int>> OutputLayerIdx;
   std::vector<int> LayerUsedAsOutputLayerFlag;
+
+  std::vector<std::vector<int>> NumRefLayers;
+  std::vector<std::vector<int>> ReferenceLayerIdx;
+
 
 
 
