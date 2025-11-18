@@ -23,6 +23,7 @@ struct GeneralTimingHrdParameters;
 struct H266OlsTimingHrdParameters;
 struct H266ProfileTierLevel;
 struct H266GeneralConstraintsInfo;
+struct H266DPB_Parameters;
 
 
 #define TRUE_OR_RETURN(a)                            \
@@ -2658,14 +2659,19 @@ H266Parser::Result dpb_parameters( int MaxSubLayersMinus1, int subLayerInfoFlag 
  int tmp_dpb_max_dec_pic_buffering_minus1;
  int tmp_dpb_max_num_reorder_pics;
  int tmp_dpb_max_latency_increase_plus1;          
- for( ; i <= MaxSubLayersMinus1; i++ ) {
-    TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_dec_pic_buffering_minus1));
+ for(int i  = ( subLayerInfoFlag ? 0 : MaxSubLayersMinus1 ) ; i <= MaxSubLayersMinus1; i++ ) {
+/*     TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_dec_pic_buffering_minus1));
     TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_num_reorder_pics));
     TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_latency_increase_plus1));
+ */
+    br->ReadUE(&tmp_dpb_max_dec_pic_buffering_minus1);
+    br->ReadUE(&tmp_dpb_max_num_reorder_pics);
+    br->ReadUE(&tmp_dpb_max_latency_increase_plus1);
     dpd->dpb_max_dec_pic_buffering_minus1.push_back(tmp_dpb_max_latency_increase_plus1);
     dpd->dpb_max_num_reorder_pics.push_back(tmp_dpb_max_num_reorder_pics);
     dpd->dpb_max_latency_increase_plus1.push_back(tmp_dpb_max_latency_increase_plus1);
-  }                  
+  }
+  return kOk;                  
 }
 
 H266Parser::Result H266Parser::Ols_Timing_Hrd_parameters(int firstsublayer, int sps_max_sublayers_minus1,
