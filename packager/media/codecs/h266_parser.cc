@@ -1786,7 +1786,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
         TRUE_OR_RETURN(br->ReadBool(&tmp_vps_max_tid_ref_present_flag));
         vps->vps_max_tid_ref_present_flag.push_back(tmp_vps_max_tid_ref_present_flag);
         if( vps->vps_max_tid_ref_present_flag[i] && vps->vps_direct_ref_layer_flag[i][j] ){
-            TRUE_OR_RETURN(br->ReadBit(3,&tmp_vps_max_tid_il_ref_pics_plus1));
+            TRUE_OR_RETURN(br->ReadBits(3,&tmp_vps_max_tid_il_ref_pics_plus1));
             vps->vps_max_tid_il_ref_pics_plus1.push_back(tmp_vps_max_tid_il_ref_pics_plus1);
         }
       }
@@ -1799,22 +1799,22 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
       TRUE_OR_RETURN(br->ReadBool(&tmp_vps_each_layer_is_an_ols_flag));
       vps->vps_each_layer_is_an_ols_flag.push_back(tmp_vps_each_layer_is_an_ols_flag);
       if(!tmp_vps_each_layer_is_an_ols_flag){
-          TRUE_OR_RETURN(br->ReadBit(3,&tmp_vps_ols_mode_idc));
+          TRUE_OR_RETURN(br->ReadBits(3,&tmp_vps_ols_mode_idc));
           vps->vps_ols_mode_idc = tmp_vps_ols_mode_idc;
           if( vps->vps_ols_mode_idc == 2 ) {
             int tmp_vps_num_output_layer_sets_minus2 = 0;
-            TRUE_OR_RETURN(br->ReadBit(8,&tmp_vps_num_output_layer_sets_minus2));
+            TRUE_OR_RETURN(br->ReadBits(8,&tmp_vps_num_output_layer_sets_minus2));
             vps->vps_num_output_layer_sets_minus2.push_back(tmp_vps_num_output_layer_sets_minus2);
             int tmp_vps_ols_output_layer_flag = false;
             for( int i = 1; i <= vps.vps_num_output_layer_sets_minus2 + 1; i ++ ){
-              for( int j = 0; j <= vps.vps_max_layers_minus1; j++ ){
+              for( int j = 0; j <= vps->vps_max_layers_minus1; j++ ){
                 TRUE_OR_RETURN(br->ReadBool(&tmp_vps_ols_output_layer_flag));
                 vps->vps_ols_output_layer_flag.push_back(tmp_vps_ols_output_layer_flag);
               }
             }
           }
           int tmp_vps_num_ptls_minus1=0;
-          TRUE_OR_RETURN(br->ReadBit(8,&tmp_vps_num_ptls_minus1));
+          TRUE_OR_RETURN(br->ReadBits(8,&tmp_vps_num_ptls_minus1));
           vps->vps_num_ptls_minus1 = tmp_vps_num_ptls_minus1;
       }
     }
@@ -1828,14 +1828,15 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
       vps->vps_pt_present_flag.push_back(tmp_vps_pt_present_flag);
     }
     if( !vps.vps_default_ptl_dpb_hrd_max_tid_flag ){
-      TRUE_OR_RETURN(br->ReadBit(3,&tmp_vps_ptl_max_tid));
+      TRUE_OR_RETURN(br->ReadBits(3,&tmp_vps_ptl_max_tid));
       vps->vps_ptl_max_tid.push_back(tmp_vps_ptl_max_tid);
     }
+    
   }
-  bool_tmp_vps_ptl_alignment_zero_bit;
+  bool tmp_vps_ptl_alignment_zero_bit = false;
   while(!br->byte_aligned()){
-    TRUE_OR_RETURN(br->ReadBool(&tmp_vps_pt_present_flag));
-    vps->vps_ptl_alignment_zero_bit.push_back(bool_tmp_vps_ptl_alignment_zero_bit);
+    TRUE_OR_RETURN(br->ReadBool(&tmp_vps_ptl_alignment_zero_bit));
+    vps->vps_ptl_alignment_zero_bit.push_back(tmp_vps_ptl_alignment_zero_bit);
   }
   if(vps->vps_ptl.emplace()){
   //profile_tier_level( vps_pt_present_flag[ i ], vps_ptl_max_tid[ i ] )
@@ -1853,7 +1854,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
     olsModeIdc = 4;
   }
   if( olsModeIdc == 4 || olsModeIdc == 0 || olsModeIdc == 1 ){
-    TotalNumOlss = vps.vps_max_layers_minus1+1;
+    TotalNumOlss = vps->vps_max_layers_minus1+1;
   } else if( olsModeIdc == 2 ){
     TotalNumOlss = vps.vps_num_output_layer_sets_minus2+2;
   }else{
@@ -1863,7 +1864,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 
   for( int i = 0; i < TotalNumOlss; i++ ){
     if( vps.vps_num_ptls_minus1 > 0 && vps.vps_num_ptls_minus1+1 != TotalNumOlss ){
-      TRUE_OR_RETURN(br->ReadBit(8,&tmp_vps_ols_ptl_idx));
+      TRUE_OR_RETURN(br->ReadBits(8,&tmp_vps_ols_ptl_idx));
       vps->vps_ols_ptl_idx.push_back(tmp_vps_ols_ptl_idx);
     }
   }
@@ -1878,7 +1879,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
       int tmp_vps_dpb_max_tid = 0;
       for( int i = 0; i < vps.VpsNumDpbParams; i++ ) {
         if( !vps.vps_default_ptl_dpb_hrd_max_tid_flag ){
-          TRUE_OR_RETURN(br->ReadBit(3,&tmp_vps_dpb_max_tid));
+          TRUE_OR_RETURN(br->ReadBits(3,&tmp_vps_dpb_max_tid));
           vps.vps_dpb_max_tid.push_back(tmp_vps_dpb_max_tid);
           // TODO
           if(!vps->vps_dpd){
@@ -1895,7 +1896,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 
   //The variables NumDirectRefLayers[ i ], DirectRefLayerIdx[ i ][ d ], NumRefLayers[ i ], ReferenceLayerIdx[ i ][ r ], and
   //LayerUsedAsRefLayerFlag[ j ] are derived as follows:
-  for( int i = 0; i <= vps.vps_max_layers_minus1; i++ ) {
+  for( int i = 0; i <= vps->vps_max_layers_minus1; i++ ) {
     for( int j = 0; j <= vps.vps_max_layers_minus1; j++ ) {
       vps.dependencyFlag[i][j] = vps.vps_direct_ref_layer_flag[i][j];
       for( int k = 0; k < i; k++ ){
@@ -1908,7 +1909,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   }
   int incd = 0;
   int incr = 0;
-  for( int i = 0; i <= vps.vps_max_layers_minus1; i++ ) {
+  for( int i = 0; i <= vps->vps_max_layers_minus1; i++ ) {
     for( int j = 0, int d = 0, int r = 0; j <= vps.vps_max_layers_minus1; j++ ) {
       incd = d++;
       if( vps.vps_direct_ref_layer_flag[i][j] ) {
@@ -1927,7 +1928,9 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 /*#######################################################################################*/
   //page 100
    vps.NumLayersInOls[0] = 1;
-   vps.LayerIdInOls.at(0).at(0) = vps.vps_layer_id[0] ;
+   vps.LayerIdInOls[0][0] = vps.vps_layer_id[0] ;
+
+
    vps.NumMultiLayerOlss = 0;
    // Initialize NumOutputLayersInOls and OutputLayerIdInOls for OLS 0
    vps.NumOutputLayersInOls[0] = 1;
@@ -1948,37 +1951,37 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
       }
     } else if( vps.vps_ols_mode_idc == 2 ) {
       // OLS mode 2 
-      for( int k = 0, j = 0; k <= vps.vps_max_layers_minus1; k++ )
+      for( int k = 0, j = 0; k <= vps->vps_max_layers_minus1; k++ )
       {
          /**************************************************** */
          NumOutputLayersInOls[0] = 1;
          OutputLayerIdInOls[0][0] = vps.vps_layer_id[0];
          NumSubLayersInLayerInOLS[0][0] = vps.vps_ptl_max_tid[vps_ols_ptl_idx[0]]+1;
          // Initialize LayerUsedAsOutputLayerFlag for layers
-         for( int i = 1; i <= vps.vps_max_layers_minus1; i++ ) {
+         for( int layer_idx = 1; i <= vps->vps_max_layers_minus1; layer_idx++ ) {
           if( vps.olsModeIdc == 4 || vps.olsModeIdc < 2 ){
-            vps->LayerUsedAsOutputLayerFlag[i] = 1;
+            vps->LayerUsedAsOutputLayerFlag[layer_idx] = 1;
           }else if( vps.vps_ols_mode_idc == 2 ){
-            vps.LayerUsedAsOutputLayerFlag[i] = 0;
+            vps.LayerUsedAsOutputLayerFlag[layer_idx] = 0;
           }
          }
         // Process each OLS for output layers and sublayers
-         for( int i = 1; i < vps.TotalNumOlss; i++ ){
+         for( int ols_idx = 1; i < vps.TotalNumOlss; ols_idx++ ){
           if( vps.olsModeIdc == 4 || vps.olsModeIdc == 0 ) {
-            vps->NumOutputLayersInOls[i] = 1;
-            vps.OutputLayerIdInOls.at(i).at(0) = vps.vps_layer_id[i];
+            vps->NumOutputLayersInOls[ols_idx] = 1;
+            vps.OutputLayerIdInOls[ols_idx][0] = vps.vps_layer_id[ols_idx];
             if( vps.vps_each_layer_is_an_ols_flag ){
-              vps.NumSubLayersInLayerInOLS[i][0] = vps.vps_ptl_max_tid[vps_ols_ptl_idx[i]] + 1;
+              vps.NumSubLayersInLayerInOLS[ols_idx][0] = vps.vps_ptl_max_tid[vps_ols_ptl_idx[ols_idx]] + 1;
             }else{
-              vps.NumSubLayersInLayerInOLS[i][i] = vps.vps_ptl_max_tid[vps_ols_ptl_idx[i]] + 1;
+              vps.NumSubLayersInLayerInOLS[ols_idx][ols_idx] = vps.vps_ptl_max_tid[vps_ols_ptl_idx[ols_idx]] + 1;
               int maxSublayerNeeded = 0;
               // Process dependencies for lower layers
               for( int k = i -1; k >= 0; k-- ) {
-                vps.NumSubLayersInLayerInOLS[i][k]=0;
+                vps.NumSubLayersInLayerInOLS[ols_idx][k]=0;
                 for( int m = k + 1; m <= i; m++ ) {
-                  maxSublayerNeeded = std::min(vps.NumSubLayersInLayerInOLS[i][m],vps.vps_max_tid_il_ref_pics_plus1[m][k]);
-                  if( vps.vps_direct_ref_layer_flag[m][k] && NumSubLayersInLayerInOLS[i][k] < maxSublayerNeeded ){
-                    vps.NumSubLayersInLayerInOLS[i][k] = maxSublayerNeeded;
+                  maxSublayerNeeded = std::min(vps.NumSubLayersInLayerInOLS[ols_idx][m],vps.vps_max_tid_il_ref_pics_plus1[m][k]);
+                  if( vps.vps_direct_ref_layer_flag[m][k] && NumSubLayersInLayerInOLS[ols_idx][k] < maxSublayerNeeded ){
+                    vps.NumSubLayersInLayerInOLS[ols_idx][k] = maxSublayerNeeded;
                   }
                 }
               }
@@ -1993,14 +1996,14 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
           } else if( vps.vps_ols_mode_idc == 2 ) {
             // OLS mode 2 - complex case
             // Initialize flags and counters
-            for( int j = 0; j <= vps.vps_max_layers_minus1; j++ ) {
+            for( int j = 0; j <= vps->vps_max_layers_minus1; j++ ) {
               vps.layerIncludedInOlsFlag[i][j] = false;
               vps.NumSubLayersInLayerInOLS[i][j] = 0;
             }
           }
           // Find output layers and set flags
           int highestIncludedLayer = 0;
-          for( int k = 0, j = 0; k <= vps.vps_max_layers_minus1; k++ ){
+          for( int k = 0, j = 0; k <= vps->vps_max_layers_minus1; k++ ){
             if( vps.vps_ols_output_layer_flag[i][k] ) {
               vps.layerIncludedInOlsFlag[i][k] = true;
               highestIncludedLayer = k;
@@ -2077,7 +2080,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
           vps.LayerIdInOls[i][j] = vps.vps_layer_id[j];
         }
       } else if( vps.vps_ols_mode_idc == 2 ) {
-        for( int k = 0, j = 0; k <= vps.vps_max_layers_minus1; k++ ){
+        for( int k = 0, j = 0; k <= vps->vps_max_layers_minus1; k++ ){
           if( vps.layerIncludedInOlsFlag[i][k] ){
             inc_j = j++;
             vps.LayerIdInOls[i][inc_j] = vps.vps_layer_id[k];
@@ -2101,7 +2104,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   for( int i = 0; i < vps.NumMultiLayerOlss; i++ ) {
     TRUE_OR_RETURN(br->ReadUE(&tmp_vps_ols_dpb_pic_width));
     TRUE_OR_RETURN(br->ReadUE(&tmp_vps_ols_dpb_pic_height));
-    TRUE_OR_RETURN(br->ReadBit(2,&tmp_vps_ols_dpb_chroma_format));
+    TRUE_OR_RETURN(br->ReadBits(2,&tmp_vps_ols_dpb_chroma_format));
     TRUE_OR_RETURN(br->ReadUE(&tmp_vps_ols_dpb_bitdepth_minus8));
     vps.vps_ols_dpb_pic_width.push_back(tmp_vps_ols_dpb_pic_width);
     vps.vps_ols_dpb_pic_height.push_back(tmp_vps_ols_dpb_pic_height);
