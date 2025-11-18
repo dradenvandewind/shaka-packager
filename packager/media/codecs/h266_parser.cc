@@ -2650,16 +2650,15 @@ H266Parser::Result H266Parser::Vui_Payload(int max_num_sub_layers_minus1,
 #endif
   return kOk;
 }
-H266Parser::Result dpb_parameters( int MaxSubLayersMinus1, int subLayerInfoFlag ,
+H266Parser::Result H266Parser::dpb_parameters( int MaxSubLayersMinus1, int subLayerInfoFlag ,
                           H266DPB_Parameters* dpd,
                           H26xBitReader* br){
   LOG(INFO) << "Parsing H.266 dpb_parameters";
 
- int i  = ( subLayerInfoFlag ? 0 : MaxSubLayersMinus1 );
  int tmp_dpb_max_dec_pic_buffering_minus1;
  int tmp_dpb_max_num_reorder_pics;
  int tmp_dpb_max_latency_increase_plus1;          
- for(int i  = ( subLayerInfoFlag ? 0 : MaxSubLayersMinus1 ) ; i <= MaxSubLayersMinus1; i++ ) {
+ for(int i  = ( subLayerInfoFlag ? 0 : MaxSubLayersMinus1 ); i <= MaxSubLayersMinus1; i++ ) {
 /*     TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_dec_pic_buffering_minus1));
     TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_num_reorder_pics));
     TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_latency_increase_plus1));
