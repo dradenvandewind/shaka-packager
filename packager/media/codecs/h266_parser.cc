@@ -1892,6 +1892,34 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
       }
     }
   }
+  //The variables NumDirectRefLayers[ i ], DirectRefLayerIdx[ i ][ d ], NumRefLayers[ i ], ReferenceLayerIdx[ i ][ r ], and
+  //LayerUsedAsRefLayerFlag[ j ] are derived as follows:
+  for( int i = 0; i <= vps.vps_max_layers_minus1; i++ ) {
+    for( int j = 0; j <= vps.vps_max_layers_minus1; j++ ) {
+      vps.dependencyFlag[i][j] = vps.vps_direct_ref_layer_flag[i][j];
+      for( int k = 0; k < i; k++ ){
+        if( vps.vps_direct_ref_layer_flag[i][ ] && vps.dependencyFlag[k][j] ){
+          vps.dependencyFlag[i][j] = 1;
+        }
+      }
+      vps.LayerUsedAsRefLayerFlag[ i ] = 0;
+    }
+  }
+  for( int i = 0; i <= vps.vps_max_layers_minus1; i++ ) {
+    for( int j = 0, int d = 0, int r = 0; j <= vps.vps_max_layers_minus1; j++ ) {
+      if( vps.vps_direct_ref_layer_flag[ i ][ j ] ) {
+        vps.DirectRefLayerIdx[ i ][ d++ ] = j;
+        vps.LayerUsedAsRefLayerFlag[ j ] = 1;
+      }
+      if( vps.dependencyFlag[ i ][ j ] ){
+        vps.ReferenceLayerIdx[ i ][ r++ ] = j;
+      }
+    }
+    vps.NumDirectRefLayers[ i ] = d;
+    vps.NumRefLayers[ i ] = r;
+  }
+
+
   //page 100
    NumLayersInOls[0] = 1;
    LayerIdInOls.at(0).at(0) = vps.vps_layer_id[0] ;
@@ -1984,13 +2012,8 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 
               }
             }
-
           }
-
         }
-
-
-
       }
 
 
