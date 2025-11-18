@@ -753,7 +753,7 @@ struct H266Vps {
   //int vps_max_layers_minus1;
   uint32_t vps_max_layers_minus1; //6 bits
   int vps_max_sublayers_minus1; //3 bits
-  bool vps_default_ptl_dpb_hrd_max_tid_flag; //bool
+  bool vps_default_ptl_dpb_hrd_max_tid_flag = false; //bool
   bool vps_all_independent_layers_flag; //bool
 
   std::vector<uint8_t> vps_layer_id; // 6 bits each, size = vpsMaxLayersMinus1 + 1
@@ -763,13 +763,13 @@ struct H266Vps {
   std::vector<std::vector<bool>>vps_direct_ref_layer_flag;
   std::vector<std::vector<int>> vps_max_tid_il_ref_pics_plus1;
   
-  bool vps_each_layer_is_an_ols_flag = false;
-  int vps_ols_mode_idc = 0;
+  //bool vps_each_layer_is_an_ols_flag = false;
+  //int vps_ols_mode_idc = 0;
   int vps_num_output_layer_sets_minus2 = 0;
 
   std::vector<std::vector<bool>> vps_ols_output_layer_flag;
 
-  int vps_num_ptls_minus1;
+  //int vps_num_ptls_minus1;
   std::vector<bool> vps_pt_present_flag;
   std::vector<int> vps_ptl_max_tid;
 
@@ -810,7 +810,7 @@ struct H266Vps {
   int TotalNumOlss = 0;
   std::vector<std::vector<int>> LayerIdInOls;
   std::vector<int> NumLayersInOls;
-  int NumMultiLayerOlss = 0;
+  //int NumMultiLayerOlss = 0;
 
   std::vector<std::vector<bool>> layerIncludedInOlsFlag;
   std::vector<int>  MultiLayerOlsIdx;
@@ -824,6 +824,8 @@ struct H266Vps {
 
   std::vector<std::vector<int>> NumRefLayers;
   std::vector<std::vector<int>> ReferenceLayerIdx;
+  std::vector<std::vector<bool>> dependencyFlag;
+  int NumMultiLayerOlss = 0;
 
 
 
@@ -834,12 +836,12 @@ struct H266Vps {
   long vps_time_scale;
 
   // General constraints
-  bool vps_each_layer_is_an_ols_flag;
-  int vps_ols_mode_idc;
+  bool vps_each_layer_is_an_ols_flag = false;
+  int vps_ols_mode_idc = 0;
 
   // Output layer sets
   int vps_num_output_layer_sets_minus1;
-  int vps_num_ptls_minus1;
+  int vps_num_ptls_minus1 = 0;
 
   // Profile tier level
   int general_profile_tier_level_data[kVvcMaxNumProfileTierLevels]
@@ -874,8 +876,8 @@ struct H266Vps {
   H266ProfileTierLevel profile_tier_level;
   
   // Layer dependency
-  std::vector<std::vector<bool>> direct_dependency_flag;
-  std::vector<uint32_t> max_tid_ref_present_flag;
+  //std::vector<std::vector<bool>> direct_dependency_flag;
+  //std::vector<uint32_t> max_tid_ref_present_flag;
   
 
   // Incomplete: many more H.266 VPS specific fields...
