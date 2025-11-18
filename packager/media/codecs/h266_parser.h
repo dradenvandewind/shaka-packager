@@ -831,6 +831,7 @@ struct H266Vps {
 
   std::vector<std::vector<int>> DirectRefLayerIdx;
   std::vector<std::vector<int>> NumDirectRefLayers;
+  std::vector<std::vector<bool>> vps_direct_dependency_flag;
 
   // Timing info in VPS (H.266 specific)
   bool vps_timing_info_present_flag;
