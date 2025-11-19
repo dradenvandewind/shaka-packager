@@ -2387,11 +2387,54 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
         phs->ph_virtual_boundary_pos_y_minus1.push_back(tmp_ph_virtual_boundary_pos_y_minus1);
       }
     }
+  }
+    if( pps->pps_output_flag_present_flag && !phs->ph_non_ref_pic_flag ){
+      TRUE_OR_RETURN(br->ReadBool(&phs->ph_pic_output_flag));
+    }
+    if( pps->pps_rpl_info_in_ph_flag ){
+      //ref_pic_lists( )
+    }
+    if( sps->sps_partition_constraints_override_enabled_flag ){
+        TRUE_OR_RETURN(br->ReadBool(&phs->ph_partition_constraints_override_flag));
+    }
+    if( phs->ph_intra_slice_allowed_flag ) {
+        if( phs->ph_partition_constraints_override_flag ) {
+          TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_min_qt_min_cb_intra_slice_luma));
+          TRUE_OR_RETURN(br->ReadUE(&phs->ph_max_mtt_hierarchy_depth_intra_slice_luma));
+        
+          if(phs->ph_max_mtt_hierarchy_depth_intra_slice_luma != 0){
+            TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_max_bt_min_qt_intra_slice_luma));
+            TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_max_tt_min_qt_intra_slice_luma));
+          }
+          if(phs->sps_qtbtt_dual_tree_intra_flag){
+            TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_min_qt_min_cb_intra_slice_chroma);
+            TRUE_OR_RETURN(br->ReadUE(&phs->ph_max_mtt_hierarchy_depth_intra_slice_chroma);
+            if(phs->ph_max_mtt_hierarchy_depth_intra_slice_chroma != 0 ){
+              TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_max_bt_min_qt_intra_slice_chroma);
+              TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_max_tt_min_qt_intra_slice_chroma);
+            }
+          }
+        }
+        if( pps->pps_cu_qp_delta_enabled_flag ){
+          TRUE_OR_RETURN(br->ReadUE(&phs->ph_cu_qp_delta_subdiv_intra_slice));
+        }
+        if( pps->pps_cu_chroma_qp_offset_list_enabled_flag ){
+          TRUE_OR_RETURN(br->ReadUE(&phs->ph_cu_chroma_qp_offset_subdiv_intra_slice));
+        }        
+    }
     
 
 
 
-  }
+
+
+
+
+    
+
+
+  
+
 
 
 
