@@ -2422,36 +2422,102 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
           TRUE_OR_RETURN(br->ReadUE(&phs->ph_cu_chroma_qp_offset_subdiv_intra_slice));
         }        
     }
-    
+    if( phs->ph_inter_slice_allowed_flag ) {
+      if( phs->ph_partition_constraints_override_flag ) {
+        TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_min_qt_min_cb_inter_slice));
+        TRUE_OR_RETURN(br->ReadUE(&phs->ph_max_mtt_hierarchy_depth_inter_slice));
+        if(phs->ph_max_mtt_hierarchy_depth_inter_slice != 0){
+          TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_max_bt_min_qt_inter_slice));
+          TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_max_tt_min_qt_inter_slice));
+        }
+      }
+      if(pps->pps_cu_qp_delta_enabled_flag){
+        TRUE_OR_RETURN(br->ReadUE(&phs->ph_cu_qp_delta_subdiv_inter_slice));
+      }
+      if(pps->pps_cu_chroma_qp_offset_list_enabled_flag){
+        TRUE_OR_RETURN(br->ReadUE(&phs->ph_cu_chroma_qp_offset_subdiv_inter_slice));
+      }
+      //num_ref_entries
+      //RplsIdx
 
+      if(sps->sps_temporal_mvp_enabled_flag){
+          TRUE_OR_RETURN(br->ReadBool(&phs->ph_temporal_mvp_enabled_flag));
+          if( phs->ph_temporal_mvp_enabled_flag && pps->pps_rpl_info_in_ph_flag ) {
 
-
-
-
-
-
-    
-
-
-  
-
-
-
-
-
-
-
-
-  TRUE_OR_RETURN(br->ReadBool(&));
-  TRUE_OR_RETURN(br->ReadBool(&));
-  TRUE_OR_RETURN(br->ReadBool(&));
-  TRUE_OR_RETURN(br->ReadBool(&));
-  TRUE_OR_RETURN(br->ReadBool(&));
-  TRUE_OR_RETURN(br->ReadBool(&));
-
-
-
-
+            if( num_ref_entries[ 1 ][ RplsIdx[ 1 ] ] > 0 ){/// evaluate this value
+              TRUE_OR_RETURN(br->ReadBool(&phs->ph_collocated_from_l0_flag));
+            }
+            if( ( phs->ph_collocated_from_l0_flag && num_ref_entries[0][RplsIdx[0] ] > 1 ) || ( !phs->ph_collocated_from_l0_flag && num_ref_entries[ 1 ][ RplsIdx[ 1 ] ] > 1 ) ){
+                TRUE_OR_RETURN(br->ReadUE(&phs->ph_collocated_ref_idx));
+            }
+          }
+      }
+      if(sps->sps_mmvd_fullpel_only_enabled_flag){
+        TRUE_OR_RETURN(br->ReadBool(&phs->ph_mmvd_fullpel_only_flag));
+      }
+      bool presenceFlag = false;
+      if( !pps->pps_rpl_info_in_ph_flag ){
+        presenceFlag = true;
+      }
+      else ( num_ref_entries[1][ RplsIdx[1] ] > 0 ){
+        presenceFlag = true;
+      }
+      if( presenceFlag ) {
+        TRUE_OR_RETURN(br->ReadBool(&phs->ph_mvd_l1_zero_flag));
+        if(sps->sps_bdof_control_present_in_ph_flag){
+          TRUE_OR_RETURN(br->ReadBool(&phs->ph_bdof_disabled_flag));
+        }
+        if(sps->sps_dmvr_control_present_in_ph_flag){
+          TRUE_OR_RETURN(br->ReadBool(&phs->ph_dmvr_disabled_flag));
+        }
+      }
+      if(sps->sps_prof_control_present_in_ph_flag){
+        TRUE_OR_RETURN(br->ReadBool(&phs->ph_prof_disabled_flag));
+      }
+      if( ( pps->pps_weighted_pred_flag || pps->pps_weighted_bipred_flag ) && pps->pps_wp_info_in_ph_flag ){
+        //pred_weight_table( )
+      }
+    }
+    if( pps->pps_qp_delta_info_in_ph_flag ){
+      TRUE_OR_RETURN(br->ReadSE(&phs->ph_qp_delta));
+    }
+    if(sps->sps_joint_cbcr_enabled_flag){
+      TRUE_OR_RETURN(br->ReadBool(&phs->ph_joint_cbcr_sign_flag));
+    }
+    if( sps->sps_sao_enabled_flag && pps->pps_sao_info_in_ph_flag){
+      TRUE_OR_RETURN(br->ReadBool(&phs->ph_sao_luma_enabled_flag));
+      if(sps->sps_chroma_format_idc != 0){
+        TRUE_OR_RETURN(br->ReadBool(&phs->ph_sao_chroma_enabled_flag));
+      }
+    }
+    if(pps->pps_dbf_info_in_ph_flag){
+        TRUE_OR_RETURN(br->ReadBool(&phs->ph_deblocking_params_present_flag));
+      if(pps->ph_deblocking_params_present_flag){
+        if(!pps->pps_deblocking_filter_disabled_flag){
+            TRUE_OR_RETURN(br->ReadBool(&phs->ph_deblocking_filter_disabled_flag));
+          if(!phs->ph_deblocking_filter_disabled_flag){
+              TRUE_OR_RETURN(br->ReadSE(&));
+              TRUE_OR_RETURN(br->ReadSE(&)); 
+            if(pps->pps_chroma_tool_offsets_present_flag){
+              TRUE_OR_RETURN(br->ReadSE(&phs->ph_cb_beta_offset_div2));
+              TRUE_OR_RETURN(br->ReadSE(&phs->ph_cb_tc_offset_div2));
+              TRUE_OR_RETURN(br->ReadSE(&phs->ph_cr_beta_offset_div2));
+              TRUE_OR_RETURN(br->ReadSE(&phs->ph_cr_tc_offset_div2));
+            }
+          }
+        }
+      }
+    }
+    if( pps->pps_picture_header_extension_present_flag ) {
+      TRUE_OR_RETURN(br->ReadUE(&phs->ph_extension_length));
+      int max_ph_extension_length = phs->ph_extension_length;
+      int tmp_ph_extension_data_byte = 0;
+      for( int i = 0; i < max_ph_extension_length; i++){
+        int tmp_ph_extension_data_byte = 0;
+        TRUE_OR_RETURN(br->ReadUE(&tmp_ph_extension_data_byte));
+        phs->ph_extension_data_byte.push_back(tmp_ph_extension_data_byte);
+      }
+    }
 
   return kOk;
 }
