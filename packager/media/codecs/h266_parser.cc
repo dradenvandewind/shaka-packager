@@ -24,6 +24,7 @@ struct H266OlsTimingHrdParameters;
 struct H266ProfileTierLevel;
 struct H266GeneralConstraintsInfo;
 struct H266DPB_Parameters;
+struct H266PictureHeaderStructure;
 
 
 #define TRUE_OR_RETURN(a)                            \
@@ -832,7 +833,7 @@ uint32_t H266Sps::GetBitDepthLuma() const {
 
 H266Parser::H266Parser() {}
 H266Parser::~H266Parser() {}
-
+#if 0
 H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
                                                 H266SliceHeader* slice_header) {
   LOG(INFO) << "Parsing H.266 Slice Header NALU";
@@ -926,7 +927,56 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
   slice_header->header_bit_size = nalu.payload_size() * 8 - br->NumBitsLeft();
   return kOk;
 }
+#else
+H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
+                                                H266SliceHeader* slice_header) {
+  LOG(INFO) << "Parsing H.266 Slice Header NALU";
+  //7.3.2.14 Slice layer RBSP syntax
+  std::unique_ptr<H266Sps> sps(new H266Sps);
+  std::unique_ptr<H266Pps> pps(new H266Pps);
 
+
+
+  DCHECK(nalu.is_video_slice());
+  *slice_header = H266SliceHeader();
+
+  // Parses whole element.
+  H26xBitReader reader;
+  reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
+  H26xBitReader* br = &reader;
+
+  bool tmp_sh_picture_header_in_slice_header_flag = false;
+  TRUE_OR_RETURN(br->ReadBool(&tmp_sh_picture_header_in_slice_header_flag));
+  slice_header->sh_picture_header_in_slice_header_flag = tmp_sh_picture_header_in_slice_header_flag;
+  if(tmp_sh_picture_header_in_slice_header_flag){
+    //picture_header_structure( )
+  }
+  if(sps->sps_subpic_info_present_flag ){
+    int tmp_sh_subpic_id = 0;
+    int len_sh_subpic_id = sps->sps_subpic_id_len_minus1 + 1;
+    TRUE_OR_RETURN(br->ReadBit(len_sh_subpic_id,&tmp_sh_subpic_id));
+    slice_header->sh_subpic_id = tmp_sh_subpic_id;
+  }
+  /******************************************************/
+  // 6.5.1 NumSlicesInSubpic[
+  // 7.4.8 CurrSubpicIdx CurrSubpicIdx is derived to be such that SubpicIdVal[ CurrSubpicIdx ] is equal to sh_subpic_id.
+  // The variable NumTilesInPic is set equal to NumTileColumns * NumTileRows. P28
+  // need some processing before continue 
+  /*******************************************************/
+
+/*   if( (pps->pps_rect_slice_flag && NumSlicesInSubpic[ CurrSubpicIdx ] > 1 ) || ( !pps->pps_rect_slice_flag && NumTilesInPic > 1 ) ){
+
+  } */
+
+
+
+
+  slice_header->header_bit_size = nalu.payload_size() * 8 - br->NumBitsLeft();
+  return kOk;
+}
+
+
+#endif
 
 
 #if 0 
@@ -1250,6 +1300,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     }
   }
 }
+   DisplayH266PPS(*pps);
 
   // This will replace any existing PPS instance.
   *pps_id = pps->pic_parameter_set_id;
@@ -1732,6 +1783,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         }
       }
       OK_OR_RETURN(rbsp_trailing_bits(br));
+      DisplayH266SPS(*sps);
         
       
         
@@ -2195,6 +2247,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
     }
   }
   rbsp_trailing_bits(br);
+  DisplayH266VPS(pps);
   // This will replace any existing VPS instance.
   *vps_id = vps->vps_video_parameter_set_id;
   active_vpses_[*vps_id] = std::move(vps);
@@ -2225,6 +2278,142 @@ H266Parser::Result H266Parser::ParseAps(const Nalu& nalu, int* aps_id, int* aps_
 
   return kOk;
 }
+
+H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
+                                                  H266PictureHeaderStructure* phs) {
+  DCHECK_EQ(Nalu::H266_PH_NUT, nalu.type());
+  LOG(INFO) << "Parsing H.266 Picture Header NALU"; 
+  H26xBitReader reader;
+  reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
+  H26xBitReader* br = &reader;
+
+  TRUE_OR_RETURN(br->ReadBool(&phs->ph_gdr_or_irap_pic_flag));
+  TRUE_OR_RETURN(br->ReadBool(&phs->ph_non_ref_pic_flag));
+  if(phs->ph_gdr_or_irap_pic_flag){
+    TRUE_OR_RETURN(br->ReadBool(&phs->ph_gdr_pic_flag));
+  }
+  TRUE_OR_RETURN(br->ReadBool(&phs->ph_inter_slice_allowed_flag));
+  if(phs->ph_inter_slice_allowed_flag){
+    TRUE_OR_RETURN(br->ReadBool(&phs->ph_intra_slice_allowed_flag));
+  }   
+  TRUE_OR_RETURN(br->ReadUE(&phs->ph_pic_parameter_set_id));
+
+  int len_ph_pic_order_cnt_lsb = sps->sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
+  TRUE_OR_RETURN(br->ReadBits(len_ph_pic_order_cnt_lsb,&phs->ph_pic_order_cnt_lsb));
+  if(phs->ph_gdr_pic_flag){
+    TRUE_OR_RETURN(br->ReadUE(&phs->ph_recovery_poc_cnt));
+  }
+  /************************************************/
+  //P 107
+  int NumExtraPhBits = 0;
+  int max_extra_bytes = sps->sps_num_extra_ph_bytes * 8;
+  for( int i = 0; i < max_extra_bytes; i++ ){
+    if( sps->sps_extra_ph_bit_present_flag[i]){
+      NumExtraPhBits++;
+    }
+  }
+  /************************************************/
+  for( int i = 0; i < NumExtraPhBits; i++ ){
+    int tmp_ph_extra_bit;
+    TRUE_OR_RETURN(br->ReadBool(&tmp_ph_extra_bit));
+    phs->ph_extra_bit.push_back(tmp_ph_extra_bit);
+  }
+  if( sps->sps_poc_msb_cycle_flag ) {
+    TRUE_OR_RETURN(br->ReadBool(&phs->ph_poc_msb_cycle_present_flag));
+    if(phs->ph_poc_msb_cycle_present_flag){
+      int len_ph_poc_msb_cycle_val = sps->sps_poc_msb_cycle_len_minus1 + 1;  
+      TRUE_OR_RETURN(br->ReadBits(len_ph_poc_msb_cycle_val,&phs->ph_poc_msb_cycle_val));
+    }
+  }
+  if( sps->sps_alf_enabled_flag && pps->pps_alf_info_in_ph_flag ) {
+    TRUE_OR_RETURN(br->ReadBool(&phs->ph_alf_enabled_flag));
+    if(phs->ph_alf_enabled_flag){
+      TRUE_OR_RETURN(br->ReadBits(3,&phs->ph_num_alf_aps_ids_luma));
+      int max_ph_num_alf_aps_ids_luma = phs->ph_num_alf_aps_ids_luma;
+      for( int i = 0; i < max_ph_num_alf_aps_ids_luma; i++ ){
+      int tmp_ph_alf_aps_id_luma = 0; 
+      TRUE_OR_RETURN(br->ReadBits(3,&phs->mp_ph_alf_aps_id_luma));
+      }
+      if( sps->sps_chroma_format_idc != 0 ) {
+        TRUE_OR_RETURN(br->ReadBool(&phs->ph_alf_cb_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool(&phs->ph_alf_cr_enabled_flag));
+      }
+
+      if( phs->ph_alf_cb_enabled_flag || phs->ph_alf_cr_enabled_flag ){
+        TRUE_OR_RETURN(br->ReadBits(3,&phs->ph_alf_aps_id_chroma));
+      }
+      if (sps->sps_ccalf_enabled_flag ) {
+        TRUE_OR_RETURN(br->ReadBool(&phs->ph_alf_cc_cb_enabled_flag));
+        if(phs->ph_alf_cc_cb_enabled_flag){
+          TRUE_OR_RETURN(br->ReadBits(3,&phs->ph_alf_cc_cb_aps_id));
+        }
+        TRUE_OR_RETURN(br->ReadBool(&phs->ph_alf_cc_cr_enabled_flag));
+        if(phs->ph_alf_cc_cr_enabled_flag){
+          TRUE_OR_RETURN(br->ReadBits(3,&phs->ph_alf_cc_cr_aps_id));
+        }
+      }
+    }  
+  }
+  if( sps->sps_lmcs_enabled_flag ) {
+    TRUE_OR_RETURN(br->ReadBool(&phs->ph_lmcs_enabled_flag));
+    if(phs->ph_lmcs_enabled_flag){
+      TRUE_OR_RETURN(br->ReadBits(2,&phs->ph_lmcs_aps_id));
+      if ( sps->sps_chroma_format_idc != 0 ){
+        TRUE_OR_RETURN(br->ReadBool(&phs->ph_chroma_residual_scale_flag));
+      }
+    }  
+  }
+  if( sps->sps_explicit_scaling_list_enabled_flag ) {
+      TRUE_OR_RETURN(br->ReadBool(&ph_explicit_scaling_list_enabled_flag));
+      if(phs->ph_explicit_scaling_list_enabled_flag){
+        TRUE_OR_RETURN(br->ReadBool(3,&phs->ph_scaling_list_aps_id));
+      }
+  }
+  if( sps->sps_virtual_boundaries_enabled_flag && !sps->sps_virtual_boundaries_present_flag ) {
+    TRUE_OR_RETURN(br->ReadBool(&phs->ph_virtual_boundaries_present_flag));
+    ih(phs->ph_virtual_boundaries_present_flag){
+      TRUE_OR_RETURN(br->ReadUE(&phs->ph_num_ver_virtual_boundaries));
+      int max_ph_num_ver_virtual_boundaries = phs->ph_num_ver_virtual_boundaries;
+      int tmp_ph_virtual_boundary_pos_x_minus1 = 0;
+      for( int i = 0; i < max_ph_num_ver_virtual_boundaries; i++ ){
+        TRUE_OR_RETURN(br->ReadUE(&tmp_ph_virtual_boundary_pos_x_minus1));
+        phs->ph_virtual_boundary_pos_x_minus1.push_back(tmp_ph_virtual_boundary_pos_x_minus1);
+      }
+      TRUE_OR_RETURN(br->ReadUE(&phs->ph_num_hor_virtual_boundaries));
+      int max_ph_num_hor_virtual_boundaries = phs->ph_num_hor_virtual_boundaries;
+      int tmp_ph_virtual_boundary_pos_y_minus1 = 0;
+      for( int i = 0; i < max_ph_num_hor_virtual_boundaries; i++ ){
+        TRUE_OR_RETURN(br->ReadUE(&tmp_ph_virtual_boundary_pos_y_minus1));
+        phs->ph_virtual_boundary_pos_y_minus1.push_back(tmp_ph_virtual_boundary_pos_y_minus1);
+      }
+    }
+    
+
+
+
+  }
+
+
+
+
+
+
+
+  TRUE_OR_RETURN(br->ReadBool(&));
+  TRUE_OR_RETURN(br->ReadBool(&));
+  TRUE_OR_RETURN(br->ReadBool(&));
+  TRUE_OR_RETURN(br->ReadBool(&));
+  TRUE_OR_RETURN(br->ReadBool(&));
+  TRUE_OR_RETURN(br->ReadBool(&));
+
+
+
+
+
+  return kOk;
+}
+
+
 
 
 H266Parser::Result H266Parser::ParsePictureHeader(const Nalu& nalu,
@@ -2357,6 +2546,7 @@ H266Parser::Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdPar
     
     TRUE_OR_RETURN(br->ReadUE(&time->hrd_cpb_cnt_minus1));
   }
+  DisplayGeneralTimingHrdParameters(time);
   
   return kOk;
 }

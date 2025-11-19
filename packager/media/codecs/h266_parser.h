@@ -1063,6 +1063,8 @@ struct H266SliceHeader {
   // Dependent slice segment
   bool dependent_slice_segment_flag = false;
   int slice_segment_address = 0;
+
+
   // slice_header 7.3.7
   bool sh_picture_header_in_slice_header_flag = false;
   int sh_subpic_id = 0;
@@ -1185,6 +1187,9 @@ class H266Parser {
 
   /// Parses a Picture Header.
   Result ParsePictureHeader(const Nalu& nalu, H266PictureHeader* picture_header);
+
+  Result ParsePictureHeaderStructure(const Nalu& nalu,
+                                                  H266PictureHeaderStructure* phs);
 
 #if 0   
 //future update perhaps 
