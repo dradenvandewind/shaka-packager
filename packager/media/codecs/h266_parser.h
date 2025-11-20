@@ -372,6 +372,14 @@ struct H266Pps {
   bool pps_extension_data_flag = false;
   int CtbSizeY;
 
+
+  //we need back up for slice_parsing
+  uint32_t NumTileColumns = 0;  
+  uint32_t NumTileRows = 0;
+  uint32_t NumTilesInPic = 0;
+
+
+
 };
 // Dans h266_parser.h, ajouter :
 struct GeneralTimingHrdParameters {
@@ -436,8 +444,39 @@ struct H266ReferencePicList{
   std::vector<std::vector<std::vector<int>>> poc_lsb_lt;
   std::vector<std::vector<std::vector<bool>>> delta_poc_msb_cycle_present_flag;
   std::vector<std::vector<std::vector<int>>> delta_poc_msb_cycle_lt;
-  H266ReferencePicListStruct reference_pic_list;
+  std::optional<H266ReferencePicListStruct> reference_pic_list;
+
+  //aditionnal variables
+  std::vector<std::vector<int>> NumLtrpEntries;
+  std::vector<std::vector<std::vector<bool>>> inter_layer_ref_pic_flag;
+  std::vector<std::vector<std::vector<bool>>> st_ref_pic_flag;
+  std::vector<std::vector<std::vector<bool>>> ltrp_in_header_flag;
+  std::vector<std::vector<int>> num_ref_entries;
+  std::vector <int> RplsIdx;
 };
+
+struct H266PredWeightTable{
+  int luma_log2_weight_denom;
+  int delta_chroma_log2_weight_denom;
+  int num_l0_weights;
+  std::vector<bool> luma_weight_l0_flag;
+  std::vector<bool> chroma_weight_l0_flag;
+  std::vector<int> delta_luma_weight_l0;
+  std::vector<int> luma_offset_l0;
+  std::vector<int> delta_chroma_weight_l0;
+  std::vector<int> delta_chroma_offset_l0;
+  int num_l1_weights;
+
+  std::vector<bool> luma_weight_l1_flag;
+  std::vector<bool> chroma_weight_l1_flag;
+  std::vector<int> delta_luma_weight_l1;
+  std::vector<int> luma_offset_l1;
+
+  std::vector<std::vector<int>> delta_chroma_weight_l1;
+  std::vector<std::vector<int>> delta_chroma_offset_l1;
+
+};
+
 
 
 
@@ -555,11 +594,13 @@ struct H266Sps {
   bool sps_weighted_pred_flag = false;
   bool sps_weighted_bipred_flag = false;
   bool sps_long_term_ref_pics_flag = false;
-  H266ReferencePicListStruct pic;
+  //std::optional<
+   H266ReferencePicListStruct pic;
   bool sps_inter_layer_prediction_enabled_flag = false;
   bool sps_idr_rpl_present_flag = false;
   bool sps_rpl1_same_as_rpl0_flag = false;
   std::vector <int> sps_num_ref_pic_lists;
+  //std::optional<
   H266ReferencePicListStruct reference_pic_list_struct;
 
 
@@ -930,6 +971,8 @@ struct H266PictureHeaderStructure{
  std::vector <int> ph_virtual_boundary_pos_y_minus1;
  bool ph_pic_output_flag = false;
  //ref_pic_lists
+ std::optional<H266ReferencePicList> rpl;
+
  bool ph_partition_constraints_override_flag = false;
  int ph_log2_diff_min_qt_min_cb_intra_slice_luma = 0;
  int ph_max_mtt_hierarchy_depth_intra_slice_luma = 0;
@@ -959,8 +1002,11 @@ struct H266PictureHeaderStructure{
 
  bool ph_dmvr_disabled_flag = false;
 
+ std::optional <H266PredWeightTable> p_pwt;
 
  bool ph_prof_disabled_flag = false;
+
+
  int ph_qp_delta = 0;
 
  bool ph_joint_cbcr_sign_flag = false;
@@ -1067,6 +1113,8 @@ struct H266SliceHeader {
 
   // slice_header 7.3.7
   bool sh_picture_header_in_slice_header_flag = false;
+  std::optional<H266PictureHeaderStructure> phs;
+
   int sh_subpic_id = 0;
   int sh_slice_address = 0;
   std::vector<int> sh_extra_bits; //256 not sure need check
@@ -1123,6 +1171,33 @@ struct H266SliceHeader {
 
 int sh_entry_offset_len_minus1 = 0;
 std::vector<uint32_t> sh_entry_point_offset_minus1; //256 not sure need check
+std::vector <int> CurrSubpicIdx;
+std::vector<int> SubpicIdVal;
+std::vector<int> NumSlicesInSubpic;
+std::vector<int> SubpicLevelSliceIdx;
+std::vector<int> SubpicIdxForSlice;
+std::vector<int> NumSlicesInSubpic;
+std::vector<std::vector<int>> CtbAddrInSlice;
+int PicWidthInCtbsY;
+int PicHeightInCtbsY;
+std::vector<int> NumCtusInSlice;
+
+std::vector <bool> subpicHeightLessThanOneTileFlag;
+std::vector <int> ctbToTileColIdx;
+std::vector <int> SubpicHeightInTiles;
+std::vector <int> SubpicWidthInTiles;
+std::vector <u_int32_t> TileColBdVal;
+std::vector <u_int32_t> TileRowBdVal;
+std::vector <int>  NumCtusInSlice;
+std::vector <int> SliceTopLeftTileIdx;
+std::vector <int> sliceWidthInTiles;
+std::vector <int> sliceHeightInTiles;
+std::vector <int> NumSlicesInTile;
+
+std::vector <u_int32_t> ColWidthVal;
+std::vector <u_int32_t> RowHeightVal;
+
+
 
 };
  
@@ -1225,6 +1300,17 @@ class H266Parser {
                             const H266Sps& sps,
                             H26xBitReader* br,
                             H266ReferencePicListStruct* rpls);
+
+  Result Ref_Pic_List(const H266Sps& sps, const H266Pps& pps,
+                            H26xBitReader* br,
+                            H266ReferencePicList* rpl);
+  
+  Result PredWeightTable( const H266Sps& sps, const H266Pps& pps,
+                          H26xBitReader* br,
+                          H266ReferencePicList *rpl,
+                          H266PredWeightTable *pwt);
+
+
   Result ParseGeneralConstraintsInfo(H266GeneralConstraintsInfo *gci,
                                                      H26xBitReader* br);
 
