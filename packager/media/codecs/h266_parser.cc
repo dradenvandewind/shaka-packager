@@ -1053,6 +1053,7 @@ PAGE 32
  */
  //PicWidthInCtbsY eq 64 page 118 
  slice_header->PicWidthInCtbsY = ceil( pps->pps_pic_width_in_luma_samples / pps->CtbSizeY );
+ slice_header->PicHeightInCtbsY = ceil( pps->pps_pic_height_in_luma_samples / pps->CtbSizeY );
  // need populate CtbAddrInSlice  eq 22 pgae 32 ...
  /****************************************************************************************/
 //todo AddCtbsToSlice func;                        ok
@@ -1092,11 +1093,11 @@ if(pps->NumTileColumns != local_NumTileColumns ){
   LOG(INFO) << "NumTileColumns from is not equal NumTileColumns fron slice_header, need to investigate";
 }
 
-/**************************************************** */
+/***************************************************************************/
 slice_header->TileColBdVal = DeriveTileColumnBoundaries(NumTileColumns, slice_header->ColWidthVal);
 
 /*******************compute RowHeightVal[**********************************/
-int remainingHeightInCtbsY = PicHeightInCtbsY;
+int remainingHeightInCtbsY = slice_header->PicHeightInCtbsY;
 int inc_y = 0;
 int local_NumTileRows = 0;
 for( int j = 0; j <= pps->pps_num_exp_tile_rows_minus1; j++ ) {
@@ -1121,7 +1122,25 @@ if(pps->NumTileRows != local_NumTileRows){
 
 slice_header->TileRowBdVal = DeriveTileColumnBoundaries(NumTileRows, slice_header->RowHeightVal);
 
-/*****************************************************/
+/***************** subpicHeightLessThanOneTileFlag  equqtion 20 page 30 ************************************/
+for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
+  int leftX = sps->sps_subpic_ctu_top_left_x[i];
+  int rightX = leftX + sps->sps_subpic_width_minus1[i];
+  slice_header->SubpicWidthInTiles[ i ] = ctbToTileColIdx[ rightX ] + 1 - ctbToTileColIdx[ leftX ];
+  int topY = sps->sps_subpic_ctu_top_left_y[i];
+  int bottomY = topY + sps->sps_subpic_height_minus1[i];
+  slice_header->SubpicHeightInTiles[i] = ctbToTileRowIdx[bottomY] + 1 - ctbToTileRowIdx[ topY ];
+  if( slice_header->SubpicHeightInTiles[ i ] == 1 &&
+      sps->sps_subpic_height_minus1[i] + 1 < slice_header->RowHeightVal[ ctbToTileRowIdx[ topY ] ] ){
+        slice_header->subpicHeightLessThanOneTileFlag[ i ] = true;
+  }else {
+            slice_header->subpicHeightLessThanOneTileFlag[ i ] = false;
+  }
+}
+
+
+
+/************************************************************************************************************/
 
 
 
@@ -1130,7 +1149,7 @@ slice_header->TileRowBdVal = DeriveTileColumnBoundaries(NumTileRows, slice_heade
     for( int j = 0; j < NumTileRows; j++ ){
       for( int i = 0; i < NumTileColumns; i++ ){
         //AddCtbsToSlice( 0, TileColBdVal[ i ], TileColBdVal[ i + 1 ], TileRowBdVal[ j ],TileRowBdVal[ j + 1 ] );
-        AddCtbsToSliceWithIterators(slice_header->CtbAddrInSlice,
+        AddCtbsToSlice(slice_header->CtbAddrInSlice,
                                 slice_header->NumCtusInSlice,
                                 slice_header->PicWidthInCtbsY,
                                 0, slice_header->TileColBdVal[i], slice_header->TileColBdVal[i+1], slice_header->TileRowBdVal[ j ],slice_header->TileRowBdVal[j+1]);
@@ -1149,7 +1168,7 @@ slice_header->TileRowBdVal = DeriveTileColumnBoundaries(NumTileRows, slice_heade
         int tileY = ctbToTileRowIdx[ sps->sps_subpic_ctu_top_left_y[ i ] ];
         for( int j = 0; j < SubpicHeightInTiles[ i ]; j++ ){
           for( int k = 0; k < SubpicWidthInTiles[ i ]; k++ ){
-            AddCtbsToSlice( i, TileColBdVal[ tileX + k ], TileColBdVal[ tileX + k + 1 ], TileRowBdVal[ tileY + j ], TileRowBdVal[ tileY + j + 1 ] );
+            AddCtbsToSlice( i, slice_header->TileColBdVal[ tileX + k ], slice_header->TileColBdVal[ tileX + k + 1 ], slice_header->TileRowBdVal[ tileY + j ], slice_header->TileRowBdVal[ tileY + j + 1 ] );
           }
         }
       }
@@ -1412,6 +1431,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
       }
       // #### I don't know populate this variable     check slice header 
       std::vector<uint32_t> SliceTopLeftTileIdx; // I don't know populate this variable
+
       //int tmp_pps_slice_height_in_tiles_minus1 = 0;
               std::vector<int> RowHeightVal;
         int remainingHeightInCtbsY;
