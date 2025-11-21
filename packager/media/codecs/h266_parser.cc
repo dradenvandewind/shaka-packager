@@ -995,9 +995,18 @@ std::vector<uint32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY,
 H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
                                                 H266SliceHeader* slice_header) {
   LOG(INFO) << "Parsing H.266 Slice Header NALU";
-  //7.3.2.14 Slice layer RBSP syntax
+
+   //7.3.2.14 Slice layer RBSP syntax
   //std::unique_ptr<H266Sps> sps(new H266Sps);
   //std::unique_ptr<H266Pps> pps(new H266Pps);
+
+  //need extract 
+/*   sh_slice_type 
+  sh_num_ref_idx_active_override_flag 
+  sh_num_ref_idx_active_minus1
+  to calcultate  NumRefIdxActive[  equation 139 page 157
+  Weight Predic  func
+ */
   
 
   /* if (!sps) {
@@ -3877,27 +3886,6 @@ H266Parser::Result H266Parser::rbsp_trailing_bits(H26xBitReader* br) {
   
   return kOk;
 }
-
-
-// Stub implementations for methods that need to be defined
-H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu, 
-                                               H266SliceHeader* slice_header,
-                                               const H266PictureHeader* picture_header) {
-  // Implementation would use picture_header context
-  LOG(INFO) << "STUB Parsing H.266 Slice Header with Picture Header context";
-  //need extract 
-/*   sh_slice_type 
-  sh_num_ref_idx_active_override_flag 
-  sh_num_ref_idx_active_minus1
-  to calcultate  NumRefIdxActive[  equation 139 page 157
-  Weight Predic  func
- */
-
-  //todo 
-  return ParseSliceHeader(nalu, slice_header);
-}
-
-
 
 
 
