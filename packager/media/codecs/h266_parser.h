@@ -383,6 +383,7 @@ struct H266Pps {
 };
 // Dans h266_parser.h, ajouter :
 struct GeneralTimingHrdParameters {
+
     uint32_t num_units_in_tick = 0;
     uint32_t time_scale = 0;
     bool general_nal_hrd_params_present_flag = false;
@@ -424,6 +425,7 @@ struct H266ReferencePicListStruct{
 };
  */
 struct H266RefPicListEntry {
+  
     bool inter_layer_ref_pic_flag = false;
     bool st_ref_pic_flag = false;
     int abs_delta_poc_st = 0;
@@ -433,12 +435,14 @@ struct H266RefPicListEntry {
 };
 
 struct H266ReferencePicListStruct {
+
     int num_ref_entries = 0;
     bool ltrp_in_header_flag = false;
     std::vector<H266RefPicListEntry> entries;
 };
 
 struct H266ReferencePicList{
+
   std::vector <bool> rpl_sps_flag;
   std::vector <int> rpl_idx;
   std::vector<std::vector<std::vector<int>>> poc_lsb_lt;
@@ -456,6 +460,7 @@ struct H266ReferencePicList{
 };
 
 struct H266PredWeightTable{
+
   int luma_log2_weight_denom;
   int delta_chroma_log2_weight_denom;
   int num_l0_weights;
@@ -762,6 +767,9 @@ bool sps_reverse_last_sig_coeff_enabled_flag;
 };
 
 struct H266RepFormat {
+  H266RepFormat();
+  ~H266RepFormat();
+  
   int pic_width_vps_in_luma_samples = 0;
   int pic_height_vps_in_luma_samples = 0;
 

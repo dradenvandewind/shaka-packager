@@ -998,10 +998,9 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
   //7.3.2.14 Slice layer RBSP syntax
   //std::unique_ptr<H266Sps> sps(new H266Sps);
   //std::unique_ptr<H266Pps> pps(new H266Pps);
-  const H266Sps* sps = GetActiveSPS();  // À implémenter
-  const H266Pps* pps = GetActivePPS();  // À implémenter
+  
 
-  if (!sps) {
+  /* if (!sps) {
     LOG(ERROR) << "No active SPS found";
     return kInvalidStream;
 }
@@ -1009,7 +1008,7 @@ if (!pps) {
     LOG(ERROR) << "No active PPS found";
     return kInvalidStream;
 }
-
+ */
 
 
   //need extract 
@@ -1020,13 +1019,7 @@ if (!pps) {
   Weight Predic  func
  */
 
- const H266Sps* sps = GetActiveSPS();  // À implémenter
- const H266Pps* pps = GetActivePPS();  // À implémenter
-
-
-
-
-  DCHECK(nalu.is_video_slice());
+   DCHECK(nalu.is_video_slice());
   *slice_header = H266SliceHeader();
 
   // Parses whole element.
@@ -1042,7 +1035,28 @@ if (!pps) {
     //picture_header_structure( )
     //H266PictureHeaderStructure* phs
     ParsePictureHeaderStructure(nalu, &slice_header->phs.value());
+   }
+   const H266Pps* pps = GetPps(slice_header->phs->ph_pic_parameter_set_id);
+   TRUE_OR_RETURN(pps);
+
+  const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
+  TRUE_OR_RETURN(sps);
+
+  if (!sps) {
+    LOG(ERROR) << "No active SPS found";
+    return kInvalidStream;
   }
+  if (!pps) {
+    LOG(ERROR) << "No active PPS found";
+    return kInvalidStream;
+  }
+
+
+
+
+
+
+
   if(sps->sps_subpic_info_present_flag ){
     int tmp_sh_subpic_id = 0;
     int len_sh_subpic_id = sps->sps_subpic_id_len_minus1 + 1;
@@ -1393,13 +1407,26 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
 
   *pps_id = -1;
-  std::unique_ptr<H266Pps> pps(new H266Pps);
-  std::unique_ptr<H266Sps> sps(new H266Sps);
+  /* std::unique_ptr<H266Pps> pps(new H266Pps);
+  std::unique_ptr<H266Sps> sps(new H266Sps); */
 
   //pic_parameter_set_rbsp( ) 7.3.2.5
 
   TRUE_OR_RETURN(br->ReadBits(6, &pps->pic_parameter_set_id));  // 6 bits 
   TRUE_OR_RETURN(br->ReadBits(4,&pps->seq_parameter_set_id));  // 4 bits
+
+  const H266Pps* pps = GetPps(pps->pic_parameter_set_id);
+  TRUE_OR_RETURN(pps);
+
+  const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
+  TRUE_OR_RETURN(sps);
+
+
+
+
+
+
+
   TRUE_OR_RETURN(br->ReadBool(&pps->pps_mixed_nalu_types_in_pic_flag));
   TRUE_OR_RETURN(br->ReadUE(&pps->pps_pic_width_in_luma_samples));
   TRUE_OR_RETURN(br->ReadUE(&pps->pps_pic_height_in_luma_samples));
@@ -1429,7 +1456,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     }
     
     TRUE_OR_RETURN((br->ReadUE(&pps->pps_num_subpics_minus1)));
-    u_int tmp_pps_subpic_id = 0;
+    uint32_t tmp_pps_subpic_id = 0;
     for(int i = 0;i <= pps->pps_num_subpics_minus1;i++){
       
       TRUE_OR_RETURN(br->ReadBits(sps->sps_subpic_id_len_minus1, &tmp_pps_subpic_id));
@@ -1440,21 +1467,21 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     TRUE_OR_RETURN(br->ReadBits(2,&pps->pps_log2_ctu_size_minus5));  // 2 bits
     TRUE_OR_RETURN(br->ReadUE(&pps->pps_num_exp_tile_columns_minus1));
     TRUE_OR_RETURN(br->ReadUE(&pps->pps_num_exp_tile_rows_minus1));
-    u_int tmp_pps_tile_column_width_minus1 = 0;
+    uint32_t tmp_pps_tile_column_width_minus1 = 0;
     for( int i = 0; i <= pps->pps_num_exp_tile_columns_minus1; i++ ){
       TRUE_OR_RETURN(br->ReadUE(&tmp_pps_tile_column_width_minus1));
       pps->pps_tile_column_width_minus1.push_back(tmp_pps_tile_column_width_minus1);
     }
-    u_int tmp_pps_tile_row_height_minus1 = 0;
+    uint32_t tmp_pps_tile_row_height_minus1 = 0;
     for( int i = 0; i <= pps->pps_num_exp_tile_rows_minus1; i++ ){
       TRUE_OR_RETURN(br->ReadUE(&tmp_pps_tile_row_height_minus1));
       pps->pps_tile_row_height_minus1.push_back(tmp_pps_tile_row_height_minus1);
     }
-    // not sure
     int CtbSizeY = 1 << (pps->pps_log2_ctu_size_minus5 + 5);
-    int PicWidthInCtbsY = ceil(pps->pps_pic_width_in_luma_samples / CtbSizeY);
-    int PicHeightInCtbsY = ceil(pps->pps_pic_height_in_luma_samples / CtbSizeY);
-    //bckp up forr sps  and slice_header
+    int PicWidthInCtbsY = ceil((float)pps->pps_pic_width_in_luma_samples / CtbSizeY);
+    int PicHeightInCtbsY = ceil((float)pps->pps_pic_height_in_luma_samples / CtbSizeY);
+    // Backup for sps and slice_header
+    pps->CtbSizeY = CtbSizeY;
     pps->CtbSizeY = CtbSizeY;
 
     int remainingWidthInCtbsY = PicWidthInCtbsY;
@@ -1695,11 +1722,15 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   *sps_id = -1;
   std::unique_ptr<H266Sps> sps(new H266Sps);
   // GET from context ???
-  std::unique_ptr<H266Pps> pps(new H266Pps);
+  //std::unique_ptr<H266Pps> pps(new H266Pps);
 
 
   TRUE_OR_RETURN(br->ReadBits(4,&sps->sps_seq_parameter_set_id));
   TRUE_OR_RETURN(br->ReadBits(4,&sps->sps_video_parameter_set_id));
+
+  const H266Vps* vps = active_vpses_[sps->sps_video_parameter_set_id].get();
+
+
   TRUE_OR_RETURN(br->ReadBits(3, &sps->max_sublayers_minus1));
   TRUE_OR_RETURN(br->ReadBits(2, &sps->sps_chroma_format_idc));
   TRUE_OR_RETURN(br->ReadBits(2, &sps->sps_log2_ctu_size_minus5));
@@ -2180,7 +2211,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   *vps_id = -1;
   std::unique_ptr<H266Vps> vps(new H266Vps);
 
-  std::unique_ptr<H266Sps> sps(new H266Sps);
+  //std::unique_ptr<H266Sps> sps(new H266Sps);
 
 
   TRUE_OR_RETURN(br->ReadBits(4, &vps->vps_video_parameter_set_id)); 
