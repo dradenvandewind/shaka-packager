@@ -970,7 +970,7 @@ std::vector<u_int32_t> DeriveTileColumnBoundaries(int NumTileColumns,
     return TileColBdVal;
 }
 
-std::vector<u_int32_t> DeriveCtbToTileColIdx(int PicWidthInCtbsY, 
+std::vector<u_int32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY, 
                                       const std::vector<u_int32_t>& TileColBdVal) {
     
     // create output tab
@@ -990,6 +990,31 @@ std::vector<u_int32_t> DeriveCtbToTileColIdx(int PicWidthInCtbsY,
     
     return ctbToTileColIdx;
 }
+
+
+std::vector<u_int32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY, const std::vector<u_int32_t>& TileColBdVal) {
+    // Le tableau de sortie a une taille PicWidthInCtbsY + 1 car on inclut toutes les positions
+    // de 0 à PicWidthInCtbsY (inclus)
+    std::vector<u_int32_t> ctbToTileColIdx(PicWidthInCtbsY + 1);
+    
+    int tileX = 0; // Index de colonne de tuile courant
+    int NumTileColumns = TileColBdVal.size() - 1; // Nombre réel de colonnes de tuiles
+    
+    // Parcourir toutes les positions CTB horizontales
+    for (int ctbAddrX = 0; ctbAddrX <= PicWidthInCtbsY; ctbAddrX++) {
+        // Si on atteint la boundary de la tuile suivante, passer à la tuile suivante
+        if (tileX < NumTileColumns && ctbAddrX == TileColBdVal[tileX + 1]) {
+            tileX++;
+        }
+        
+        // Assigner l'index de colonne de tuile pour cette position CTB
+        ctbToTileColIdx[ctbAddrX] = tileX;
+    }
+    
+    return ctbToTileColIdx;
+}
+
+
 
 
 H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
@@ -1079,9 +1104,9 @@ PAGE 32
  /****************************************************************************************/
 //todo AddCtbsToSlice func;                        ok
 //NumCtusInSlice[]                                 0k
-//slice_header->subpicHeightLessThanOneTileFlag[]   ok
-//slice_header->ctbToTileColIdx[]
-//slice_header->ctbToTileRowIdx
+//slice_header->subpicHeightLessThanOneTileFlag[]  ok
+//slice_header->ctbToTileColIdx[]                  ok
+//slice_header->ctbToTileRowIdx                    ok
 //slice_header->SubpicHeightInTiles[]
 //slice_header->SubpicWidthInTiles[]
 
@@ -1146,26 +1171,37 @@ slice_header->TileRowBdVal = DeriveTileColumnBoundaries(NumTileRows, slice_heade
 
 /******************* CtbToTileRowBd[ eq 19 page 29 **********************************/
 
-slice_header->CtbToTileRowBd = DeriveCtbToTileColIdx(slice_header->PicWidthInCtbsY, slice_header->TileColBdVal);
+slice_header->CtbToTileRowBd = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileColBdVal);
 
-/*****************************************************/
+/******************************************ctbToTileColIdx eq 18 page 29 *******************************/
+
+slice_header->CtbToTileRowBd = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileRowBdVal);
 
 /**********************ctbToTileColIdx eq 18 page 29 *******************************/
+slice_header->ctbToTileColIdx = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileColBdVal);
+slice_header->ctbToTileRowIdx = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileRowBdVal);
+
+/****************************            ctbToTileColIdx                        *************************/
 
 
-/*****************************************************/
+
+
+
+
+
+
 
 
 /***************** subpicHeightLessThanOneTileFlag  equqtion 20 page 30 ************************************/
 for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
   int leftX = sps->sps_subpic_ctu_top_left_x[i];
   int rightX = leftX + sps->sps_subpic_width_minus1[i];
-  slice_header->SubpicWidthInTiles[ i ] = ctbToTileColIdx[ rightX ] + 1 - ctbToTileColIdx[ leftX ];
+  slice_header->SubpicWidthInTiles[ i ] = slice_header->ctbToTileColIdx[ rightX ] + 1 - slice_header->ctbToTileColIdx[ leftX ];
   int topY = sps->sps_subpic_ctu_top_left_y[i];
   int bottomY = topY + sps->sps_subpic_height_minus1[i];
-  slice_header->SubpicHeightInTiles[i] = ctbToTileRowIdx[bottomY] + 1 - ctbToTileRowIdx[ topY ];
+  slice_header->SubpicHeightInTiles[i] = slice_header->ctbToTileRowIdx[bottomY] + 1 - slice_header->ctbToTileRowIdx[ topY ];
   if( slice_header->SubpicHeightInTiles[ i ] == 1 &&
-      sps->sps_subpic_height_minus1[i] + 1 < slice_header->RowHeightVal[ ctbToTileRowIdx[ topY ] ] ){
+      sps->sps_subpic_height_minus1[i] + 1 < slice_header->RowHeightVal[ slice_header->ctbToTileRowIdx[ topY ] ] ){
         slice_header->subpicHeightLessThanOneTileFlag[ i ] = true;
   }else {
             slice_header->subpicHeightLessThanOneTileFlag[ i ] = false;
@@ -1201,8 +1237,8 @@ for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
           sps->sps_subpic_ctu_top_left_y[ i ],
           sps->sps_subpic_ctu_top_left_y[i] + sps->sps_subpic_height_minus1[ i ] + 1 );
       } else { /* The slice consists of a number of complete tiles covering a rectangular region. */
-        int tileX = ctbToTileColIdx[ sps->sps_subpic_ctu_top_left_x[i] ];
-        int tileY = ctbToTileRowIdx[ sps->sps_subpic_ctu_top_left_y[ i ] ];
+        int tileX = slice_header->ctbToTileColIdx[ sps->sps_subpic_ctu_top_left_x[i] ];
+        int tileY = slice_header->ctbToTileRowIdx[ sps->sps_subpic_ctu_top_left_y[ i ] ];
         for( int j = 0; j < SubpicHeightInTiles[ i ]; j++ ){
           for( int k = 0; k < SubpicWidthInTiles[ i ]; k++ ){
             AddCtbsToSlice(slice_header->CtbAddrInSlice,
