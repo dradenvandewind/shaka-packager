@@ -1204,10 +1204,10 @@ for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
       sps->sps_subpic_height_minus1[i] + 1 < slice_header->RowHeightVal[ slice_header->ctbToTileRowIdx[ topY ] ] ){
         slice_header->subpicHeightLessThanOneTileFlag[ i ] = true;
   }else {
-            slice_header->subpicHeightLessThanOneTileFlag[ i ] = false;
+    slice_header->subpicHeightLessThanOneTileFlag[ i ] = false;
   }
 }
-
+/************************************************************************************************************/
 
 
 /************************************************************************************************************/
@@ -1239,8 +1239,8 @@ for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
       } else { /* The slice consists of a number of complete tiles covering a rectangular region. */
         int tileX = slice_header->ctbToTileColIdx[ sps->sps_subpic_ctu_top_left_x[i] ];
         int tileY = slice_header->ctbToTileRowIdx[ sps->sps_subpic_ctu_top_left_y[ i ] ];
-        for( int j = 0; j < SubpicHeightInTiles[ i ]; j++ ){
-          for( int k = 0; k < SubpicWidthInTiles[ i ]; k++ ){
+        for( int j = 0; j < slice_header->SubpicHeightInTiles[ i ]; j++ ){
+          for( int k = 0; k < slice_header->SubpicWidthInTiles[ i ]; k++ ){
             AddCtbsToSlice(slice_header->CtbAddrInSlice,
                                 slice_header->NumCtusInSlice,
                                 slice_header->PicWidthInCtbsY, slice_header->TileColBdVal[ tileX + k ], slice_header->TileColBdVal[ tileX + k + 1 ], slice_header->TileRowBdVal[ tileY + j ], slice_header->TileRowBdVal[ tileY + j + 1 ] );
