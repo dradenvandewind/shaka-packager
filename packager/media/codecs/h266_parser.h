@@ -1183,7 +1183,12 @@ int PicHeightInCtbsY;
 std::vector<int> NumCtusInSlice;
 
 std::vector <bool> subpicHeightLessThanOneTileFlag;
-std::vector <int> ctbToTileColIdx;
+std::vector <u_int32_t> ctbToTileColIdx;
+std::vector <u_int32_t> ctbToTileRowIdx;
+
+std::vector <u_int32_t> CtbToTileRowBd;
+std::vector <u_int32_t> ctbToTileColIdx;
+
 std::vector <int> SubpicHeightInTiles;
 std::vector <int> SubpicWidthInTiles;
 std::vector <u_int32_t> TileColBdVal;

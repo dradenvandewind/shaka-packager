@@ -970,6 +970,27 @@ std::vector<u_int32_t> DeriveTileColumnBoundaries(int NumTileColumns,
     return TileColBdVal;
 }
 
+std::vector<u_int32_t> DeriveCtbToTileColIdx(int PicWidthInCtbsY, 
+                                      const std::vector<u_int32_t>& TileColBdVal) {
+    
+    // create output tab
+    std::vector<u_int32_t> ctbToTileColIdx(PicWidthInCtbsY + 1);
+    
+    int tileX = 0;
+    int NumTileColumns = TileColBdVal.size() - 1;
+    
+    for (int ctbAddrX = 0; ctbAddrX <= PicWidthInCtbsY; ctbAddrX++) {
+        // check  next tile
+        if (tileX < NumTileColumns && ctbAddrX == TileColBdVal[tileX + 1]) {
+            tileX++;
+        }
+        
+        ctbToTileColIdx[ctbAddrX] = tileX;
+    }
+    
+    return ctbToTileColIdx;
+}
+
 
 H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
                                                 H266SliceHeader* slice_header) {
@@ -1058,8 +1079,9 @@ PAGE 32
  /****************************************************************************************/
 //todo AddCtbsToSlice func;                        ok
 //NumCtusInSlice[]                                 0k
-//slice_header->subpicHeightLessThanOneTileFlag[]
+//slice_header->subpicHeightLessThanOneTileFlag[]   ok
 //slice_header->ctbToTileColIdx[]
+//slice_header->ctbToTileRowIdx
 //slice_header->SubpicHeightInTiles[]
 //slice_header->SubpicWidthInTiles[]
 
@@ -1121,6 +1143,18 @@ if(pps->NumTileRows != local_NumTileRows){
 /*****************************************************/
 
 slice_header->TileRowBdVal = DeriveTileColumnBoundaries(NumTileRows, slice_header->RowHeightVal);
+
+/******************* CtbToTileRowBd[ eq 19 page 29 **********************************/
+
+slice_header->CtbToTileRowBd = DeriveCtbToTileColIdx(slice_header->PicWidthInCtbsY, slice_header->TileColBdVal);
+
+/*****************************************************/
+
+/**********************ctbToTileColIdx eq 18 page 29 *******************************/
+
+
+/*****************************************************/
+
 
 /***************** subpicHeightLessThanOneTileFlag  equqtion 20 page 30 ************************************/
 for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
