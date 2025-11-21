@@ -936,7 +936,7 @@ int findSubpicIndex(int subpicId, const std::vector<int>& SubpicIdVal) {
     if (it != SubpicIdVal.end()) {
         return static_cast<int>(std::distance(SubpicIdVal.begin(), it));
     }
-    return 0; 
+    return -1; 
 }
 
 void AddCtbsToSlice(std::vector<std::vector<int>>& CtbAddrInSlice,
@@ -954,10 +954,10 @@ void AddCtbsToSlice(std::vector<std::vector<int>>& CtbAddrInSlice,
     }
 }
 
-std::vector<u_int32_t> DeriveTileColumnBoundaries(int NumTileColumns, 
-                                           const std::vector<u_int32_t>& ColWidthVal) {
+std::vector<uint32_t> DeriveTileColumnBoundaries(int NumTileColumns, 
+                                           const std::vector<uint32_t>& ColWidthVal) {
     // Create boundary array with size NumTileColumns + 1
-    std::vector<u_int32_t> TileColBdVal(NumTileColumns + 1);
+    std::vector<uint32_t> TileColBdVal(NumTileColumns + 1);
     
     // Initialize first boundary to 0
     TileColBdVal[0] = 0;
@@ -970,8 +970,8 @@ std::vector<u_int32_t> DeriveTileColumnBoundaries(int NumTileColumns,
     return TileColBdVal;
 }
 
-std::vector<u_int32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY, 
-                                      const std::vector<u_int32_t>& TileColBdVal) {
+std::vector<uint32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY, 
+                                      const std::vector<uint32_t>& TileColBdVal) {
     
     // create output tab
     std::vector<u_int32_t> ctbToTileColIdx(PicWidthInCtbsY + 1);
@@ -992,37 +992,25 @@ std::vector<u_int32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY,
 }
 
 
-std::vector<u_int32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY, const std::vector<u_int32_t>& TileColBdVal) {
-    // Le tableau de sortie a une taille PicWidthInCtbsY + 1 car on inclut toutes les positions
-    // de 0 à PicWidthInCtbsY (inclus)
-    std::vector<u_int32_t> ctbToTileColIdx(PicWidthInCtbsY + 1);
-    
-    int tileX = 0; // Index de colonne de tuile courant
-    int NumTileColumns = TileColBdVal.size() - 1; // Nombre réel de colonnes de tuiles
-    
-    // Parcourir toutes les positions CTB horizontales
-    for (int ctbAddrX = 0; ctbAddrX <= PicWidthInCtbsY; ctbAddrX++) {
-        // Si on atteint la boundary de la tuile suivante, passer à la tuile suivante
-        if (tileX < NumTileColumns && ctbAddrX == TileColBdVal[tileX + 1]) {
-            tileX++;
-        }
-        
-        // Assigner l'index de colonne de tuile pour cette position CTB
-        ctbToTileColIdx[ctbAddrX] = tileX;
-    }
-    
-    return ctbToTileColIdx;
-}
-
-
-
-
 H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
                                                 H266SliceHeader* slice_header) {
   LOG(INFO) << "Parsing H.266 Slice Header NALU";
   //7.3.2.14 Slice layer RBSP syntax
-  std::unique_ptr<H266Sps> sps(new H266Sps);
-  std::unique_ptr<H266Pps> pps(new H266Pps);
+  //std::unique_ptr<H266Sps> sps(new H266Sps);
+  //std::unique_ptr<H266Pps> pps(new H266Pps);
+  const H266Sps* sps = GetActiveSPS();  // À implémenter
+  const H266Pps* pps = GetActivePPS();  // À implémenter
+
+  if (!sps) {
+    LOG(ERROR) << "No active SPS found";
+    return kInvalidStream;
+}
+if (!pps) {
+    LOG(ERROR) << "No active PPS found";
+    return kInvalidStream;
+}
+
+
 
   //need extract 
 /*   sh_slice_type 
@@ -1031,6 +1019,9 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
   to calcultate  NumRefIdxActive[  equation 139 page 157
   Weight Predic  func
  */
+
+ const H266Sps* sps = GetActiveSPS();  // À implémenter
+ const H266Pps* pps = GetActivePPS();  // À implémenter
 
 
 
@@ -1088,6 +1079,10 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
 
   if(slice_header->sh_subpic_id){
         CurrSubpicIdx = findSubpicIndex(slice_header->sh_subpic_id,slice_header->SubpicIdVal);
+        if(CurrSubpicIdx == -1) {
+            LOG(ERROR) << "Subpic ID " << slice_header->sh_subpic_id << " not found in SubpicIdVal";
+            return kInvalidStream;
+        }
   }else{
     CurrSubpicIdx = 0;
   }
@@ -1172,6 +1167,7 @@ slice_header->TileRowBdVal = DeriveTileColumnBoundaries(NumTileRows, slice_heade
 /******************* CtbToTileRowBd[ eq 19 page 29 **********************************/
 
 slice_header->CtbToTileRowBd = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileColBdVal);
+
 
 /******************************************ctbToTileColIdx eq 18 page 29 *******************************/
 
@@ -1270,6 +1266,14 @@ for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
     if( slice_header->sliceWidthInTiles[ i ] == 1 && slice_header->sliceHeightInTiles[ i ] == 1 ) {
 
       //eq 21 page 31   no sure to have need all variables for my issue
+      if( pps->pps_num_exp_slices_in_tile[i] == 0 ) {
+
+      } else {
+
+      }
+
+
+
     }
 
 
@@ -2236,7 +2240,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
             vps->vps_num_output_layer_sets_minus2 = tmp_vps_num_output_layer_sets_minus2;
             bool tmp_vps_ols_output_layer_flag = false;
             for( int i = 1; i <= vps->vps_num_output_layer_sets_minus2 + 1; i ++ ){
-              for( u_int32_t j = 0; j <= vps->vps_max_layers_minus1; j++ ){
+              for( uint32_t j = 0; j <= vps->vps_max_layers_minus1; j++ ){
                 TRUE_OR_RETURN(br->ReadBool(&tmp_vps_ols_output_layer_flag));
                 vps->vps_ols_output_layer_flag[i][j] = tmp_vps_ols_output_layer_flag;
               }
