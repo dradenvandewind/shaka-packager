@@ -1168,6 +1168,9 @@ struct H266SliceHeader {
   int sh_beta_offset_div2 = 0;
   int sh_tc_offset_div2 = 0;
 
+  int sh_luma_beta_offset_div2 =0;
+  int sh_luma_tc_offset_div2 = 0;
+
   int sh_cb_beta_offset_div2 = 0;
   int sh_cb_tc_offset_div2 = 0;
   int sh_cr_beta_offset_div2 = 0;

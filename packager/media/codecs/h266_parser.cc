@@ -1458,6 +1458,58 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
       TRUE_OR_RETURN(br->ReadSE(&tmp_sh_joint_cbcr_qp_offset));
       slice_header->sh_joint_cbcr_qp_offset = tmp_sh_joint_cbcr_qp_offset;
     }
+    if( pps->pps_cu_chroma_qp_offset_list_enabled_flag ){
+      bool tmp_sh_cu_chroma_qp_offset_enabled_flag = false;
+      TRUE_OR_RETURN(br->ReadBool(&tmp_sh_cu_chroma_qp_offset_enabled_flag));
+      slice_header->sh_cu_chroma_qp_offset_enabled_flag = tmp_sh_cu_chroma_qp_offset_enabled_flag;
+    }
+    if( sps->sps_sao_enabled_flag && !pps->pps_sao_info_in_ph_flag ) {
+      bool tmp_sh_sao_luma_used_flag = false;
+      TRUE_OR_RETURN(br->ReadBool(&tmp_sh_sao_luma_used_flag));
+      slice_header->sh_sao_luma_used_flag = tmp_sh_sao_luma_used_flag;
+      if( sps->sps_chroma_format_idc != 0 ){
+        bool tmp_sh_sao_chroma_used_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_sh_sao_chroma_used_flag));
+        slice_header->sh_sao_chroma_used_flag = tmp_sh_sao_chroma_used_flag;
+      }  
+
+    }
+    if( pps->pps_deblocking_filter_override_enabled_flag && !pps->pps_dbf_info_in_ph_flag ){
+      bool tmp_sh_deblocking_params_present_flag = 0;
+      TRUE_OR_RETURN(br->ReadBool(&tmp_sh_deblocking_params_present_flag));
+      slice_header->sh_deblocking_params_present_flag = tmp_sh_deblocking_params_present_flag;
+      if( slice_header->sh_deblocking_params_present_flag ) {
+        if( !pps->pps_deblocking_filter_disabled_flag ){
+          bool tmp_sh_deblocking_filter_disabled_flag = false;
+          TRUE_OR_RETURN(br->ReadBool(&tmp_sh_deblocking_filter_disabled_flag));
+          slice_header->sh_deblocking_filter_disabled_flag = tmp_sh_deblocking_filter_disabled_flag;
+        }
+        if( !slice_header->sh_deblocking_filter_disabled_flag ) {
+          int tmp_sh_luma_beta_offset_div2 = 0;
+          int tmp_sh_luma_tc_offset_div2 = 0;
+          TRUE_OR_RETURN(br->ReadSE(&tmp_sh_luma_beta_offset_div2));
+          TRUE_OR_RETURN(br->ReadSE(&tmp_sh_luma_tc_offset_div2));
+          slice_header->sh_luma_beta_offset_div2 = tmp_sh_luma_beta_offset_div2;
+          slice_header->sh_luma_tc_offset_div2 = tmp_sh_luma_tc_offset_div2;
+          if( pps->pps_chroma_tool_offsets_present_flag ) {
+            int tmp_sh_cb_beta_offset_div2;
+            int tmp_sh_cb_beta_offset_div2;
+            int tmp_sh_cb_beta_offset_div2;
+            int tmp_sh_cr_tc_offset_div2;
+            TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cb_beta_offset_div2));
+            TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cb_beta_offset_div2));
+            TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cb_beta_offset_div2));
+            TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cr_tc_offset_div2));
+            slice_header->sh_cb_beta_offset_div2 = tmp_sh_cb_beta_offset_div2;
+            slice_header->sh_cb_beta_offset_div2 = tmp_sh_cb_beta_offset_div2;
+            slice_header->sh_cb_beta_offset_div2 = tmp_sh_cb_beta_offset_div2;
+            slice_header->sh_cr_tc_offset_div2 = tmp_sh_cr_tc_offset_div2;
+          }
+        }
+      }
+    }
+
+
 
 
 
