@@ -15,6 +15,7 @@
 
 #include <packager/macros/classes.h>
 #include <packager/media/codecs/h26x_bit_reader.h>
+#include <packager/media/codecs/nalu_reader.h>
 
 namespace shaka {
 namespace media {
@@ -1144,6 +1145,9 @@ struct H266SliceHeader {
 
   bool sh_lmcs_used_flag = false;
   bool sh_explicit_scaling_list_used_flag = false;
+
+  std::optional <H266ReferencePicList> rpl;
+
   bool sh_num_ref_idx_active_override_flag = false;
 
   std::vector<int> sh_num_ref_idx_active_minus1; 

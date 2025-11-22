@@ -1379,18 +1379,41 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
           TRUE_OR_RETURN(br->ReadBits(3, &tmp_sh_alf_cc_cr_aps_id));
           slice_header->sh_alf_cc_cr_aps_id = tmp_sh_alf_cc_cr_aps_id;
         }
+      }
+    }
+  }
+  if( slice_header->phs->ph_lmcs_enabled_flag && !slice_header->sh_picture_header_in_slice_header_flag ){
+    bool tmp_sh_lmcs_used_flag = false;
+    TRUE_OR_RETURN(br->ReadBool( &tmp_sh_lmcs_used_flag));
+    slice_header->sh_lmcs_used_flag = tmp_sh_lmcs_used_flag;
+  }
+  if( slice_header->phs->ph_explicit_scaling_list_enabled_flag && !slice_header->sh_picture_header_in_slice_header_flag ){
+     bool tmp_sh_explicit_scaling_list_used_flag = false;
+    TRUE_OR_RETURN(br->ReadBool( &tmp_sh_explicit_scaling_list_used_flag));
+     slice_header->sh_explicit_scaling_list_used_flag = tmp_sh_explicit_scaling_list_used_flag;
+  }
+  if( !pps->pps_rpl_info_in_ph_flag && ( ( nalu.type() != Nalu::H266_IDR_W_RADL && nalu.type() != Nalu::H266_IDR_N_LP ) || sps->sps_idr_rpl_present_flag ) ){
+    slice_header->rpl.emplace();
 
+    //ref_pic_lists( )
+    Ref_Pic_List(*sps, *pps, br, &slice_header->rpl.value());
+  }
+  if( ( slice_header->sh_slice_type != kVvcISlice && 
+    slice_header->rpl->num_ref_entries[ 0 ][ slice_header->rpl->RplsIdx[ 0 ] ] > 1 ) ||
+     ( slice_header->sh_slice_type == kVvcBSlice && 
+      slice_header->rpl->num_ref_entries[ 1 ][ slice_header->rpl->RplsIdx[ 1 ] ] > 1 ) ) {
+      bool tmp_sh_num_ref_idx_active_override_flag = false;
+      TRUE_OR_RETURN(br->ReadBool( &tmp_sh_num_ref_idx_active_override_flag));
+      slice_header->sh_num_ref_idx_active_override_flag = tmp_sh_num_ref_idx_active_override_flag;
+      if(slice_header->sh_num_ref_idx_active_override_flag ){
 
-
-
-
-
+        
       }
 
 
-    }
 
 
+  
   }
   
 
