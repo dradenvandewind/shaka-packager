@@ -381,6 +381,7 @@ struct H266Pps {
 
 
 
+
 };
 // Dans h266_parser.h, ajouter :
 struct GeneralTimingHrdParameters {
@@ -1187,7 +1188,9 @@ struct H266SliceHeader {
 
 int sh_entry_offset_len_minus1 = 0;
 std::vector<uint32_t> sh_entry_point_offset_minus1; //256 not sure need check
-std::vector <int> CurrSubpicIdx;
+//std::vector <int> CurrSubpicIdx;
+int CurrSubpicIdx = 0;
+
 std::vector<int> SubpicIdVal;
 std::vector<int> NumSlicesInSubpic;
 std::vector<int> SubpicLevelSliceIdx;
@@ -1219,6 +1222,11 @@ std::vector <uint32_t> ColWidthVal;
 std::vector <uint32_t> RowHeightVal;
 
 int NumExtraShBits = 0;
+int NumCtusInCurrSlice = 0;
+
+std::vector <uint32_t> CtbAddrInCurrSlice;
+std::vector <uint32_t> CtbToTileColBd;
+std::vector <uint32_t> ctbToTileColIdx;
 
 
 
