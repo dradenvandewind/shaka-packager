@@ -1708,20 +1708,20 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
 
   *pps_id = -1;
-  /* std::unique_ptr<H266Pps> pps(new H266Pps);
-  std::unique_ptr<H266Sps> sps(new H266Sps); */
+   std::unique_ptr<H266Pps> pps(new H266Pps);
+  /*std::unique_ptr<H266Sps> sps(new H266Sps); */
 
   //pic_parameter_set_rbsp( ) 7.3.2.5
 
   TRUE_OR_RETURN(br->ReadBits(6, &pps->pic_parameter_set_id));  // 6 bits 
   TRUE_OR_RETURN(br->ReadBits(4,&pps->seq_parameter_set_id));  // 4 bits
 
-  const H266Pps* pps = GetPps(pps->pic_parameter_set_id);
+  /* const H266Pps* pps = GetPps(pps->pic_parameter_set_id);
   TRUE_OR_RETURN(pps);
 
   const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
   TRUE_OR_RETURN(sps);
-
+ */
 
 
 
@@ -2953,6 +2953,10 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   rbsp_trailing_bits(br);
   DisplayH266VPS(pps);
   // This will replace any existing VPS instance.
+ 
+
+  ///vps->vps_max_layers_minus1 = 0;
+
   *vps_id = vps->vps_video_parameter_set_id;
   active_vpses_[*vps_id] = std::move(vps);
 
@@ -3099,7 +3103,6 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
       phs->rpl.emplace();
 
       Ref_Pic_List(sps,pps,br,phs->rpl.value());
-
       //ref_pic_lists( )
     }
     if( sps->sps_partition_constraints_override_enabled_flag ){
@@ -3286,9 +3289,9 @@ const H266Sps* H266Parser::GetSps(int sps_id) {
 }
 
 const H266Vps* H266Parser::GetVps(int vps_id) {
-  //return active_vpses_[vps_id].get();
-  auto it = active_vpses_.find(vps_id);
-  return it != active_vpses_.end() ? it->second.get() : nullptr;
+  /return active_vpses_[vps_id].get();
+  //auto it = active_vpses_.find(vps_id);
+  //return it != active_vpses_.end() ? it->second.get() : nullptr;
 }
 
 bool H266Parser::GetVpsTimingInfo(int vps_id, uint32_t* num_units_in_tick, 
