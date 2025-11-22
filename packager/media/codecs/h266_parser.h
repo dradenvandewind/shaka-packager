@@ -1179,12 +1179,11 @@ struct H266SliceHeader {
 
 int sh_entry_offset_len_minus1 = 0;
 std::vector<uint32_t> sh_entry_point_offset_minus1; //256 not sure need check
-std::vector <int> CurrSubpicIdx;
+int CurrSubpicIdx;
 std::vector<int> SubpicIdVal;
 std::vector<int> NumSlicesInSubpic;
 std::vector<int> SubpicLevelSliceIdx;
 std::vector<int> SubpicIdxForSlice;
-std::vector<int> NumSlicesInSubpic;
 std::vector<std::vector<int>> CtbAddrInSlice;
 int PicWidthInCtbsY;
 int PicHeightInCtbsY;
@@ -1208,8 +1207,16 @@ std::vector <int> NumSlicesInTile;
 
 std::vector <uint32_t> ColWidthVal;
 std::vector <uint32_t> RowHeightVal;
+int NumExtraShBits = 0;
+int NumEntryPoints = 0;
+int NumCtusInCurrSlice = 0;
+std::optional<H266ReferencePicList> rpl;
 
-
+std::vector<int> CtbAddrInCurrSlice;
+std::vector<int> CtbToTileRowBd;
+std::vector<int> CtbToTileColBd;
+int sh_luma_beta_offset_div2 = 0;
+int sh_luma_tc_offset_div2 = 0;
 
 };
  

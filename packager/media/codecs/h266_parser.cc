@@ -1310,7 +1310,7 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
    
 
 
-   if( (pps->pps_rect_slice_flag && slice_header->NumSlicesInSubpic[ slice_header->CurrSubpicIdx ] > 1 ) || ( !pps->pps_rect_slice_flag && pps->NumTilesInPic > 1 ) ){
+   if( (pps->pps_rect_slice_flag && slice_header->NumSlicesInSubpic[slice_header->CurrSubpicIdx ] > 1 ) || ( !pps->pps_rect_slice_flag && pps->NumTilesInPic > 1 ) ){
    int len_sh_slice_address = ceil(log2(pps->NumTilesInPic));
    int tmp_slice_address = 0;  
    TRUE_OR_RETURN(br->ReadBits(len_sh_slice_address, &tmp_slice_address));
@@ -1354,9 +1354,9 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
         bool tmp_sh_alf_cb_enabled_flag = false;
         bool tmp_sh_alf_cr_enabled_flag = false;
         TRUE_OR_RETURN(br->ReadBool( &tmp_sh_alf_cb_enabled_flag));
-        TRUE_OR_RETURN(br->ReadBool( &tmp_sh_alf_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool( &tmp_sh_alf_cr_enabled_flag));
         slice_header->sh_alf_cb_enabled_flag = tmp_sh_alf_cb_enabled_flag;
-        slice_header->sh_alf_enabled_flag = tmp_sh_alf_enabled_flag;
+        slice_header->sh_alf_cr_enabled_flag = tmp_sh_alf_cr_enabled_flag;
       }
       if( slice_header->sh_alf_cb_enabled_flag || slice_header->sh_alf_cr_enabled_flag ){
         int tmp_sh_alf_aps_id_chroma = 0;
@@ -1397,7 +1397,7 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
     slice_header->rpl.emplace();
 
     //ref_pic_lists( )
-    Ref_Pic_List(*sps, *pps, br, &slice_header->rpl.value());
+    Ref_Pic_List(*sps, *pps, br, slice_header->rpl.value());
   }
   if( ( slice_header->sh_slice_type != kVvcISlice && 
     slice_header->rpl->num_ref_entries[ 0 ][ slice_header->rpl->RplsIdx[ 0 ] ] > 1 ) ||
@@ -1585,7 +1585,7 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
        //CtbAddrInCurrSlice need evaluate   OK 
        // CtbAddrInCurrSlice need evalate  OK 
        //CtbToTileColBd    ok
-      int NumEntryPoints = 0;
+      //int NumEntryPoints = 0;
 
       if( sps->sps_entry_point_offsets_present_flag ){
 
@@ -1824,7 +1824,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     pps->NumTilesInPic = NumTilesInPic;
     /************************************************** */
 
-    if( NumTilesInPic > 1 ) {
+    if( pps->NumTilesInPic > 1 ) {
         TRUE_OR_RETURN(br->ReadBool(&pps->pps_loop_filter_across_tiles_enabled_flag));
         TRUE_OR_RETURN(br->ReadBool(&pps->pps_rect_slice_flag));
     }
@@ -1881,7 +1881,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
           pps->pps_num_exp_slices_in_tile.push_back(tmp_pps_num_exp_slices_in_tile);
           // not sure how to populate this variable
           std::vector<uint32_t> NumSlicesInTile;
-          NumSlicesInTile.assign(NumTilesInPic, 0);
+          NumSlicesInTile.assign(pps->NumTilesInPic, 0);
           for (uint32_t sliceIdx = 0; sliceIdx < SliceTopLeftTileIdx.size(); sliceIdx++) {
             uint32_t tileIdx = SliceTopLeftTileIdx[sliceIdx];
             if (tileIdx < NumSlicesInTile.size()) {
@@ -2009,7 +2009,6 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   return kOk;
 }
 #endif 
-//H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
 H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   DCHECK_EQ(Nalu::H266_SPS_NUT, nalu.type());
