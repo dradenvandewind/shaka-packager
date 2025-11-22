@@ -20,7 +20,7 @@ namespace shaka {
 namespace media {
 
 class Nalu;
-
+//Table 9 – Name association to sh_slice_type
 enum H266SliceType { kVvcBSlice = 0, kVvcPSlice = 1, kVvcISlice = 2 };
 
 const int kVvcMaxRefPicSetCount = 16;
@@ -1125,7 +1125,8 @@ struct H266SliceHeader {
 
   int sh_subpic_id = 0;
   int sh_slice_address = 0;
-  std::vector<int> sh_extra_bits; //256 not sure need check
+
+  std::vector<bool> sh_extra_bits; //not sure need check  bool or not bool
   int sh_num_tiles_in_slice_minus1 = 0;
   int sh_slice_type = 0;
   bool sh_no_output_of_prior_pics_flag = false;
@@ -1210,6 +1211,8 @@ std::vector <int> NumSlicesInTile;
 std::vector <uint32_t> ColWidthVal;
 std::vector <uint32_t> RowHeightVal;
 
+int NumExtraShBits = 0;
+
 
 
 };
@@ -1241,9 +1244,7 @@ class H266Parser {
 
   /// Parses a video slice header.
   Result ParseSliceHeader(const Nalu& nalu, H266SliceHeader* slice_header);
-  Result ParseSliceHeader(const Nalu& nalu,
-                          H266SliceHeader* slice_header,
-                          const H266PictureHeader* picture_header);
+
 
   /// Parses a slice header with picture header context
   /* 

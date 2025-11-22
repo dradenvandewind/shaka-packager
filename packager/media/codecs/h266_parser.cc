@@ -1009,25 +1009,6 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
  */
   
 
-  /* if (!sps) {
-    LOG(ERROR) << "No active SPS found";
-    return kInvalidStream;
-}
-if (!pps) {
-    LOG(ERROR) << "No active PPS found";
-    return kInvalidStream;
-}
- */
-
-
-  //need extract 
-/*   sh_slice_type 
-  sh_num_ref_idx_active_override_flag 
-  sh_num_ref_idx_active_minus1
-  to calcultate  NumRefIdxActive[  equation 139 page 157
-  Weight Predic  func
- */
-
    DCHECK(nalu.is_video_slice());
   *slice_header = H266SliceHeader();
 
@@ -1128,6 +1109,8 @@ PAGE 32
 //slice_header->SubpicHeightInTiles[]
 //slice_header->SubpicWidthInTiles[]
 
+//CtbAddrInSlice                                  0k
+
 
 //slice_header->TileColBdVal[]   need ColWidthVal[  ok 
 //slice_header->TileRowBdVal[]  need RowHeightVal[ ok 
@@ -1199,16 +1182,6 @@ slice_header->CtbToTileRowBd = DeriveCtbToTileColRowIdx(slice_header->PicWidthIn
 /**********************ctbToTileColIdx eq 18 page 29 *******************************/
 slice_header->ctbToTileColIdx = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileColBdVal);
 slice_header->ctbToTileRowIdx = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileRowBdVal);
-
-/****************************            ctbToTileColIdx                        *************************/
-
-
-
-
-
-
-
-
 
 
 /***************** subpicHeightLessThanOneTileFlag  equqtion 20 page 30 ************************************/
@@ -1295,8 +1268,6 @@ for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
 
       }
 
-
-
     }
 
 
@@ -1306,14 +1277,8 @@ for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
 
 
 }
-
-
-
-
-
  /****************************************************************************************/
 
- //need populate CtbAddrInSlice 
 int posX = 0;
 int posY = 0;
 for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
@@ -1331,13 +1296,104 @@ for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
     }
   }
 }
+/**********************NumExtraShBits   eq 42 page 107   need funct later */
+slice_header->NumExtraShBits = 0;
+for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
+   if( sps->sps_extra_sh_bit_present_flag[ i ] ){
+    slice_header->NumExtraShBits += 1;
+   }
+}
+/********************************************** */
+
 
    
 
 
-/*   if( (pps->pps_rect_slice_flag && NumSlicesInSubpic[ CurrSubpicIdx ] > 1 ) || ( !pps->pps_rect_slice_flag && NumTilesInPic > 1 ) ){
+   if( (pps->pps_rect_slice_flag && slice_header->NumSlicesInSubpic[ CurrSubpicIdx ] > 1 ) || ( !pps->pps_rect_slice_flag && pps->NumTilesInPic > 1 ) ){
+   int len_sh_slice_address = ceil(log2(pps->NumTilesInPic));
+   int tmp_slice_address = 0;  
+   TRUE_OR_RETURN(br->ReadBits(len_sh_slice_address, &tmp_slice_address));
+   slice_header->sh_slice_address = tmp_slice_address;
+  } 
+  for( int i = 0; i < slice_header->NumExtraShBits; i++ ){
+    bool tmp_sh_extra_bits = false;
+    TRUE_OR_RETURN(br->ReadBool( &tmp_sh_extra_bits));
+    slice_header->sh_extra_bits.push_back(tmp_sh_extra_bits);
+  }
 
-  } */
+  if( !pps->pps_rect_slice_flag && pps->NumTilesInPic - slice_header->sh_slice_address > 1 ){
+    int tmp_sh_num_tiles_in_slice_minus1 = 0;
+    TRUE_OR_RETURN(br->ReadUE(&tmp_sh_num_tiles_in_slice_minus1));
+    slice_header->sh_num_tiles_in_slice_minus1 = tmp_sh_num_tiles_in_slice_minus1;
+  }
+  if( slice_header->phs->ph_inter_slice_allowed_flag ){
+    int tmp_sh_slice_type = 0;
+    TRUE_OR_RETURN(br->ReadUE(&tmp_sh_slice_type));
+    slice_header->sh_slice_type = tmp_sh_slice_type;
+  }
+  if( nalu.type() == Nalu::H266_IDR_W_RADL || nalu.type() == Nalu::H266_IDR_N_LP || nalu.type() == Nalu::H266_CRA_NUT || nalu.type() == Nalu::H266_GDR_NUT ){
+    bool tmp_sh_no_output_of_prior_pics_flag;
+    TRUE_OR_RETURN(br->ReadBool( &tmp_sh_no_output_of_prior_pics_flag));
+    slice_header->sh_no_output_of_prior_pics_flag = tmp_sh_no_output_of_prior_pics_flag;
+  }
+  if( sps->sps_alf_enabled_flag && !pps->pps_alf_info_in_ph_flag ) {
+    bool tmp_sh_alf_enabled_flag = false;   
+    TRUE_OR_RETURN(br->ReadBool( &tmp_sh_alf_enabled_flag));
+    slice_header->sh_alf_enabled_flag = tmp_sh_alf_enabled_flag;
+    if(slice_header->sh_alf_enabled_flag){
+      int tmp_sh_num_alf_aps_ids_luma = 0;
+      TRUE_OR_RETURN(br->ReadBits(3, &tmp_sh_num_alf_aps_ids_luma));
+      slice_header->sh_num_alf_aps_ids_luma = tmp_sh_num_alf_aps_ids_luma;
+      for( int i = 0; i < slice_header->sh_num_alf_aps_ids_luma; i++ ){
+        int tmp_sh_alf_aps_id_luma = 0;
+        TRUE_OR_RETURN(br->ReadBits(3, &tmp_sh_alf_aps_id_luma));
+        slice_header->sh_alf_aps_id_luma.push_back(tmp_sh_alf_aps_id_luma);
+      }
+      if( sps->sps_chroma_format_idc != 0 ) {
+        bool tmp_sh_alf_cb_enabled_flag = false;
+        bool tmp_sh_alf_cr_enabled_flag = false;
+        TRUE_OR_RETURN(br->ReadBool( &tmp_sh_alf_cb_enabled_flag));
+        TRUE_OR_RETURN(br->ReadBool( &tmp_sh_alf_enabled_flag));
+        slice_header->sh_alf_cb_enabled_flag = tmp_sh_alf_cb_enabled_flag;
+        slice_header->sh_alf_enabled_flag = tmp_sh_alf_enabled_flag;
+      }
+      if( slice_header->sh_alf_cb_enabled_flag || slice_header->sh_alf_cr_enabled_flag ){
+        int tmp_sh_alf_aps_id_chroma = 0;
+        TRUE_OR_RETURN(br->ReadBits(3, &tmp_sh_alf_aps_id_chroma));
+        slice_header->sh_alf_aps_id_chroma = tmp_sh_alf_aps_id_chroma;
+      }
+      if( sps->sps_ccalf_enabled_flag ) {
+        bool tmp_sh_alf_cc_cb_enabled_flag = false;
+        TRUE_OR_RETURN(br->ReadBool( &tmp_sh_alf_cc_cb_enabled_flag));
+        slice_header->sh_alf_cc_cb_enabled_flag = tmp_sh_alf_cc_cb_enabled_flag;
+        if(slice_header->sh_alf_cc_cb_enabled_flag){
+          int tmp_sh_alf_cc_cb_aps_id = 0;
+          TRUE_OR_RETURN(br->ReadBits(3, &tmp_sh_alf_cc_cb_aps_id));
+          slice_header->sh_alf_cc_cb_aps_id = tmp_sh_alf_cc_cb_aps_id;
+        }
+        bool tmp_sh_alf_cc_cr_enabled_flag = false;
+        TRUE_OR_RETURN(br->ReadBool( &tmp_sh_alf_cc_cr_enabled_flag));
+        slice_header->sh_alf_cc_cr_enabled_flag = tmp_sh_alf_cc_cr_enabled_flag;
+        if(slice_header->sh_alf_cc_cr_enabled_flag){
+          int tmp_sh_alf_cc_cr_aps_id = 0;
+          TRUE_OR_RETURN(br->ReadBits(3, &tmp_sh_alf_cc_cr_aps_id));
+          slice_header->sh_alf_cc_cr_aps_id = tmp_sh_alf_cc_cr_aps_id;
+        }
+
+
+
+
+
+
+      }
+
+
+    }
+
+
+  }
+  
+
 
 
 
