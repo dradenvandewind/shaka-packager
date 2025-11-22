@@ -15,13 +15,12 @@
 
 #include <packager/macros/classes.h>
 #include <packager/media/codecs/h26x_bit_reader.h>
-#include <packager/media/codecs/nalu_reader.h>
 
 namespace shaka {
 namespace media {
 
 class Nalu;
-//Table 9 – Name association to sh_slice_type
+
 enum H266SliceType { kVvcBSlice = 0, kVvcPSlice = 1, kVvcISlice = 2 };
 
 const int kVvcMaxRefPicSetCount = 16;
@@ -378,7 +377,6 @@ struct H266Pps {
   uint32_t NumTileColumns = 0;  
   uint32_t NumTileRows = 0;
   uint32_t NumTilesInPic = 0;
-
 
 
 
@@ -1127,8 +1125,7 @@ struct H266SliceHeader {
 
   int sh_subpic_id = 0;
   int sh_slice_address = 0;
-
-  std::vector<bool> sh_extra_bits; //not sure need check  bool or not bool
+  std::vector<int> sh_extra_bits; //256 not sure need check
   int sh_num_tiles_in_slice_minus1 = 0;
   int sh_slice_type = 0;
   bool sh_no_output_of_prior_pics_flag = false;
@@ -1146,9 +1143,6 @@ struct H266SliceHeader {
 
   bool sh_lmcs_used_flag = false;
   bool sh_explicit_scaling_list_used_flag = false;
-
-  std::optional <H266ReferencePicList> rpl;
-
   bool sh_num_ref_idx_active_override_flag = false;
 
   std::vector<int> sh_num_ref_idx_active_minus1; 
@@ -1169,9 +1163,6 @@ struct H266SliceHeader {
   int sh_beta_offset_div2 = 0;
   int sh_tc_offset_div2 = 0;
 
-  int sh_luma_beta_offset_div2 =0;
-  int sh_luma_tc_offset_div2 = 0;
-
   int sh_cb_beta_offset_div2 = 0;
   int sh_cb_tc_offset_div2 = 0;
   int sh_cr_beta_offset_div2 = 0;
@@ -1188,9 +1179,7 @@ struct H266SliceHeader {
 
 int sh_entry_offset_len_minus1 = 0;
 std::vector<uint32_t> sh_entry_point_offset_minus1; //256 not sure need check
-//std::vector <int> CurrSubpicIdx;
-int CurrSubpicIdx = 0;
-
+std::vector <int> CurrSubpicIdx;
 std::vector<int> SubpicIdVal;
 std::vector<int> NumSlicesInSubpic;
 std::vector<int> SubpicLevelSliceIdx;
@@ -1199,14 +1188,13 @@ std::vector<int> NumSlicesInSubpic;
 std::vector<std::vector<int>> CtbAddrInSlice;
 int PicWidthInCtbsY;
 int PicHeightInCtbsY;
-std::vector<int> NumCtusInSlice;
 
 std::vector <bool> subpicHeightLessThanOneTileFlag;
 std::vector <uint32_t> ctbToTileColIdx;
 std::vector <uint32_t> ctbToTileRowIdx;
 
-std::vector <uint32_t> CtbToTileRowBd;
-std::vector <uint32_t> ctbToTileColIdx;
+
+
 
 std::vector <int> SubpicHeightInTiles;
 std::vector <int> SubpicWidthInTiles;
@@ -1220,13 +1208,6 @@ std::vector <int> NumSlicesInTile;
 
 std::vector <uint32_t> ColWidthVal;
 std::vector <uint32_t> RowHeightVal;
-
-int NumExtraShBits = 0;
-int NumCtusInCurrSlice = 0;
-
-std::vector <uint32_t> CtbAddrInCurrSlice;
-std::vector <uint32_t> CtbToTileColBd;
-std::vector <uint32_t> ctbToTileColIdx;
 
 
 
