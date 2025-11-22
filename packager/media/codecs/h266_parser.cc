@@ -1507,6 +1507,61 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
           }
         }
       }
+      if( sps->sps_dep_quant_enabled_flag ){
+        bool tmp_sh_dep_quant_used_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_sh_dep_quant_used_flag));
+        slice_header->sh_dep_quant_used_flag = tmp_sh_dep_quant_used_flag;
+      }
+      if( sps->sps_sign_data_hiding_enabled_flag && !slice_header->sh_dep_quant_used_flag ){
+         bool tmp_sh_sign_data_hiding_used_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_sh_sign_data_hiding_used_flag));
+         slice_header->sh_sign_data_hiding_used_flag = tmp_sh_sign_data_hiding_used_flag;
+      }
+      if( sps->sps_transform_skip_enabled_flag && !slice_header->sh_dep_quant_used_flag && !slice_header->sh_sign_data_hiding_used_flag ){
+        bool tmp_sh_ts_residual_coding_disabled_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_sh_ts_residual_coding_disabled_flag));
+        slice_header->sh_ts_residual_coding_disabled_flag = tmp_sh_ts_residual_coding_disabled_flag;
+      }
+      if( !slice_header->sh_ts_residual_coding_disabled_flag && sps->sps_ts_residual_coding_rice_present_in_sh_flag ){
+        int tmp_sh_ts_residual_coding_rice_idx_minus1 = 0;
+        TRUE_OR_RETURN(br->ReadBits(3,&tmp_sh_ts_residual_coding_rice_idx_minus1));
+        slice_header->sh_ts_residual_coding_rice_idx_minus1 = tmp_sh_ts_residual_coding_rice_idx_minus1;        
+      }
+      if( sps->sps_reverse_last_sig_coeff_enabled_flag ){
+        bool tmp_sh_reverse_last_sig_coeff_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_sh_reverse_last_sig_coeff_flag));
+        slice_header->sh_reverse_last_sig_coeff_flag = tmp_sh_reverse_last_sig_coeff_flag;
+      }
+      if( pps->pps_slice_header_extension_present_flag ) {
+        int tmp_sh_slice_header_extension_length = 0;
+        TRUE_OR_RETURN(br->ReadUE(&tmp_sh_slice_header_extension_length));
+        slice_header->sh_slice_header_extension_length = tmp_sh_slice_header_extension_length;
+        int tmp_sh_slice_header_extension_data_byte = 0;
+        for(int i = 0; i < slice_header->sh_slice_header_extension_length; i++){
+          TRUE_OR_RETURN(br->ReadBits(8,&tmp_sh_slice_header_extension_data_byte));
+          slice_header->sh_slice_header_extension_data_byte.push_back(tmp_sh_slice_header_extension_data_byte);
+        }
+      }
+      if( NumEntryPoints > 0 ) {
+        int tmp_sh_entry_offset_len_minus1 = 0;
+        TRUE_OR_RETURN(br->ReadUE(&tmp_sh_entry_offset_len_minus1));
+        slice_header->sh_entry_offset_len_minus1 = tmp_sh_entry_offset_len_minus1;
+        for( int i = 0; i < NumEntryPoints; i++ ){
+          int len_sh_entry_point_offset_minus1 = 0;
+          int tmp_sh_entry_point_offset_minus1 = 0;
+
+          TRUE_OR_RETURN(br->ReadBits(len_sh_entry_point_offset_minus1,&tmp_sh_entry_point_offset_minus1));
+          slice_header->sh_entry_point_offset_minus1.push_back(tmp_sh_entry_point_offset_minus1);
+        }
+
+      }
+
+
+
+
+
+
+
     }
 
 
