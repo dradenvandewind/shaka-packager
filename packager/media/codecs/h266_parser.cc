@@ -1406,15 +1406,65 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
       TRUE_OR_RETURN(br->ReadBool( &tmp_sh_num_ref_idx_active_override_flag));
       slice_header->sh_num_ref_idx_active_override_flag = tmp_sh_num_ref_idx_active_override_flag;
       if(slice_header->sh_num_ref_idx_active_override_flag ){
-
-        
-      }
-
-
-
-
-  
+        int num_ref_idx_active = slice_header->slice_type == kVvcBSlice ? 2: 1;
+        int tmp_sh_num_ref_idx_active_minus1;
+        for(int  i = 0; i < num_ref_idx_active;i++ )
+        if( slice_header->rpl->num_ref_entries[ i ][ slice_header->rpl->RplsIdx[ i ] ] > 1 ){
+              TRUE_OR_RETURN(br->ReadUE( &tmp_sh_num_ref_idx_active_minus1));
+              slice_header->sh_num_ref_idx_active_minus1.push_back(tmp_sh_num_ref_idx_active_minus1);
+        }
+      }  
   }
+  // need evalulate NumRefIdxActive
+
+
+  if( slice_header->sh_slice_type != kVvcISlice) {
+    if( pps->pps_cabac_init_present_flag ){
+      bool tmp_sh_cabac_init_flag = false;
+      TRUE_OR_RETURN(br->ReadBool( &tmp_sh_cabac_init_flag));
+      slice_header->sh_cabac_init_flag = tmp_sh_cabac_init_flag;
+    }
+    if( slice_header->phs->ph_temporal_mvp_enabled_flag && !pps->pps_rpl_info_in_ph_flag ) {
+      bool tmp_sh_collocated_from_l0_flag = false;
+      if( slice_header->sh_slice_type == kVvcBSlice ){
+        TRUE_OR_RETURN(br->ReadBool( &tmp_sh_collocated_from_l0_flag));
+        slice_header->sh_collocated_from_l0_flag = tmp_sh_collocated_from_l0_flag;
+      }
+      if( ( slice_header->sh_collocated_from_l0_flag && NumRefIdxActive[ 0 ] > 1 ) ||
+        ( ! slice_header->sh_collocated_from_l0_flag && NumRefIdxActive[ 1 ] > 1 ) ){
+          int tmp_sh_collocated_ref_idx = 0;
+          TRUE_OR_RETURN(br->ReadUE( &tmp_sh_collocated_ref_idx));
+          slice_header->sh_collocated_ref_idx = tmp_sh_collocated_ref_idx;
+        }
+    }
+    if( !pps->pps_wp_info_in_ph_flag && ( ( pps->pps_weighted_pred_flag && slice_header->sh_slice_type == kVvcPSlice ) || ( pps->pps_weighted_bipred_flag && slice_header->sh_slice_type == kVvcBSlice ) ) ) {
+      //pred_weight_table( )
+    }
+  }
+  if( !pps->pps_qp_delta_info_in_ph_flag ){
+    int tmp_sh_qp_delta = 0;
+    TRUE_OR_RETURN(br->ReadSE( &tmp_sh_qp_delta));
+    slice_header->sh_qp_delta = tmp_sh_qp_delta;
+  }
+  if( pps->pps_slice_chroma_qp_offsets_present_flag ) {
+    int tmp_sh_cb_qp_offset = 0;
+    int tmp_sh_cr_qp_offset = 0;
+    TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cb_qp_offset));
+    TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cr_qp_offset));
+    slice_header->sh_cb_qp_offset = tmp_sh_cb_qp_offset;
+    slice_header->sh_cr_qp_offset = tmp_sh_cr_qp_offset;
+    if( sps->sps_joint_cbcr_enabled_flag ){
+      int tmp_sh_joint_cbcr_qp_offset = 0;
+      TRUE_OR_RETURN(br->ReadSE(&tmp_sh_joint_cbcr_qp_offset));
+      slice_header->sh_joint_cbcr_qp_offset = tmp_sh_joint_cbcr_qp_offset;
+    }
+
+
+
+
+  }
+
+
   
 
 
