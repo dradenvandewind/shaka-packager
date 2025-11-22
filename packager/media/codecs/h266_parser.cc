@@ -4459,69 +4459,6 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
     return kOk;
 }
 
-/*
-H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
-                                                     int max_num_sub_layers_minus1,
-                                                     H26xBitReader* br,
-                                                     H266ProfileTierLevel* ptl) {
-  LOG(INFO) << "Parsing H.266 Profile Tier Level";
-  //7.3.3.1General profile, tier, and level syntax
-  bool tmp_ptl_sublayer_level_present_flag = 0;
-  int MaxNumSubLayersMinus1 = max_num_sub_layers_minus1;
-  //bool ptl_reserved_zero_bit;
-  int tmp_sublayer_level_idc;
-  u_int32_t tmp_general_sub_profile_idc;
-
-  if (profile_tier_present) {
-    // General profile tier level
-    //TRUE_OR_RETURN(br->ReadBits(7, &ptl->general_profile_idc));
-    //TRUE_OR_RETURN(br->ReadBool(&ptl->general_tier_flag));
-    //TRUE_OR_RETURN(br->ReadBits(8, &ptl->general_level_idc));
-    uint32_t temp_profile;
-    TRUE_OR_RETURN(br->ReadBits(7, &temp_profile));
-    ptl->general_profile_idc = static_cast<uint8_t>(temp_profile);
-
-    bool temp_tier;
-    TRUE_OR_RETURN(br->ReadBool(&temp_tier));
-    ptl->general_tier_flag = temp_tier;
-  }
-
-    int temp_level;
-    TRUE_OR_RETURN(br->ReadBits(8, &temp_level));
-    ptl->general_level_idc = static_cast<uint8_t>(temp_level);
-
-    TRUE_OR_RETURN(br->ReadBool(&ptl->ptl_frame_only_constraint_flag));
-    TRUE_OR_RETURN(br->ReadBool(&ptl->ptl_multilayer_enabled_flag));
-    if (profile_tier_present) {
-      ParseGeneralConstraintsInfo(&ptl->gci,br);
-    }
-    for( int i = MaxNumSubLayersMinus1-1; i >= 0; i--){
-      TRUE_OR_RETURN(br->ReadBool(&tmp_ptl_sublayer_level_present_flag));
-      ptl->ptl_sublayer_level_present_flag.push_back(tmp_ptl_sublayer_level_present_flag);
-    }
-    bool ptl_reserved_zero_bit = false;
-     while(!br->byte_aligned()){
-      TRUE_OR_RETURN(br->ReadBool(&ptl_reserved_zero_bit));
-    } 
-    for( int i = MaxNumSubLayersMinus1-1; i >= 0; i-- ){
-      if( ptl->ptl_sublayer_level_present_flag[ i ] ){
-        TRUE_OR_RETURN(br->ReadBool(&tmp_sublayer_level_idc));
-        ptl->sublayer_level_idc.push_back(tmp_sublayer_level_idc);
-      }
-    }
-    if (profile_tier_present) {
-      TRUE_OR_RETURN(br->ReadBits(8,&ptl->ptl_num_sub_profiles));
-      for( int i = 0; i < ptl->ptl_num_sub_profiles; i++ ){
-        TRUE_OR_RETURN(br->ReadBits(32,&tmp_general_sub_profile_idc));
-        ptl->general_sub_profile_idc.push_back(tmp_general_sub_profile_idc);
-
-      }
-    }
-
-  return kOk;
-}
-#endif 
-*/
 
 
 bool H266Parser::ParseNalUnits(const uint8_t* data,
