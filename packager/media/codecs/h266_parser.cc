@@ -1840,19 +1840,10 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   uint32_t NumTileRows = 0;   
   uint32_t NumTilesInPic = 0; 
 
+  //const H266Pps* pps = GetPps(*pps_id);
+
   // get from pps
-  if(pps->NumTileColumns != 0){
-    NumTileColumns = pps->NumTileColumns;
-  }
-  if(pps->NumTileRows != 0){
-    NumTileRows = pps->NumTileRows;
-  }
-  if(pps->NumTilesInPic != 0){
-    NumTilesInPic = pps->NumTilesInPic;
-  }
-
-
-
+  
 
   *pps_id = -1;
    std::unique_ptr<H266Pps> pps(new H266Pps);
@@ -1863,12 +1854,22 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   TRUE_OR_RETURN(br->ReadBits(6, &pps->pic_parameter_set_id));  // 6 bits 
   TRUE_OR_RETURN(br->ReadBits(4,&pps->seq_parameter_set_id));  // 4 bits
 
-  /* const H266Pps* pps = GetPps(pps->pic_parameter_set_id);
+   const H266Pps* pps = GetPps(pps->pic_parameter_set_id);
   TRUE_OR_RETURN(pps);
 
   const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
   TRUE_OR_RETURN(sps);
- */
+ 
+
+ if(pps->NumTileColumns != 0){
+    NumTileColumns = pps->NumTileColumns;
+  }
+  if(pps->NumTileRows != 0){
+    NumTileRows = pps->NumTileRows;
+  }
+  if(pps->NumTilesInPic != 0){
+    NumTilesInPic = pps->NumTilesInPic;
+  }
 
 
 
@@ -3153,6 +3154,13 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   }   
   TRUE_OR_RETURN(br->ReadUE(&phs->ph_pic_parameter_set_id));
 
+  const H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id);
+   TRUE_OR_RETURN(pps);
+
+   const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
+   TRUE_OR_RETURN(sps);
+
+
   int len_ph_pic_order_cnt_lsb = sps->sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
   TRUE_OR_RETURN(br->ReadBits(len_ph_pic_order_cnt_lsb,&phs->ph_pic_order_cnt_lsb));
   if(phs->ph_gdr_pic_flag){
@@ -3187,7 +3195,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
       int max_ph_num_alf_aps_ids_luma = phs->ph_num_alf_aps_ids_luma;
       for( int i = 0; i < max_ph_num_alf_aps_ids_luma; i++ ){
       int tmp_ph_alf_aps_id_luma = 0; 
-      TRUE_OR_RETURN(br->ReadBits(3,&phs->ph_alf_aps_id_luma));
+      TRUE_OR_RETURN(br->ReadBits(3,&tmp_ph_alf_aps_id_luma));
       phs->ph_alf_aps_id_luma = tmp_ph_alf_aps_id_luma;
       }
       if( sps->sps_chroma_format_idc != 0 ) {
@@ -3379,7 +3387,6 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
         phs->ph_extension_data_byte.push_back(tmp_ph_extension_data_byte);
       }
     }
-
   return kOk;
 }
 
@@ -3778,15 +3785,15 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
                             H266ReferencePicList* rpl) {
     LOG(INFO) << "Parsing H.266 Reference picture list ";
     for( int i = 0; i < 2; i++ ) {
-      if( sps->sps_num_ref_pic_lists[i] > 0 && ( i == 0 || ( i == 1 && pps->pps_rpl1_idx_present_flag ) ) ){
+      if( sps.sps_num_ref_pic_lists[i] > 0 && ( i == 0 || ( i == 1 && pps.pps_rpl1_idx_present_flag ) ) ){
         bool tmp_rpl_sps_flag = false;
         TRUE_OR_RETURN(br->ReadBool(&tmp_rpl_sps_flag));
         rpl->rpl_sps_flag.push_back(tmp_rpl_sps_flag);
       }
       if(rpl->rpl_sps_flag[i]){
-        if( sps->sps_num_ref_pic_lists[i] > 1 && ( i == 0 || ( i == 1 && pps->pps_rpl1_idx_present_flag ) ) ){
+        if( sps.sps_num_ref_pic_lists[i] > 1 && ( i == 0 || ( i == 1 && pps.pps_rpl1_idx_present_flag ) ) ){
           
-          int len_rpl_idx = ceil_log2(sps->sps_num_ref_pic_lists[i]);
+          int len_rpl_idx = ceil_log2(sps.sps_num_ref_pic_lists[i]);
           int tmp_rpl_idx = 0;
           TRUE_OR_RETURN(br->ReadBits(len_rpl_idx,&tmp_rpl_idx));
           rpl->rpl_idx.push_back(tmp_rpl_idx);     
@@ -3796,7 +3803,7 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
         //ref_pic_list_struct( i, sps_num_ref_pic_lists[ i ] )
         //ref_pic_list_struct( listIdx, rplsIdx )
         rpl->reference_pic_list.emplace();
-        Ref_Pic_List_Struct(i, sps->sps_num_ref_pic_lists[i], *sps, br, &rpl->reference_pic_list;);
+        Ref_Pic_List_Struct(i, sps.sps_num_ref_pic_lists[i], sps, br, &rpl->reference_pic_list);
 
 
 
@@ -3804,7 +3811,7 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
         int numLists = 0;
         int numRpls = 0;
         numLists = i;
-        numRpls = sps->sps_num_ref_pic_lists[ i ];
+        numRpls = sps.sps_num_ref_pic_lists[ i ];
 
         rpl->NumLtrpEntries.resize(i, std::vector<int>(numRpls, 0));
 
@@ -3819,8 +3826,12 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
                 }
             }
          //init
-         rpl->ltrp_in_header_flag[listIdx][rplsIdx] = false;
-         if (sps->sps_long_term_ref_pics_flag &&  rplsIdx == sps->sps_num_ref_pic_lists[listIdx]) {
+         if (listIdx < rpl->ltrp_in_header_flag.size() && rplsIdx < rpl->ltrp_in_header_flag[listIdx].size()) {
+               rpl->ltrp_in_header_flag[listIdx][rplsIdx] = false;
+        }
+
+
+         if (sps.sps_long_term_ref_pics_flag &&  rplsIdx == sps.sps_num_ref_pic_lists[listIdx]) {
           rpl->ltrp_in_header_flag[listIdx][rplsIdx] = true;
          }
     
@@ -3842,7 +3853,11 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
             int tmp_poc_lsb_lt = 0;
             int len_poc_lsb_lt = sps->sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
             TRUE_OR_RETURN(br->ReadBits(len_poc_lsb_lt,&tmp_poc_lsb_lt));
-            rpl->poc_lsb_lt[i][j] = tmp_poc_lsb_lt;
+
+            if (i < rpl->poc_lsb_lt.size() && j < rpl->poc_lsb_lt[i].size()) {
+                rpl->poc_lsb_lt[i][j] = tmp_poc_lsb_lt;
+            }
+
             check_delta_poc_msb_cycle_present_flag = rpl->delta_poc_msb_cycle_present_flag[i][j]; 
             if(check_delta_poc_msb_cycle_present_flag){
               TRUE_OR_RETURN(br->ReadUE(&tmp_delta_poc_msb_cycle_lt));
