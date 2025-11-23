@@ -1149,6 +1149,7 @@ struct H266SliceHeader {
   bool sh_cabac_init_flag = false;
   bool sh_collocated_from_l0_flag = false;
   int sh_collocated_ref_idx = 0;
+  std::optional<H266PredWeightTable> pwt;
 
   int sh_qp_delta = 0;
   int sh_cb_qp_offset = 0;

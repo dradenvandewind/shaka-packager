@@ -998,22 +998,21 @@ std::vector<uint32_t> CalculateColWidthVal(const H266Pps* pps, int PicWidthInCtb
     std::vector<uint32_t> ColWidthVal;
     int remainingWidth = PicWidthInCtbsY;
     
-    // Tiles 
+    // Tiles explicites
     for (int i = 0; i <= pps->pps_num_exp_tile_columns_minus1; i++) {
-        int width = pps->pps_tile_column_width_minus1[i] + 1;
+        uint32_t width = static_cast<uint32_t>(pps->pps_tile_column_width_minus1[i] + 1);
         ColWidthVal.push_back(width);
-        remainingWidth -= width;
+        remainingWidth -= static_cast<int>(width);
     }
     
-    // Tiles uniform
-    if (pps->pps_num_exp_tile_columns_minus1 < pps->NumTileColumns - 1) {
-        uint32_t uniformWidth = pps->pps_tile_column_width_minus1[pps->pps_num_exp_tile_columns_minus1] + 1;
-        int numUniformTiles = (remainingWidth + uniformWidth - 1) / uniformWidth;
+    // Tiles uniformes
+    if (static_cast<int>(pps->pps_num_exp_tile_columns_minus1) < static_cast<int>(pps->NumTileColumns) - 1) {
+        uint32_t uniformWidth = static_cast<uint32_t>(pps->pps_tile_column_width_minus1[pps->pps_num_exp_tile_columns_minus1] + 1);
         
-        for (int i = 0; i < numUniformTiles && ColWidthVal.size() < pps->NumTileColumns; i++) {
-            int width = (i == numUniformTiles - 1) ? remainingWidth : uniformWidth;
+        while (remainingWidth > 0 && ColWidthVal.size() < pps->NumTileColumns) {
+            uint32_t width = std::min(static_cast<uint32_t>(remainingWidth), uniformWidth);
             ColWidthVal.push_back(width);
-            remainingWidth -= width;
+            remainingWidth -= static_cast<int>(width);
         }
     }
     
@@ -1563,6 +1562,10 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
 
       if( !pps->pps_wp_info_in_ph_flag && ( ( pps->pps_weighted_pred_flag && slice_header->sh_slice_type == kVvcPSlice ) || ( pps->pps_weighted_bipred_flag && slice_header->sh_slice_type == kVvcBSlice ) ) ) {
         //pred_weight_table( )
+        slice_header->pwt.emplace();
+        TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &slice_header->rpl.value(), &slice_header->pwt.value()));
+
+
       }
   }
 
@@ -1705,6 +1708,10 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
             slice_header->CtbAddrInCurrSlice[ i ] = slice_header->CtbAddrInSlice[ picLevelSliceIdx ][i];
           }
         }
+        /***************************************************************************** */
+
+
+
        } else {
             slice_header->NumCtusInCurrSlice = 0;
             int sum_slice = slice_header->sh_slice_address + slice_header->sh_num_tiles_in_slice_minus1;
