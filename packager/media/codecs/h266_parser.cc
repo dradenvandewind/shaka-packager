@@ -1145,8 +1145,14 @@ of the slice with picture-level slice index j, respectively, are derived as foll
 PAGE 32
  */
  //PicWidthInCtbsY eq 64 page 118 
- slice_header->PicWidthInCtbsY = ceil( pps->pps_pic_width_in_luma_samples / pps->CtbSizeY );
- slice_header->PicHeightInCtbsY = ceil( pps->pps_pic_height_in_luma_samples / pps->CtbSizeY );
+ if(pps->CtbSizeY != 0){
+   
+   slice_header->PicWidthInCtbsY = ceil( pps->pps_pic_width_in_luma_samples / pps->CtbSizeY );
+   slice_header->PicHeightInCtbsY = ceil( pps->pps_pic_height_in_luma_samples / pps->CtbSizeY );
+ }else {
+    LOG(ERROR) << "Invalid CtbSizeYs";
+    return kInvalidStream;
+ }
 
 if (slice_header->PicWidthInCtbsY <= 0 || slice_header->PicHeightInCtbsY <= 0) {
     LOG(ERROR) << "Invalid picture dimensions in CTBs";
@@ -1551,8 +1557,8 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
           slice_header->sh_collocated_from_l0_flag = tmp_sh_collocated_from_l0_flag;
         }
 
-        if( ( slice_header->sh_collocated_from_l0_flag && NumRefIdxActive[ 0 ] > 1 ) ||
-          ( ! slice_header->sh_collocated_from_l0_flag && NumRefIdxActive[ 1 ] > 1 ) ){
+        if( ( slice_header->sh_collocated_from_l0_flag && slice_header->NumRefIdxActive[ 0 ] > 1 ) ||
+          ( ! slice_header->sh_collocated_from_l0_flag && slice_header->NumRefIdxActive[ 1 ] > 1 ) ){
             int tmp_sh_collocated_ref_idx = 0;
             TRUE_OR_RETURN(br->ReadUE( &tmp_sh_collocated_ref_idx));
             slice_header->sh_collocated_ref_idx = tmp_sh_collocated_ref_idx;
@@ -3655,7 +3661,7 @@ H266Parser::Result H266Parser::PredWeightTable( const H266Sps& sps, const H266Pp
     if( pps->pps_wp_info_in_ph_flag ){
       NumWeightsL0 = rpl->num_l0_weights;
     } else if (!pps->(pps_wp_info_in_ph_flag)){
-      NumWeightsL0 = NumRefIdxActive[ 0 ];
+      NumWeightsL0 = slice_header->NumRefIdxActive[ 0 ];
     }
     /****************************************************************/
 
@@ -3708,7 +3714,7 @@ H266Parser::Result H266Parser::PredWeightTable( const H266Sps& sps, const H266Pp
       NumWeightsL1 = rpl->num_l1_weights;
     }
     else{
-      NumWeightsL1 = NumRefIdxActive[1];
+      NumWeightsL1 = slice_header->NumRefIdxActive[1];
     }
 
 
