@@ -942,15 +942,17 @@ int findSubpicIndex(int subpicId, const std::vector<int>& SubpicIdVal) {
 void AddCtbsToSlice(std::vector<std::vector<int>>& CtbAddrInSlice,
                     std::vector<int>& NumCtusInSlice,
                     int PicWidthInCtbsY,
-                    int sliceIdx, int startX, int stopX, int startY, int stopY) {
+                    int sliceIdx,
+                    int startX, int stopX, int startY, int stopY) {
     
     // Use push_back as in the original algorithm
     for (int ctbY = startY; ctbY < stopY; ctbY++) {
         for (int ctbX = startX; ctbX < stopX; ctbX++) {
             int ctbAddr = ctbY * PicWidthInCtbsY + ctbX;
-            if (sliceIdx < 0 || sliceIdx >= slice_header->CtbAddrInSlice.size()) {
+            if (sliceIdx < 0 || sliceIdx >= CtbAddrInSlice.size()) {
               LOG(ERROR) << "Invalid slice index in AddCtbsToSlice";
-              return kInvalidStream;
+              //return kUnsupportedStream; 
+              // need analyse code return
             }
             CtbAddrInSlice[sliceIdx].push_back(ctbAddr);
             NumCtusInSlice[sliceIdx]++;
@@ -985,7 +987,7 @@ std::vector<uint32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY,
     
     for (int ctbAddrX = 0; ctbAddrX <= PicWidthInCtbsY; ctbAddrX++) {
         // check  next tile
-        if (tileX < NumTileColumns && ctbAddrX == TileColBdVal[tileX + 1]) {
+        if (tileX < static_cast<int>(NumTileColumns) && ctbAddrX == TileColBdVal[tileX + 1]) {
             tileX++;
         }        
         ctbToTileColIdx[ctbAddrX] = tileX;
@@ -1070,7 +1072,7 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
     slice_header->phs.emplace();
     //picture_header_structure( )
     //H266PictureHeaderStructure* phs
-    ParsePictureHeaderStructure(nalu, &slice_header->phs.value());
+    TRUE_OR_RETURN(ParsePictureHeaderStructure(nalu, &slice_header->phs.value()));
    }   
    const H266Pps* pps = GetPps(slice_header->phs->ph_pic_parameter_set_id);
    TRUE_OR_RETURN(pps);
@@ -1307,6 +1309,7 @@ slice_header->NumSlicesInSubpic.resize(sps->sps_num_subpics_minus1 + 1, 0);
           AddCtbsToSlice(slice_header->CtbAddrInSlice,
                                   slice_header->NumCtusInSlice,
                                   slice_header->PicWidthInCtbsY,
+                                  i,
                                   sps->sps_subpic_ctu_top_left_x[i] ,
             sps->sps_subpic_ctu_top_left_x[ i ] + sps->sps_subpic_width_minus1[ i ] + 1,
             sps->sps_subpic_ctu_top_left_y[ i ],
@@ -1318,7 +1321,7 @@ slice_header->NumSlicesInSubpic.resize(sps->sps_num_subpics_minus1 + 1, 0);
             for( int k = 0; k < slice_header->SubpicWidthInTiles[ i ]; k++ ){
               AddCtbsToSlice(slice_header->CtbAddrInSlice,
                                   slice_header->NumCtusInSlice,
-                                  slice_header->PicWidthInCtbsY, slice_header->TileColBdVal[ tileX + k ], slice_header->TileColBdVal[ tileX + k + 1 ], slice_header->TileRowBdVal[ tileY + j ], slice_header->TileRowBdVal[ tileY + j + 1 ] );
+                                  slice_header->PicWidthInCtbsY, i, slice_header->TileColBdVal[ tileX + k ], slice_header->TileColBdVal[ tileX + k + 1 ], slice_header->TileRowBdVal[ tileY + j ], slice_header->TileRowBdVal[ tileY + j + 1 ] );
             }
           }
         }
@@ -1640,17 +1643,17 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
           slice_header->sh_luma_tc_offset_div2 = tmp_sh_luma_tc_offset_div2;
           if( pps->pps_chroma_tool_offsets_present_flag ) {
             int tmp_sh_cb_beta_offset_div2;
-            int tmp_sh_cb_beta_offset_div2;
-            int tmp_sh_cb_beta_offset_div2;
+            int tmp_sh_cb_tc_offset_div2;
+            int tmp_sh_cr_beta_offset_div2;
             int tmp_sh_cr_tc_offset_div2;
             TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cb_beta_offset_div2));
-            TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cb_beta_offset_div2));
-            TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cb_beta_offset_div2));
+            TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cb_tc_offset_div2));
+            TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cr_beta_offset_div2));
             TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cr_tc_offset_div2));
 
             slice_header->sh_cb_beta_offset_div2 = tmp_sh_cb_beta_offset_div2;
-            slice_header->sh_cb_beta_offset_div2 = tmp_sh_cb_beta_offset_div2;
-            slice_header->sh_cb_beta_offset_div2 = tmp_sh_cb_beta_offset_div2;
+            slice_header->sh_cb_tc_offset_div2 = tmp_sh_cb_tc_offset_div2;
+            slice_header->sh_cr_beta_offset_div2 = tmp_sh_cr_beta_offset_div2;
             slice_header->sh_cr_tc_offset_div2 = tmp_sh_cr_tc_offset_div2;
           }
 
@@ -3156,7 +3159,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     TRUE_OR_RETURN(br->ReadUE(&phs->ph_recovery_poc_cnt));
   }
   /************************************************/
-  //P 107
+  //Page 107
   int NumExtraPhBits = 0;
   int max_extra_bytes = sps->sps_num_extra_ph_bytes * 8;
   for( int i = 0; i < max_extra_bytes; i++ ){
@@ -3166,7 +3169,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   }
   /************************************************/
   for( int i = 0; i < NumExtraPhBits; i++ ){
-    int tmp_ph_extra_bit;
+    bool tmp_ph_extra_bit;
     TRUE_OR_RETURN(br->ReadBool(&tmp_ph_extra_bit));
     phs->ph_extra_bit.push_back(tmp_ph_extra_bit);
   }
@@ -3262,11 +3265,11 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
             TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_max_tt_min_qt_intra_slice_luma));
           }
           if(phs->sps_qtbtt_dual_tree_intra_flag){
-            TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_min_qt_min_cb_intra_slice_chroma);
-            TRUE_OR_RETURN(br->ReadUE(&phs->ph_max_mtt_hierarchy_depth_intra_slice_chroma);
+            TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_min_qt_min_cb_intra_slice_chroma));
+            TRUE_OR_RETURN(br->ReadUE(&phs->ph_max_mtt_hierarchy_depth_intra_slice_chroma));
             if(phs->ph_max_mtt_hierarchy_depth_intra_slice_chroma != 0 ){
-              TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_max_bt_min_qt_intra_slice_chroma);
-              TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_max_tt_min_qt_intra_slice_chroma);
+              TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_max_bt_min_qt_intra_slice_chroma));
+              TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_max_tt_min_qt_intra_slice_chroma));
             }
           }
         }
@@ -3292,8 +3295,6 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
       if(pps->pps_cu_chroma_qp_offset_list_enabled_flag){
         TRUE_OR_RETURN(br->ReadUE(&phs->ph_cu_chroma_qp_offset_subdiv_inter_slice));
       }
-      //num_ref_entries
-      //RplsIdx
 
       if(sps->sps_temporal_mvp_enabled_flag){
           TRUE_OR_RETURN(br->ReadBool(&phs->ph_temporal_mvp_enabled_flag));
@@ -3330,7 +3331,6 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
         TRUE_OR_RETURN(br->ReadBool(&phs->ph_prof_disabled_flag));
       }
       if( ( pps->pps_weighted_pred_flag || pps->pps_weighted_bipred_flag ) && pps->pps_wp_info_in_ph_flag ){
-        //pred_weight_table( )
         phs->p_pwt.emplace();
 
         PredWeightTable(sps, pps, br, phs->rpl, phs->p_pwt);
@@ -4653,3 +4653,5 @@ bool H266Parser::ParseNalUnits(const uint8_t* data,
 
 }  // namespace media
 }  // namespace shaka
+}
+
