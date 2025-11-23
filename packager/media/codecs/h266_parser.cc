@@ -949,7 +949,7 @@ void AddCtbsToSlice(std::vector<std::vector<int>>& CtbAddrInSlice,
     for (int ctbY = startY; ctbY < stopY; ctbY++) {
         for (int ctbX = startX; ctbX < stopX; ctbX++) {
             int ctbAddr = ctbY * PicWidthInCtbsY + ctbX;
-            if (sliceIdx < 0 || sliceIdx >= CtbAddrInSlice.size()) {
+            if (sliceIdx < 0 || static_cast<size_t>(sliceIdx) >= CtbAddrInSlice.size()) {
               LOG(ERROR) << "Invalid slice index in AddCtbsToSlice";
               //return kUnsupportedStream; 
               // need analyse code return
@@ -3187,7 +3187,8 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
       int max_ph_num_alf_aps_ids_luma = phs->ph_num_alf_aps_ids_luma;
       for( int i = 0; i < max_ph_num_alf_aps_ids_luma; i++ ){
       int tmp_ph_alf_aps_id_luma = 0; 
-      TRUE_OR_RETURN(br->ReadBits(3,&phs->mp_ph_alf_aps_id_luma));
+      TRUE_OR_RETURN(br->ReadBits(3,&phs->ph_alf_aps_id_luma));
+      phs->ph_alf_aps_id_luma = tmp_ph_alf_aps_id_luma;
       }
       if( sps->sps_chroma_format_idc != 0 ) {
         TRUE_OR_RETURN(br->ReadBool(&phs->ph_alf_cb_enabled_flag));
@@ -3219,9 +3220,10 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     }  
   }
   if( sps->sps_explicit_scaling_list_enabled_flag ) {
+       bool ph_explicit_scaling_list_enabled_flag = false;
       TRUE_OR_RETURN(br->ReadBool(&ph_explicit_scaling_list_enabled_flag));
       if(phs->ph_explicit_scaling_list_enabled_flag){
-        TRUE_OR_RETURN(br->ReadBool(3,&phs->ph_scaling_list_aps_id));
+        TRUE_OR_RETURN(br->ReadBits(3,&phs->ph_scaling_list_aps_id));
       }
   }
   if( sps->sps_virtual_boundaries_enabled_flag && !sps->sps_virtual_boundaries_present_flag ) {
@@ -3249,7 +3251,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     if( pps->pps_rpl_info_in_ph_flag ){
       phs->rpl.emplace();
 
-      Ref_Pic_List(sps,pps,br,phs->rpl.value());
+      Ref_Pic_List(sps,pps,br,&phs->rpl.value());
       //ref_pic_lists( )
     }
     if( sps->sps_partition_constraints_override_enabled_flag ){
@@ -3433,7 +3435,7 @@ const H266Sps* H266Parser::GetSps(int sps_id) {
 }
 
 const H266Vps* H266Parser::GetVps(int vps_id) {
-  /return active_vpses_[vps_id].get();
+  return active_vpses_[vps_id].get();
   //auto it = active_vpses_.find(vps_id);
   //return it != active_vpses_.end() ? it->second.get() : nullptr;
 }
@@ -4653,5 +4655,4 @@ bool H266Parser::ParseNalUnits(const uint8_t* data,
 
 }  // namespace media
 }  // namespace shaka
-}
 

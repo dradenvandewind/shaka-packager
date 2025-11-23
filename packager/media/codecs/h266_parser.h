@@ -964,7 +964,12 @@ struct H266PictureHeaderStructure{
  int ph_num_alf_aps_ids_luma = 0;
  std::vector <int> ph_alf_aps_id_luma;
 
+ bool ph_alf_cb_enabled_flag = false;
+ bool ph_alf_cr_enabled_flag = false;
+ bool ph_alf_aps_id_chroma = false;
+
  bool ph_alf_cc_cr_enabled_flag = false;
+ bool ph_alf_cc_cb_enabled_flag = false;
  int ph_alf_cc_cr_aps_id = 0;
  bool ph_lmcs_enabled_flag = false;
  int ph_lmcs_aps_id = 0;
