@@ -1020,32 +1020,17 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
   bool tmp_sh_picture_header_in_slice_header_flag = false;
   TRUE_OR_RETURN(br->ReadBool(&tmp_sh_picture_header_in_slice_header_flag));
   slice_header->sh_picture_header_in_slice_header_flag = tmp_sh_picture_header_in_slice_header_flag;
-  if(tmp_sh_picture_header_in_slice_header_flag){
+  if(slice_header->sh_picture_header_in_slice_header_flag){
     slice_header->phs.emplace();
     //picture_header_structure( )
     //H266PictureHeaderStructure* phs
     ParsePictureHeaderStructure(nalu, &slice_header->phs.value());
-   }
+   }   
    const H266Pps* pps = GetPps(slice_header->phs->ph_pic_parameter_set_id);
    TRUE_OR_RETURN(pps);
 
-  const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
-  TRUE_OR_RETURN(sps);
-
-  if (!sps) {
-    LOG(ERROR) << "No active SPS found";
-    return kInvalidStream;
-  }
-  if (!pps) {
-    LOG(ERROR) << "No active PPS found";
-    return kInvalidStream;
-  }
-
-
-
-
-
-
+   const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
+   TRUE_OR_RETURN(sps);
 
   if(sps->sps_subpic_info_present_flag ){
     int tmp_sh_subpic_id = 0;
@@ -1126,7 +1111,7 @@ for( int i = 0; i <= pps->pps_num_exp_tile_columns_minus1; i++ ) {
   slice_header->ColWidthVal.push_back(tmp_sum_width);
   remainingWidthInCtbsY -= slice_header->ColWidthVal[i];
 }
-u_int32_t uniformTileColWidth = pps->pps_tile_column_width_minus1[pps->pps_num_exp_tile_columns_minus1] + 1;
+uint32_t uniformTileColWidth = pps->pps_tile_column_width_minus1[pps->pps_num_exp_tile_columns_minus1] + 1;
 while( remainingWidthInCtbsY >= uniformTileColWidth ) {
   // i????
   slice_header->ColWidthVal[ inc_i ] = uniformTileColWidth;
@@ -1154,7 +1139,7 @@ for( int j = 0; j <= pps->pps_num_exp_tile_rows_minus1; j++ ) {
   slice_header->RowHeightVal.push_back(tmp_sum_height);
   remainingHeightInCtbsY -= slice_header->RowHeightVal[j];
 }
-u_int32_t uniformTileRowHeight = pps->pps_tile_row_height_minus1[ pps->pps_num_exp_tile_rows_minus1 ] + 1;
+uint32_t uniformTileRowHeight = pps->pps_tile_row_height_minus1[ pps->pps_num_exp_tile_rows_minus1 ] + 1;
 while( remainingHeightInCtbsY >= uniformTileRowHeight ) {
   slice_header->RowHeightVal[inc_y] = uniformTileRowHeight;
   inc_y++;
@@ -1211,40 +1196,40 @@ for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
 
 
  if( pps->pps_single_slice_per_subpic_flag ) {
-  if(!sps->sps_subpic_info_present_flag){
-    for( uint32_t j = 0; j < NumTileRows; j++ ){
-      for( uint32_t i = 0; i < NumTileColumns; i++ ){
-        //AddCtbsToSlice( 0, TileColBdVal[ i ], TileColBdVal[ i + 1 ], TileRowBdVal[ j ],TileRowBdVal[ j + 1 ] );
-        AddCtbsToSlice(slice_header->CtbAddrInSlice,
-                                slice_header->NumCtusInSlice,
-                                slice_header->PicWidthInCtbsY,
-                                0, slice_header->TileColBdVal[i], slice_header->TileColBdVal[i+1], slice_header->TileRowBdVal[ j ],slice_header->TileRowBdVal[j+1]);
+    if(!sps->sps_subpic_info_present_flag){
+      for( uint32_t j = 0; j < NumTileRows; j++ ){
+        for( uint32_t i = 0; i < NumTileColumns; i++ ){
+          //AddCtbsToSlice( 0, TileColBdVal[ i ], TileColBdVal[ i + 1 ], TileRowBdVal[ j ],TileRowBdVal[ j + 1 ] );
+          AddCtbsToSlice(slice_header->CtbAddrInSlice,
+                                  slice_header->NumCtusInSlice,
+                                  slice_header->PicWidthInCtbsY,
+                                  0, slice_header->TileColBdVal[i], slice_header->TileColBdVal[i+1], slice_header->TileRowBdVal[ j ],slice_header->TileRowBdVal[j+1]);
+        }
       }
-    }
-  } else{
-    for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
-      //NumCtusInSlice[ i ] = 0
-      if( slice_header->subpicHeightLessThanOneTileFlag[ i ] ){ /* The slice consists of a set of CTU rows in a tile. */
-        AddCtbsToSlice(slice_header->CtbAddrInSlice,
-                                slice_header->NumCtusInSlice,
-                                slice_header->PicWidthInCtbsY,
-                                 sps->sps_subpic_ctu_top_left_x[i] ,
-          sps->sps_subpic_ctu_top_left_x[ i ] + sps->sps_subpic_width_minus1[ i ] + 1,
-          sps->sps_subpic_ctu_top_left_y[ i ],
-          (sps->sps_subpic_ctu_top_left_y[i] + sps->sps_subpic_height_minus1[ i ] + 1));
-      } else { /* The slice consists of a number of complete tiles covering a rectangular region. */
-        int tileX = slice_header->ctbToTileColIdx[ sps->sps_subpic_ctu_top_left_x[i] ];
-        int tileY = slice_header->ctbToTileRowIdx[ sps->sps_subpic_ctu_top_left_y[ i ] ];
-        for( int j = 0; j < slice_header->SubpicHeightInTiles[ i ]; j++ ){
-          for( int k = 0; k < slice_header->SubpicWidthInTiles[ i ]; k++ ){
-            AddCtbsToSlice(slice_header->CtbAddrInSlice,
-                                slice_header->NumCtusInSlice,
-                                slice_header->PicWidthInCtbsY, slice_header->TileColBdVal[ tileX + k ], slice_header->TileColBdVal[ tileX + k + 1 ], slice_header->TileRowBdVal[ tileY + j ], slice_header->TileRowBdVal[ tileY + j + 1 ] );
+    } else{
+      for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
+        //NumCtusInSlice[ i ] = 0
+        if( slice_header->subpicHeightLessThanOneTileFlag[ i ] ){ /* The slice consists of a set of CTU rows in a tile. */
+          AddCtbsToSlice(slice_header->CtbAddrInSlice,
+                                  slice_header->NumCtusInSlice,
+                                  slice_header->PicWidthInCtbsY,
+                                  sps->sps_subpic_ctu_top_left_x[i] ,
+            sps->sps_subpic_ctu_top_left_x[ i ] + sps->sps_subpic_width_minus1[ i ] + 1,
+            sps->sps_subpic_ctu_top_left_y[ i ],
+            (sps->sps_subpic_ctu_top_left_y[i] + sps->sps_subpic_height_minus1[ i ] + 1));
+        } else { /* The slice consists of a number of complete tiles covering a rectangular region. */
+          int tileX = slice_header->ctbToTileColIdx[ sps->sps_subpic_ctu_top_left_x[i] ];
+          int tileY = slice_header->ctbToTileRowIdx[ sps->sps_subpic_ctu_top_left_y[ i ] ];
+          for( int j = 0; j < slice_header->SubpicHeightInTiles[ i ]; j++ ){
+            for( int k = 0; k < slice_header->SubpicWidthInTiles[ i ]; k++ ){
+              AddCtbsToSlice(slice_header->CtbAddrInSlice,
+                                  slice_header->NumCtusInSlice,
+                                  slice_header->PicWidthInCtbsY, slice_header->TileColBdVal[ tileX + k ], slice_header->TileColBdVal[ tileX + k + 1 ], slice_header->TileRowBdVal[ tileY + j ], slice_header->TileRowBdVal[ tileY + j + 1 ] );
+            }
           }
         }
       }
     }
-  }
 }else{
   int tileIdx = 0;
   for( int i = 0; i <= pps->pps_num_slices_in_pic_minus1; i++ ){
@@ -1263,7 +1248,8 @@ for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
       slice_header->sliceHeightInTiles[i] = NumTileRows - tileY;
       slice_header->NumSlicesInTile[i] = 1;
     }
-    if( slice_header->sliceWidthInTiles[ i ] == 1 && slice_header->sliceHeightInTiles[ i ] == 1 ) {
+    
+    /* if( slice_header->sliceWidthInTiles[ i ] == 1 && slice_header->sliceHeightInTiles[ i ] == 1 ) {
 
       //eq 21 page 31   no sure to have need all variables for my issue
       if( pps->pps_num_exp_slices_in_tile[i] == 0 ) {
@@ -1272,13 +1258,10 @@ for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
 
       }
 
-    }
+    } */
 
 
   }
-
-
-
 
 }
  /****************************************************************************************/
@@ -1319,6 +1302,7 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
    TRUE_OR_RETURN(br->ReadBits(len_sh_slice_address, &tmp_slice_address));
    slice_header->sh_slice_address = tmp_slice_address;
   } 
+
   for( int i = 0; i < slice_header->NumExtraShBits; i++ ){
     bool tmp_sh_extra_bits = false;
     TRUE_OR_RETURN(br->ReadBool( &tmp_sh_extra_bits));
@@ -1330,29 +1314,35 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
     TRUE_OR_RETURN(br->ReadUE(&tmp_sh_num_tiles_in_slice_minus1));
     slice_header->sh_num_tiles_in_slice_minus1 = tmp_sh_num_tiles_in_slice_minus1;
   }
+
   if( slice_header->phs->ph_inter_slice_allowed_flag ){
     int tmp_sh_slice_type = 0;
     TRUE_OR_RETURN(br->ReadUE(&tmp_sh_slice_type));
     slice_header->sh_slice_type = tmp_sh_slice_type;
   }
+
   if( nalu.type() == Nalu::H266_IDR_W_RADL || nalu.type() == Nalu::H266_IDR_N_LP || nalu.type() == Nalu::H266_CRA_NUT || nalu.type() == Nalu::H266_GDR_NUT ){
     bool tmp_sh_no_output_of_prior_pics_flag;
     TRUE_OR_RETURN(br->ReadBool( &tmp_sh_no_output_of_prior_pics_flag));
     slice_header->sh_no_output_of_prior_pics_flag = tmp_sh_no_output_of_prior_pics_flag;
   }
+
   if( sps->sps_alf_enabled_flag && !pps->pps_alf_info_in_ph_flag ) {
     bool tmp_sh_alf_enabled_flag = false;   
     TRUE_OR_RETURN(br->ReadBool( &tmp_sh_alf_enabled_flag));
     slice_header->sh_alf_enabled_flag = tmp_sh_alf_enabled_flag;
+
     if(slice_header->sh_alf_enabled_flag){
       int tmp_sh_num_alf_aps_ids_luma = 0;
       TRUE_OR_RETURN(br->ReadBits(3, &tmp_sh_num_alf_aps_ids_luma));
       slice_header->sh_num_alf_aps_ids_luma = tmp_sh_num_alf_aps_ids_luma;
+
       for( int i = 0; i < slice_header->sh_num_alf_aps_ids_luma; i++ ){
         int tmp_sh_alf_aps_id_luma = 0;
         TRUE_OR_RETURN(br->ReadBits(3, &tmp_sh_alf_aps_id_luma));
         slice_header->sh_alf_aps_id_luma.push_back(tmp_sh_alf_aps_id_luma);
       }
+
       if( sps->sps_chroma_format_idc != 0 ) {
         bool tmp_sh_alf_cb_enabled_flag = false;
         bool tmp_sh_alf_cr_enabled_flag = false;
@@ -1361,15 +1351,18 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
         slice_header->sh_alf_cb_enabled_flag = tmp_sh_alf_cb_enabled_flag;
         slice_header->sh_alf_cr_enabled_flag = tmp_sh_alf_cr_enabled_flag;
       }
+
       if( slice_header->sh_alf_cb_enabled_flag || slice_header->sh_alf_cr_enabled_flag ){
         int tmp_sh_alf_aps_id_chroma = 0;
         TRUE_OR_RETURN(br->ReadBits(3, &tmp_sh_alf_aps_id_chroma));
         slice_header->sh_alf_aps_id_chroma = tmp_sh_alf_aps_id_chroma;
       }
+
       if( sps->sps_ccalf_enabled_flag ) {
         bool tmp_sh_alf_cc_cb_enabled_flag = false;
         TRUE_OR_RETURN(br->ReadBool( &tmp_sh_alf_cc_cb_enabled_flag));
         slice_header->sh_alf_cc_cb_enabled_flag = tmp_sh_alf_cc_cb_enabled_flag;
+
         if(slice_header->sh_alf_cc_cb_enabled_flag){
           int tmp_sh_alf_cc_cb_aps_id = 0;
           TRUE_OR_RETURN(br->ReadBits(3, &tmp_sh_alf_cc_cb_aps_id));
@@ -1386,16 +1379,19 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
       }
     }
   }
+
   if( slice_header->phs->ph_lmcs_enabled_flag && !slice_header->sh_picture_header_in_slice_header_flag ){
     bool tmp_sh_lmcs_used_flag = false;
     TRUE_OR_RETURN(br->ReadBool( &tmp_sh_lmcs_used_flag));
     slice_header->sh_lmcs_used_flag = tmp_sh_lmcs_used_flag;
   }
+
   if( slice_header->phs->ph_explicit_scaling_list_enabled_flag && !slice_header->sh_picture_header_in_slice_header_flag ){
      bool tmp_sh_explicit_scaling_list_used_flag = false;
     TRUE_OR_RETURN(br->ReadBool( &tmp_sh_explicit_scaling_list_used_flag));
      slice_header->sh_explicit_scaling_list_used_flag = tmp_sh_explicit_scaling_list_used_flag;
   }
+
   if( !pps->pps_rpl_info_in_ph_flag && ( ( nalu.type() != Nalu::H266_IDR_W_RADL && nalu.type() != Nalu::H266_IDR_N_LP ) || sps->sps_idr_rpl_present_flag ) ){
     slice_header->rpl.emplace();
 
@@ -1406,71 +1402,114 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
     slice_header->rpl->num_ref_entries[ 0 ][ slice_header->rpl->RplsIdx[ 0 ] ] > 1 ) ||
      ( slice_header->sh_slice_type == kVvcBSlice && 
       slice_header->rpl->num_ref_entries[ 1 ][ slice_header->rpl->RplsIdx[ 1 ] ] > 1 ) ) {
-      bool tmp_sh_num_ref_idx_active_override_flag = false;
-      TRUE_OR_RETURN(br->ReadBool( &tmp_sh_num_ref_idx_active_override_flag));
-      slice_header->sh_num_ref_idx_active_override_flag = tmp_sh_num_ref_idx_active_override_flag;
-      if(slice_header->sh_num_ref_idx_active_override_flag ){
-        int num_ref_idx_active = slice_header->slice_type == kVvcBSlice ? 2: 1;
-        int tmp_sh_num_ref_idx_active_minus1;
-        for(int  i = 0; i < num_ref_idx_active;i++ )
-        if( slice_header->rpl->num_ref_entries[ i ][ slice_header->rpl->RplsIdx[ i ] ] > 1 ){
-              TRUE_OR_RETURN(br->ReadUE( &tmp_sh_num_ref_idx_active_minus1));
-              slice_header->sh_num_ref_idx_active_minus1.push_back(tmp_sh_num_ref_idx_active_minus1);
-        }
-      }  
-  }
+
+        bool tmp_sh_num_ref_idx_active_override_flag = false;
+        TRUE_OR_RETURN(br->ReadBool( &tmp_sh_num_ref_idx_active_override_flag));
+        slice_header->sh_num_ref_idx_active_override_flag = tmp_sh_num_ref_idx_active_override_flag;
+     
+        if(slice_header->sh_num_ref_idx_active_override_flag ){
+          int num_ref_idx_active = slice_header->slice_type == kVvcBSlice ? 2: 1;
+          int tmp_sh_num_ref_idx_active_minus1;
+          for(int  i = 0; i < num_ref_idx_active;i++ ){
+            if( slice_header->rpl->num_ref_entries[ i ][ slice_header->rpl->RplsIdx[ i ] ] > 1 ){
+                TRUE_OR_RETURN(br->ReadUE( &tmp_sh_num_ref_idx_active_minus1));
+                slice_header->sh_num_ref_idx_active_minus1.push_back(tmp_sh_num_ref_idx_active_minus1);
+            }
+          }
+        }  
+      }
   // need evalulate NumRefIdxActive
+  /********************************************************************************** */
+  for( int i = 0; i < 2; i++ ) {
+    if( slice_header->sh_slice_type == kVvcBSlice || ( slice_header->sh_slice_type == kVvcPSlice && i == 0 ) ) {
+        if( slice_header->sh_num_ref_idx_active_override_flag ){
+            slice_header->NumRefIdxActive[ i ] = slice_header->sh_num_ref_idx_active_minus1[i] + 1;
+        } else {
+          if( slice_header->rpl->num_ref_entries[ i ][ slice_header->rpl->RplsIdx[ i ] ] >= pps->pps_num_ref_idx_default_active_minus1[ i ] + 1 ){
+                 slice_header->NumRefIdxActive[i] = pps->pps_num_ref_idx_default_active_minus1[i] + 1;
+          } else {
+                 slice_header->NumRefIdxActive[ i ] = slice_header->rpl->num_ref_entries[ i ][ slice_header->rpl->RplsIdx[ i ] ];
+          }
+        }
+      }else {
+        /* sh_slice_type = = I | | ( sh_slice_type = = P && i = = 1 ) */
+           slice_header->NumRefIdxActive[ i ] = 0;      
+
+      }
+  }
+
+
+
+
+  /********************************************************************************** */
+
+
+
+
 
 
   if( slice_header->sh_slice_type != kVvcISlice) {
-    if( pps->pps_cabac_init_present_flag ){
-      bool tmp_sh_cabac_init_flag = false;
-      TRUE_OR_RETURN(br->ReadBool( &tmp_sh_cabac_init_flag));
-      slice_header->sh_cabac_init_flag = tmp_sh_cabac_init_flag;
-    }
-    if( slice_header->phs->ph_temporal_mvp_enabled_flag && !pps->pps_rpl_info_in_ph_flag ) {
-      bool tmp_sh_collocated_from_l0_flag = false;
-      if( slice_header->sh_slice_type == kVvcBSlice ){
-        TRUE_OR_RETURN(br->ReadBool( &tmp_sh_collocated_from_l0_flag));
-        slice_header->sh_collocated_from_l0_flag = tmp_sh_collocated_from_l0_flag;
+      if( pps->pps_cabac_init_present_flag ){
+        bool tmp_sh_cabac_init_flag = false;
+        TRUE_OR_RETURN(br->ReadBool( &tmp_sh_cabac_init_flag));
+        slice_header->sh_cabac_init_flag = tmp_sh_cabac_init_flag;
       }
-      if( ( slice_header->sh_collocated_from_l0_flag && NumRefIdxActive[ 0 ] > 1 ) ||
-        ( ! slice_header->sh_collocated_from_l0_flag && NumRefIdxActive[ 1 ] > 1 ) ){
-          int tmp_sh_collocated_ref_idx = 0;
-          TRUE_OR_RETURN(br->ReadUE( &tmp_sh_collocated_ref_idx));
-          slice_header->sh_collocated_ref_idx = tmp_sh_collocated_ref_idx;
+
+      if( slice_header->phs->ph_temporal_mvp_enabled_flag && !pps->pps_rpl_info_in_ph_flag ) {
+        bool tmp_sh_collocated_from_l0_flag = false;
+
+        if( slice_header->sh_slice_type == kVvcBSlice ){
+          TRUE_OR_RETURN(br->ReadBool( &tmp_sh_collocated_from_l0_flag));
+          slice_header->sh_collocated_from_l0_flag = tmp_sh_collocated_from_l0_flag;
         }
-    }
-    if( !pps->pps_wp_info_in_ph_flag && ( ( pps->pps_weighted_pred_flag && slice_header->sh_slice_type == kVvcPSlice ) || ( pps->pps_weighted_bipred_flag && slice_header->sh_slice_type == kVvcBSlice ) ) ) {
-      //pred_weight_table( )
-    }
+
+        if( ( slice_header->sh_collocated_from_l0_flag && NumRefIdxActive[ 0 ] > 1 ) ||
+          ( ! slice_header->sh_collocated_from_l0_flag && NumRefIdxActive[ 1 ] > 1 ) ){
+            int tmp_sh_collocated_ref_idx = 0;
+            TRUE_OR_RETURN(br->ReadUE( &tmp_sh_collocated_ref_idx));
+            slice_header->sh_collocated_ref_idx = tmp_sh_collocated_ref_idx;
+          }
+
+      }
+
+      if( !pps->pps_wp_info_in_ph_flag && ( ( pps->pps_weighted_pred_flag && slice_header->sh_slice_type == kVvcPSlice ) || ( pps->pps_weighted_bipred_flag && slice_header->sh_slice_type == kVvcBSlice ) ) ) {
+        //pred_weight_table( )
+      }
   }
+
+
   if( !pps->pps_qp_delta_info_in_ph_flag ){
     int tmp_sh_qp_delta = 0;
     TRUE_OR_RETURN(br->ReadSE( &tmp_sh_qp_delta));
     slice_header->sh_qp_delta = tmp_sh_qp_delta;
   }
+
   if( pps->pps_slice_chroma_qp_offsets_present_flag ) {
-    int tmp_sh_cb_qp_offset = 0;
-    int tmp_sh_cr_qp_offset = 0;
-    TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cb_qp_offset));
-    TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cr_qp_offset));
-    slice_header->sh_cb_qp_offset = tmp_sh_cb_qp_offset;
-    slice_header->sh_cr_qp_offset = tmp_sh_cr_qp_offset;
-    if( sps->sps_joint_cbcr_enabled_flag ){
-      int tmp_sh_joint_cbcr_qp_offset = 0;
-      TRUE_OR_RETURN(br->ReadSE(&tmp_sh_joint_cbcr_qp_offset));
-      slice_header->sh_joint_cbcr_qp_offset = tmp_sh_joint_cbcr_qp_offset;
-    }
+      int tmp_sh_cb_qp_offset = 0;
+      int tmp_sh_cr_qp_offset = 0;
+      TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cb_qp_offset));
+      TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cr_qp_offset));
+      slice_header->sh_cb_qp_offset = tmp_sh_cb_qp_offset;
+      slice_header->sh_cr_qp_offset = tmp_sh_cr_qp_offset;
+
+      if( sps->sps_joint_cbcr_enabled_flag ){
+        int tmp_sh_joint_cbcr_qp_offset = 0;
+        TRUE_OR_RETURN(br->ReadSE(&tmp_sh_joint_cbcr_qp_offset));
+        slice_header->sh_joint_cbcr_qp_offset = tmp_sh_joint_cbcr_qp_offset;
+      }
+  }
+
     if( pps->pps_cu_chroma_qp_offset_list_enabled_flag ){
       bool tmp_sh_cu_chroma_qp_offset_enabled_flag = false;
       TRUE_OR_RETURN(br->ReadBool(&tmp_sh_cu_chroma_qp_offset_enabled_flag));
       slice_header->sh_cu_chroma_qp_offset_enabled_flag = tmp_sh_cu_chroma_qp_offset_enabled_flag;
     }
+
     if( sps->sps_sao_enabled_flag && !pps->pps_sao_info_in_ph_flag ) {
       bool tmp_sh_sao_luma_used_flag = false;
       TRUE_OR_RETURN(br->ReadBool(&tmp_sh_sao_luma_used_flag));
       slice_header->sh_sao_luma_used_flag = tmp_sh_sao_luma_used_flag;
+
       if( sps->sps_chroma_format_idc != 0 ){
         bool tmp_sh_sao_chroma_used_flag = false;
         TRUE_OR_RETURN(br->ReadBool(&tmp_sh_sao_chroma_used_flag));
@@ -1478,21 +1517,27 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
       }  
 
     }
+
     if( pps->pps_deblocking_filter_override_enabled_flag && !pps->pps_dbf_info_in_ph_flag ){
       bool tmp_sh_deblocking_params_present_flag = 0;
       TRUE_OR_RETURN(br->ReadBool(&tmp_sh_deblocking_params_present_flag));
       slice_header->sh_deblocking_params_present_flag = tmp_sh_deblocking_params_present_flag;
+    }
+
       if( slice_header->sh_deblocking_params_present_flag ) {
+
         if( !pps->pps_deblocking_filter_disabled_flag ){
           bool tmp_sh_deblocking_filter_disabled_flag = false;
           TRUE_OR_RETURN(br->ReadBool(&tmp_sh_deblocking_filter_disabled_flag));
           slice_header->sh_deblocking_filter_disabled_flag = tmp_sh_deblocking_filter_disabled_flag;
         }
+
         if( !slice_header->sh_deblocking_filter_disabled_flag ) {
           int tmp_sh_luma_beta_offset_div2 = 0;
           int tmp_sh_luma_tc_offset_div2 = 0;
           TRUE_OR_RETURN(br->ReadSE(&tmp_sh_luma_beta_offset_div2));
           TRUE_OR_RETURN(br->ReadSE(&tmp_sh_luma_tc_offset_div2));
+
           slice_header->sh_luma_beta_offset_div2 = tmp_sh_luma_beta_offset_div2;
           slice_header->sh_luma_tc_offset_div2 = tmp_sh_luma_tc_offset_div2;
           if( pps->pps_chroma_tool_offsets_present_flag ) {
@@ -1504,42 +1549,51 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
             TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cb_beta_offset_div2));
             TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cb_beta_offset_div2));
             TRUE_OR_RETURN(br->ReadSE(&tmp_sh_cr_tc_offset_div2));
+
             slice_header->sh_cb_beta_offset_div2 = tmp_sh_cb_beta_offset_div2;
             slice_header->sh_cb_beta_offset_div2 = tmp_sh_cb_beta_offset_div2;
             slice_header->sh_cb_beta_offset_div2 = tmp_sh_cb_beta_offset_div2;
             slice_header->sh_cr_tc_offset_div2 = tmp_sh_cr_tc_offset_div2;
           }
+
         }
       }
+
       if( sps->sps_dep_quant_enabled_flag ){
         bool tmp_sh_dep_quant_used_flag = false;
         TRUE_OR_RETURN(br->ReadBool(&tmp_sh_dep_quant_used_flag));
         slice_header->sh_dep_quant_used_flag = tmp_sh_dep_quant_used_flag;
       }
+
       if( sps->sps_sign_data_hiding_enabled_flag && !slice_header->sh_dep_quant_used_flag ){
          bool tmp_sh_sign_data_hiding_used_flag = false;
         TRUE_OR_RETURN(br->ReadBool(&tmp_sh_sign_data_hiding_used_flag));
          slice_header->sh_sign_data_hiding_used_flag = tmp_sh_sign_data_hiding_used_flag;
       }
+
       if( sps->sps_transform_skip_enabled_flag && !slice_header->sh_dep_quant_used_flag && !slice_header->sh_sign_data_hiding_used_flag ){
         bool tmp_sh_ts_residual_coding_disabled_flag = false;
         TRUE_OR_RETURN(br->ReadBool(&tmp_sh_ts_residual_coding_disabled_flag));
         slice_header->sh_ts_residual_coding_disabled_flag = tmp_sh_ts_residual_coding_disabled_flag;
       }
+
       if( !slice_header->sh_ts_residual_coding_disabled_flag && sps->sps_ts_residual_coding_rice_present_in_sh_flag ){
         int tmp_sh_ts_residual_coding_rice_idx_minus1 = 0;
         TRUE_OR_RETURN(br->ReadBits(3,&tmp_sh_ts_residual_coding_rice_idx_minus1));
         slice_header->sh_ts_residual_coding_rice_idx_minus1 = tmp_sh_ts_residual_coding_rice_idx_minus1;        
       }
+      
       if( sps->sps_reverse_last_sig_coeff_enabled_flag ){
         bool tmp_sh_reverse_last_sig_coeff_flag = false;
         TRUE_OR_RETURN(br->ReadBool(&tmp_sh_reverse_last_sig_coeff_flag));
         slice_header->sh_reverse_last_sig_coeff_flag = tmp_sh_reverse_last_sig_coeff_flag;
       }
+
       if( pps->pps_slice_header_extension_present_flag ) {
         int tmp_sh_slice_header_extension_length = 0;
         TRUE_OR_RETURN(br->ReadUE(&tmp_sh_slice_header_extension_length));
         slice_header->sh_slice_header_extension_length = tmp_sh_slice_header_extension_length;
+
         int tmp_sh_slice_header_extension_data_byte = 0;
         for(int i = 0; i < slice_header->sh_slice_header_extension_length; i++){
           TRUE_OR_RETURN(br->ReadBits(8,&tmp_sh_slice_header_extension_data_byte));
@@ -1547,7 +1601,8 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
         }
       }
 
-       /**************************NumEntryPoints, eq 141 page 160****************************************************** */
+
+       /**************************NumEntryPoints, eq 141 page 160******************************************************************************* */
 
        // NumCtusInCurrSlice   need evaluate  eq 113 page 153
        if( pps->pps_rect_slice_flag ) {
@@ -1560,6 +1615,7 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
           for( int i = 0; i < slice_header->NumCtusInCurrSlice; i++ ){
             slice_header->CtbAddrInCurrSlice[ i ] = slice_header->CtbAddrInSlice[ picLevelSliceIdx ][i];
           }
+        }
        } else {
             slice_header->NumCtusInCurrSlice = 0;
             int sum_slice = slice_header->sh_slice_address + slice_header->sh_num_tiles_in_slice_minus1;
@@ -1574,6 +1630,8 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
                   }
              }
         }
+        //
+
       /*****************CtbToTileColBd        eq 18 page 29             ********** */
       int tileX = 0;
       for( int ctbAddrX = 0; ctbAddrX <= slice_header->PicWidthInCtbsY; ctbAddrX++ ) {
@@ -1604,8 +1662,9 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
               slice_header->NumEntryPoints++;
             }
       }
+    }
 
-       /****************************************************************************************/
+       /********************************************************************************************************************************/
 
       if( slice_header->NumEntryPoints > 0 ) {
         int tmp_sh_entry_offset_len_minus1 = 0;
@@ -1619,25 +1678,9 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
           slice_header->sh_entry_point_offset_minus1.push_back(tmp_sh_entry_point_offset_minus1);
         }
       }
-      ByteAlignment(br);
-
-    }
-
-
-
-
-
-
-  }
-
-
-  
-
-
-
-
-
-  slice_header->header_bit_size = nalu.payload_size() * 8 - br->NumBitsLeft();
+  OK_OR_RETURN(ByteAlignment(br));
+  // Ensure the slice header is byte-aligned before finishing parsing.
+  slice_header->header_bit_size = static_cast<int>(nalu.payload_size() * 8) - br->NumBitsLeft();
   return kOk;
 }
 
@@ -3622,6 +3665,7 @@ return kOk;
 
 
 
+}
 int ceil_log2(int value) {
     if (value <= 0) return 0; // invalaid value
     if (value == 1) return 0; // log2(1) = 0

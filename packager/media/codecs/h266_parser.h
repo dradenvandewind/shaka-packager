@@ -1217,6 +1217,7 @@ std::vector<uint32_t> CtbToTileRowBd;
 std::vector<uint32_t> CtbToTileColBd;
 int sh_luma_beta_offset_div2 = 0;
 int sh_luma_tc_offset_div2 = 0;
+std::vector<uint32_t> NumRefIdxActive;
 
 };
  
