@@ -1213,8 +1213,8 @@ int NumCtusInCurrSlice = 0;
 std::optional<H266ReferencePicList> rpl;
 
 std::vector<int> CtbAddrInCurrSlice;
-std::vector<int> CtbToTileRowBd;
-std::vector<int> CtbToTileColBd;
+std::vector<uint32_t> CtbToTileRowBd;
+std::vector<uint32_t> CtbToTileColBd;
 int sh_luma_beta_offset_div2 = 0;
 int sh_luma_tc_offset_div2 = 0;
 

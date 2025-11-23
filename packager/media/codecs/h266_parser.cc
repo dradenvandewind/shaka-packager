@@ -974,7 +974,7 @@ std::vector<uint32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY,
                                       const std::vector<uint32_t>& TileColBdVal) {
     
     // create output tab
-    std::vector<u_int32_t> ctbToTileColIdx(PicWidthInCtbsY + 1);
+    std::vector<uint32_t> ctbToTileColIdx(PicWidthInCtbsY + 1);
     
     int tileX = 0;
     int NumTileColumns = TileColBdVal.size() - 1;
@@ -1050,7 +1050,7 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
   if(sps->sps_subpic_info_present_flag ){
     int tmp_sh_subpic_id = 0;
     int len_sh_subpic_id = sps->sps_subpic_id_len_minus1 + 1;
-    TRUE_OR_RETURN(br->ReadBit(len_sh_subpic_id,&tmp_sh_subpic_id));
+    TRUE_OR_RETURN(br->ReadBits(len_sh_subpic_id,&tmp_sh_subpic_id));
     slice_header->sh_subpic_id = tmp_sh_subpic_id;
   }
   /******************************************************/
@@ -1080,7 +1080,7 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
 
   slice_header->CurrSubpicIdx = 0;
 
-  int NumTilesInPic = NumTileColumns*NumTileRows;
+  //int NumTilesInPic = NumTileColumns*NumTileRows;
 
   if(slice_header->sh_subpic_id){
         slice_header->CurrSubpicIdx = findSubpicIndex(slice_header->sh_subpic_id,slice_header->SubpicIdVal);
@@ -1173,12 +1173,15 @@ slice_header->TileRowBdVal = DeriveTileColumnBoundaries(NumTileRows, slice_heade
 
 /******************* CtbToTileRowBd[ eq 19 page 29 **********************************/
 
-slice_header->CtbToTileRowBd = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileColBdVal);
-
+//slice_header->CtbToTileRowBd = 
+auto tempCol = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileColBdVal);
+slice_header->CtbToTileColBd.assign(tempCol.begin(), tempCol.end());
 
 /******************************************ctbToTileColIdx eq 18 page 29 *******************************/
 
-slice_header->CtbToTileRowBd = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileRowBdVal);
+//slice_header->CtbToTileRowBd 
+auto tempRow = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileRowBdVal);
+slice_header->CtbToTileRowBd.assign(tempRow.begin(), tempRow.end());
 
 /**********************ctbToTileColIdx eq 18 page 29 *******************************/
 slice_header->ctbToTileColIdx = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileColBdVal);
@@ -1209,8 +1212,8 @@ for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
 
  if( pps->pps_single_slice_per_subpic_flag ) {
   if(!sps->sps_subpic_info_present_flag){
-    for( int j = 0; j < NumTileRows; j++ ){
-      for( int i = 0; i < NumTileColumns; i++ ){
+    for( uint32_t j = 0; j < NumTileRows; j++ ){
+      for( uint32_t i = 0; i < NumTileColumns; i++ ){
         //AddCtbsToSlice( 0, TileColBdVal[ i ], TileColBdVal[ i + 1 ], TileRowBdVal[ j ],TileRowBdVal[ j + 1 ] );
         AddCtbsToSlice(slice_header->CtbAddrInSlice,
                                 slice_header->NumCtusInSlice,
@@ -1228,7 +1231,7 @@ for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
                                  sps->sps_subpic_ctu_top_left_x[i] ,
           sps->sps_subpic_ctu_top_left_x[ i ] + sps->sps_subpic_width_minus1[ i ] + 1,
           sps->sps_subpic_ctu_top_left_y[ i ],
-          sps->sps_subpic_ctu_top_left_y[i] + sps->sps_subpic_height_minus1[ i ] + 1 );
+          (sps->sps_subpic_ctu_top_left_y[i] + sps->sps_subpic_height_minus1[ i ] + 1));
       } else { /* The slice consists of a number of complete tiles covering a rectangular region. */
         int tileX = slice_header->ctbToTileColIdx[ sps->sps_subpic_ctu_top_left_x[i] ];
         int tileY = slice_header->ctbToTileRowIdx[ sps->sps_subpic_ctu_top_left_y[ i ] ];
@@ -1397,7 +1400,7 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
     slice_header->rpl.emplace();
 
     //ref_pic_lists( )
-    Ref_Pic_List(*sps, *pps, br, slice_header->rpl.value());
+    Ref_Pic_List(*sps, *pps, br, &slice_header->rpl.value());
   }
   if( ( slice_header->sh_slice_type != kVvcISlice && 
     slice_header->rpl->num_ref_entries[ 0 ][ slice_header->rpl->RplsIdx[ 0 ] ] > 1 ) ||
@@ -1749,6 +1752,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   TRUE_OR_RETURN(br->ReadBool(&pps->pps_output_flag_present_flag));
   TRUE_OR_RETURN(br->ReadBool(&pps->pps_no_pic_partition_flag));
   TRUE_OR_RETURN(br->ReadBool(&pps->pps_subpic_id_mapping_present_flag));
+  
   if(pps->pps_subpic_id_mapping_present_flag){
     if(!pps->pps_no_pic_partition_flag){
       TRUE_OR_RETURN((br->ReadUE(&pps->pps_num_subpics_minus1)));
