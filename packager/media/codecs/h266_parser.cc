@@ -974,7 +974,7 @@ std::vector<uint32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY,
                                       const std::vector<uint32_t>& TileColBdVal) {
     
     // create output tab
-    std::vector<uint32_t> ctbToTileColIdx(PicWidthInCtbsY + 1);
+    std::vector<uint32_t> ctbToTileColIdx(PicWidthInCtbsY);
     
     int tileX = 0;
     int NumTileColumns = TileColBdVal.size() - 1;
@@ -983,11 +983,9 @@ std::vector<uint32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY,
         // check  next tile
         if (tileX < NumTileColumns && ctbAddrX == TileColBdVal[tileX + 1]) {
             tileX++;
-        }
-        
+        }        
         ctbToTileColIdx[ctbAddrX] = tileX;
-    }
-    
+    }    
     return ctbToTileColIdx;
 }
 
@@ -1112,7 +1110,7 @@ for( int i = 0; i <= pps->pps_num_exp_tile_columns_minus1; i++ ) {
   remainingWidthInCtbsY -= slice_header->ColWidthVal[i];
 }
 uint32_t uniformTileColWidth = pps->pps_tile_column_width_minus1[pps->pps_num_exp_tile_columns_minus1] + 1;
-while( remainingWidthInCtbsY >= uniformTileColWidth ) {
+while( remainingWidthInCtbsY >= uniformTileColWidth && inc_i < slice_header->ColWidthVal.size() ) {
   // i????
   slice_header->ColWidthVal[ inc_i ] = uniformTileColWidth;
   remainingWidthInCtbsY -= uniformTileColWidth;
@@ -1124,7 +1122,8 @@ if( remainingWidthInCtbsY > 0 ){
 }
 local_NumTileColumns = inc_i; //use fom pps
 if(pps->NumTileColumns != local_NumTileColumns ){
-  LOG(INFO) << "NumTileColumns from is not equal NumTileColumns fron slice_header, need to investigate";
+  LOG(ERROR) << "NumTileColumns mismatch";
+  return kInvalidStream; 
 }
 
 /***************************************************************************/
@@ -1160,12 +1159,13 @@ slice_header->TileRowBdVal = DeriveTileColumnBoundaries(NumTileRows, slice_heade
 
 //slice_header->CtbToTileRowBd = 
 auto tempCol = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileColBdVal);
+
 slice_header->CtbToTileColBd.assign(tempCol.begin(), tempCol.end());
 
 /******************************************ctbToTileColIdx eq 18 page 29 *******************************/
 
 //slice_header->CtbToTileRowBd 
-auto tempRow = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileRowBdVal);
+auto tempRow = DeriveCtbToTileColRowIdx(slice_header->PicHeightInCtbsY, slice_header->TileRowBdVal);
 slice_header->CtbToTileRowBd.assign(tempRow.begin(), tempRow.end());
 
 /**********************ctbToTileColIdx eq 18 page 29 *******************************/
