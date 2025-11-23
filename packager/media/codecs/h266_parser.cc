@@ -1694,74 +1694,70 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
       }
 
 
-       /**************************NumEntryPoints, eq 141 page 160******************************************************************************* */
-
-       // NumCtusInCurrSlice   need evaluate  eq 113 page 153
-       if( pps->pps_rect_slice_flag ) {
-
-          int picLevelSliceIdx = slice_header->sh_slice_address;
-          for( int j = 0; j < slice_header->CurrSubpicIdx; j++ ){
-            picLevelSliceIdx += slice_header->NumSlicesInSubpic[j];
-          }
-          slice_header->NumCtusInCurrSlice = slice_header->NumCtusInSlice[ picLevelSliceIdx ];
-          for( int i = 0; i < slice_header->NumCtusInCurrSlice; i++ ){
-            slice_header->CtbAddrInCurrSlice[ i ] = slice_header->CtbAddrInSlice[ picLevelSliceIdx ][i];
-          }
-        }
-        /***************************************************************************** */
 
 
+                      /**************************NumEntryPoints, eq 141 page 160******************************************************************************* */
 
-       } else {
-            slice_header->NumCtusInCurrSlice = 0;
-            int sum_slice = slice_header->sh_slice_address + slice_header->sh_num_tiles_in_slice_minus1;
-            for( int tileIdx = slice_header->sh_slice_address; tileIdx <= sum_slice ; tileIdx++ ){
-                  int tileX = tileIdx % pps->NumTileColumns;
-                  int tileY = tileIdx / pps->NumTileColumns;
-                  for( int ctbY = slice_header->TileRowBdVal[ tileY ]; ctbY < slice_header->TileRowBdVal[ tileY+1 ]; ctbY++ ) {
-                      for( int ctbX = slice_header->TileColBdVal[ tileX ]; ctbX < slice_header->TileColBdVal[ tileX + 1 ]; ctbX++ ) {
-                          slice_header->CtbAddrInCurrSlice[ slice_header->NumCtusInCurrSlice ] = ctbY * slice_header->PicWidthInCtbsY + ctbX;
-                          slice_header->NumCtusInCurrSlice++;
-                       }
-                  }
-             }
-        }
-        //
+                      // NumCtusInCurrSlice   need evaluate  eq 113 page 153
+                      if( pps->pps_rect_slice_flag ) {
 
-      /*****************CtbToTileColBd        eq 18 page 29             ********** */
-      int tileX = 0;
-      for( int ctbAddrX = 0; ctbAddrX <= slice_header->PicWidthInCtbsY; ctbAddrX++ ) {
-        if( ctbAddrX == slice_header->TileColBdVal[ tileX + 1 ] ){
-          tileX++;
-        }
-        slice_header->CtbToTileColBd[ ctbAddrX ] = slice_header->TileColBdVal[ tileX ];
-        slice_header->ctbToTileColIdx[ ctbAddrX ] = tileX;
-      }
+                          int picLevelSliceIdx = slice_header->sh_slice_address;
+                          for( int j = 0; j < slice_header->CurrSubpicIdx; j++ ){
+                            picLevelSliceIdx += slice_header->NumSlicesInSubpic[j];
+                          }
+                          slice_header->NumCtusInCurrSlice = slice_header->NumCtusInSlice[ picLevelSliceIdx ];
+                          for( int i = 0; i < slice_header->NumCtusInCurrSlice; i++ ){
+                            slice_header->CtbAddrInCurrSlice[ i ] = slice_header->CtbAddrInSlice[ picLevelSliceIdx ][i];
+                          }
+                      } else {
+                            slice_header->NumCtusInCurrSlice = 0;
+                            int sum_slice = slice_header->sh_slice_address + slice_header->sh_num_tiles_in_slice_minus1;
+                            for( int tileIdx = slice_header->sh_slice_address; tileIdx <= sum_slice ; tileIdx++ ){
+                                  int tileX = tileIdx % pps->NumTileColumns;
+                                  int tileY = tileIdx / pps->NumTileColumns;
+                                  for( int ctbY = slice_header->TileRowBdVal[ tileY ]; ctbY < slice_header->TileRowBdVal[ tileY+1 ]; ctbY++ ) {
+                                      for( int ctbX = slice_header->TileColBdVal[ tileX ]; ctbX < slice_header->TileColBdVal[ tileX + 1 ]; ctbX++ ) {
+                                          slice_header->CtbAddrInCurrSlice[ slice_header->NumCtusInCurrSlice ] = ctbY * slice_header->PicWidthInCtbsY + ctbX;
+                                          slice_header->NumCtusInCurrSlice++;
+                                      }
+                                  }
+                            }
+                        }
+                        //
 
-      /***************************************************************************************************  */  
-       //CtbAddrInCurrSlice need evaluate   OK 
-       // CtbAddrInCurrSlice need evalate  OK 
-       //CtbToTileColBd    ok
-      //int NumEntryPoints = 0;
+                      /*****************CtbToTileColBd        eq 18 page 29             ********** */
+                      int tileX = 0;
+                      for( int ctbAddrX = 0; ctbAddrX <= slice_header->PicWidthInCtbsY; ctbAddrX++ ) {
+                        if( ctbAddrX == slice_header->TileColBdVal[ tileX + 1 ] ){
+                          tileX++;
+                        }
+                        slice_header->CtbToTileColBd[ ctbAddrX ] = slice_header->TileColBdVal[ tileX ];
+                        slice_header->ctbToTileColIdx[ ctbAddrX ] = tileX;
+                      }
 
-      if( sps->sps_entry_point_offsets_present_flag ){
+                      /***************************************************************************************************  */  
+                      //CtbAddrInCurrSlice need evaluate   OK 
+                      // CtbAddrInCurrSlice need evalate  OK 
+                      //CtbToTileColBd    ok
+                      //int NumEntryPoints = 0;
 
-        for( int i = 1; i < slice_header->NumCtusInCurrSlice; i++ ) {
+                      if( sps->sps_entry_point_offsets_present_flag ){
 
-          int ctbAddrX = slice_header->CtbAddrInCurrSlice[ i ] % slice_header->PicWidthInCtbsY;
-          int ctbAddrY = slice_header->CtbAddrInCurrSlice[ i ] / slice_header->PicWidthInCtbsY;
-          int prevCtbAddrX = slice_header->CtbAddrInCurrSlice[ i-1 ] % slice_header->PicWidthInCtbsY;
-          int prevCtbAddrY = slice_header->CtbAddrInCurrSlice[ i-1 ] / slice_header->PicWidthInCtbsY;
-          if( slice_header->CtbToTileRowBd[ ctbAddrY ] != slice_header->CtbToTileRowBd[ prevCtbAddrY ] ||
-            slice_header->CtbToTileColBd[ ctbAddrX ] != slice_header->CtbToTileColBd[ prevCtbAddrX ] || 
-            ( ctbAddrY != prevCtbAddrY && sps->sps_entropy_coding_sync_enabled_flag ) ){
-              slice_header->NumEntryPoints++;
-            }
-      }
-    }
+                        for( int i = 1; i < slice_header->NumCtusInCurrSlice; i++ ) {
+
+                          int ctbAddrX = slice_header->CtbAddrInCurrSlice[ i ] % slice_header->PicWidthInCtbsY;
+                          int ctbAddrY = slice_header->CtbAddrInCurrSlice[ i ] / slice_header->PicWidthInCtbsY;
+                          int prevCtbAddrX = slice_header->CtbAddrInCurrSlice[ i-1 ] % slice_header->PicWidthInCtbsY;
+                          int prevCtbAddrY = slice_header->CtbAddrInCurrSlice[ i-1 ] / slice_header->PicWidthInCtbsY;
+                          if( slice_header->CtbToTileRowBd[ ctbAddrY ] != slice_header->CtbToTileRowBd[ prevCtbAddrY ] ||
+                            slice_header->CtbToTileColBd[ ctbAddrX ] != slice_header->CtbToTileColBd[ prevCtbAddrX ] || 
+                            ( ctbAddrY != prevCtbAddrY && sps->sps_entropy_coding_sync_enabled_flag ) ){
+                              slice_header->NumEntryPoints++;
+                            }
+                      }
+                    }
 
        /********************************************************************************************************************************/
-
       if( slice_header->NumEntryPoints > 0 ) {
         int tmp_sh_entry_offset_len_minus1 = 0;
         TRUE_OR_RETURN(br->ReadUE(&tmp_sh_entry_offset_len_minus1));
