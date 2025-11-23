@@ -1493,7 +1493,12 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
     slice_header->rpl.emplace();
 
     //ref_pic_lists( )
-    Ref_Pic_List(*sps, *pps, br, &slice_header->rpl.value());
+    //Ref_Pic_List(*sps, *pps, br, &slice_header->rpl.value());
+    if (slice_header->rpl.has_value()) {
+          Ref_Pic_List(*sps, *pps, br, &slice_header->rpl.value());
+    }
+
+
   }
   if( ( slice_header->sh_slice_type != kVvcISlice && 
     slice_header->rpl->num_ref_entries[ 0 ][ slice_header->rpl->RplsIdx[ 0 ] ] > 1 ) ||
@@ -1572,7 +1577,7 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
       if( !pps->pps_wp_info_in_ph_flag && ( ( pps->pps_weighted_pred_flag && slice_header->sh_slice_type == kVvcPSlice ) || ( pps->pps_weighted_bipred_flag && slice_header->sh_slice_type == kVvcBSlice ) ) ) {
         //pred_weight_table( )
         slice_header->pwt.emplace();
-        TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &slice_header->rpl.value(), &slice_header->pwt.value()));
+        TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &slice_header->rpl.value(), &slice_header->pwt.value(),slice_header->NumRefIdxActive[0]));
 
 
       }
@@ -1854,13 +1859,13 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   TRUE_OR_RETURN(br->ReadBits(6, &pps->pic_parameter_set_id));  // 6 bits 
   TRUE_OR_RETURN(br->ReadBits(4,&pps->seq_parameter_set_id));  // 4 bits
 
-   const H266Pps* pps = GetPps(pps->pic_parameter_set_id);
-  TRUE_OR_RETURN(pps);
+  // const H266Pps* pps = GetPps(pps->pic_parameter_set_id);
+  //TRUE_OR_RETURN(pps);
 
   const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
   TRUE_OR_RETURN(sps);
  
-
+/* 
  if(pps->NumTileColumns != 0){
     NumTileColumns = pps->NumTileColumns;
   }
@@ -1870,7 +1875,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   if(pps->NumTilesInPic != 0){
     NumTilesInPic = pps->NumTilesInPic;
   }
-
+ */
 
 
 
@@ -2325,7 +2330,10 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
            DLOG(INFO) << "## sps->sps_log2_diff_max_tt_min_qt_intra_slice_luma : " << sps->sps_log2_diff_max_tt_min_qt_intra_slice_luma;
         }
         if( sps->sps_chroma_format_idc != 0 ){
-          TRUE_OR_RETURN(br->ReadBool(&sps->sps_qtbtt_dual_tree_intra_flag));
+          bool tmp_sps_qtbtt_dual_tree_intra_flag = false;
+          TRUE_OR_RETURN(br->ReadBool(&tmp_sps_qtbtt_dual_tree_intra_flag));
+          sps->sps_qtbtt_dual_tree_intra_flag = tmp_sps_qtbtt_dual_tree_intra_flag;
+
           DLOG(INFO) << "## sps->sps_qtbtt_dual_tree_intra_flag : " << ( sps->sps_qtbtt_dual_tree_intra_flag ? "1" : "0");
         }
         if( sps->sps_qtbtt_dual_tree_intra_flag ) {
@@ -3196,7 +3204,9 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
       for( int i = 0; i < max_ph_num_alf_aps_ids_luma; i++ ){
       int tmp_ph_alf_aps_id_luma = 0; 
       TRUE_OR_RETURN(br->ReadBits(3,&tmp_ph_alf_aps_id_luma));
-      phs->ph_alf_aps_id_luma = tmp_ph_alf_aps_id_luma;
+      phs->ph_alf_aps_id_luma.push_back(tmp_ph_alf_aps_id_luma);
+
+
       }
       if( sps->sps_chroma_format_idc != 0 ) {
         TRUE_OR_RETURN(br->ReadBool(&phs->ph_alf_cb_enabled_flag));
@@ -3236,7 +3246,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   }
   if( sps->sps_virtual_boundaries_enabled_flag && !sps->sps_virtual_boundaries_present_flag ) {
     TRUE_OR_RETURN(br->ReadBool(&phs->ph_virtual_boundaries_present_flag));
-    ih(phs->ph_virtual_boundaries_present_flag){
+    if(phs->ph_virtual_boundaries_present_flag){
       TRUE_OR_RETURN(br->ReadUE(&phs->ph_num_ver_virtual_boundaries));
       int max_ph_num_ver_virtual_boundaries = phs->ph_num_ver_virtual_boundaries;
       int tmp_ph_virtual_boundary_pos_x_minus1 = 0;
@@ -3259,7 +3269,11 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     if( pps->pps_rpl_info_in_ph_flag ){
       phs->rpl.emplace();
 
-      Ref_Pic_List(sps,pps,br,&phs->rpl.value());
+      //Ref_Pic_List(sps,pps,br,&phs->rpl.value());
+      if (phs->rpl.has_value()) {
+         Ref_Pic_List(*sps, *pps, br, &phs->rpl.value());
+      }
+
       //ref_pic_lists( )
     }
     if( sps->sps_partition_constraints_override_enabled_flag ){
@@ -3274,7 +3288,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
             TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_max_bt_min_qt_intra_slice_luma));
             TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_max_tt_min_qt_intra_slice_luma));
           }
-          if(phs->sps_qtbtt_dual_tree_intra_flag){
+          if(sps->sps_qtbtt_dual_tree_intra_flag){
             TRUE_OR_RETURN(br->ReadUE(&phs->ph_log2_diff_min_qt_min_cb_intra_slice_chroma));
             TRUE_OR_RETURN(br->ReadUE(&phs->ph_max_mtt_hierarchy_depth_intra_slice_chroma));
             if(phs->ph_max_mtt_hierarchy_depth_intra_slice_chroma != 0 ){
@@ -3343,7 +3357,10 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
       if( ( pps->pps_weighted_pred_flag || pps->pps_weighted_bipred_flag ) && pps->pps_wp_info_in_ph_flag ){
         phs->p_pwt.emplace();
 
-        PredWeightTable(sps, pps, br, phs->rpl, phs->p_pwt);
+        //PredWeightTable(sps, pps, br, phs->rpl, phs->p_pwt);
+        if (phs->rpl.has_value() && phs->p_pwt) {
+           TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), phs->p_pwt,slice_header->NumRefIdxActive[0]));
+        }
 
       }
     }
@@ -3644,7 +3661,8 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
 H266Parser::Result H266Parser::PredWeightTable( const H266Sps& sps, const H266Pps& pps,
                           H26xBitReader* br,
                           H266ReferencePicList *rpl,
-                          H266PredWeightTable *pwt){
+                          H266PredWeightTable *pwt,
+                          int numweightsw0){
     LOG(INFO) << "Parsing H.266 Pred Weight Table ";
 
     // todo add parameter
@@ -3659,101 +3677,95 @@ H266Parser::Result H266Parser::PredWeightTable( const H266Sps& sps, const H266Pp
 
 
     TRUE_OR_RETURN(br->ReadUE(&pwt->luma_log2_weight_denom));
-    if( sps->sps_chroma_format_idc != 0 ){
+    if( sps.sps_chroma_format_idc != 0 ){
       TRUE_OR_RETURN(br->ReadSE(&pwt->delta_chroma_log2_weight_denom));
     }
-    if( pps->pps_wp_info_in_ph_flag ){
+    if( pps.pps_wp_info_in_ph_flag ){
       TRUE_OR_RETURN(br->ReadUE(&pwt->num_l0_weights));
     }
       /****************************************************************/
     int NumWeightsL0 = 0;
-    if( pps->pps_wp_info_in_ph_flag ){
-      NumWeightsL0 = rpl->num_l0_weights;
-    } else if (!pps->(pps_wp_info_in_ph_flag)){
-      NumWeightsL0 = slice_header->NumRefIdxActive[ 0 ];
+    if( pps.pps_wp_info_in_ph_flag ){
+      NumWeightsL0 = pwt->num_l0_weights;
+    } else if (!pps.pps_wp_info_in_ph_flag){
+      NumWeightsL0 = numweightsw0;//slice_header->NumRefIdxActive[ 0 ]; //  how get it ? param ?
     }
     /****************************************************************/
 
 
-    bool tmp_luma_weight_l0_flag;
 
     //NumWeightsL0 evalaute 
     int NumWeightsL0 = 0
     for(int i = 0; i < NumWeightsL0; i++ ){
+      bool tmp_luma_weight_l0_flag = false;
       TRUE_OR_RETURN(br->ReadBool(&tmp_luma_weight_l0_flag));
       pwt->luma_weight_l0_flag.push_back(tmp_luma_weight_l0_flag);
     }
-    bool tmp_chroma_weight_l0_flag = false;
-    if( sps->sps_chroma_format_idc != 0 ){
+    if( sps.sps_chroma_format_idc != 0 ){
       for( int i = 0; i < NumWeightsL0; i++ ){
+        bool tmp_chroma_weight_l0_flag = false;
         TRUE_OR_RETURN(br->ReadBool(&tmp_chroma_weight_l0_flag));
         pwt->chroma_weight_l0_flag.push_back(tmp_chroma_weight_l0_flag);
       }
     }
-    int tmp_delta_luma_weight_l0 = 0;
-    int tmp_luma_offset_l0 = 0;
-    int tmp_delta_chroma_weight_l0 = 0;
-    int delta_chroma_offset_l0 = 0
+
     for( int i = 0; i < NumWeightsL0; i++ ){
       if( rpl->luma_weight_l0_flag[i] ) {
+        int tmp_delta_luma_weight_l0 = 0;
+        int tmp_luma_offset_l0 = 0;
+        // int tmp_delta_chroma_weight_l0 = 0;
+        // int delta_chroma_offset_l0 = 0;
+
         TRUE_OR_RETURN(br->ReadSE(&tmp_delta_luma_weight_l0));
         TRUE_OR_RETURN(br->ReadSE(&tmp_luma_offset_l0));
+
         rpl->delta_luma_weight_l0.push_back(tmp_delta_luma_weight_l0);
         rpl->luma_offset_l0.push_back(tmp_luma_offset_l0);
       }
       if( rpl->chroma_weight_l0_flag[i]){
         for(int j = 0; j < 2; j++ ) {
+          int tmp_delta_chroma_weight_l0 = 0;
+          int tmp_delta_chroma_offset_l0 = 0;
           TRUE_OR_RETURN(br->ReadSE(&tmp_delta_chroma_weight_l0));
-          TRUE_OR_RETURN(br->ReadSE(&delta_chroma_offset_l0));
+          TRUE_OR_RETURN(br->ReadSE(&tmp_delta_chroma_offset_l0));
           rpl->delta_chroma_weight_l0.push_back(tmp_delta_chroma_weight_l0);
-          rpl->delta_chroma_offset_l0.push_back(delta_chroma_offset_l0);
+          rpl->delta_chroma_offset_l0.push_back(tmp_delta_chroma_offset_l0);
         }
       }
     }
 
-    int check_entry = num_ref_entries[ 1 ][ RplsIdx[ 1 ] ];
-    if( pps->pps_weighted_bipred_flag && pps->pps_wp_info_in_ph_flag && num_ref_entries[ 1 ][ RplsIdx[ 1 ] ] > 0 ){
+    int check_entry = rpl->reference_pic_list->num_ref_entries[ 1 ][ rpl->RplsIdx[ 1 ] ];
+    if( pps.pps_weighted_bipred_flag && pps.pps_wp_info_in_ph_flag && num_ref_entries[ 1 ][ rpl->RplsIdx[ 1 ] ] > 0 ){
       TRUE_OR_RETURN(br->ReadSE(&rpl->num_l1_weights));
     }
 
     int NumWeightsL1 = 0;
-    if( !pps->pps_weighted_bipred_flag || ( pps->pps_wp_info_in_ph_flag && num_ref_entries[ 1 ][ RplsIdx[ 1 ] ] == 0 ) ){
+    if( !pps.pps_weighted_bipred_flag || ( pps.pps_wp_info_in_ph_flag && num_ref_entries[ 1 ][ rpl->RplsIdx[ 1 ] ] == 0 ) ){
       NumWeightsL1 = 0;
-    } else if (pps->pps_wp_info_in_ph_flag){
+    } else if (pps.pps_wp_info_in_ph_flag){
       NumWeightsL1 = rpl->num_l1_weights;
     }
     else{
       NumWeightsL1 = slice_header->NumRefIdxActive[1];
     }
 
-
-
-
-
-
-
-
-
-
-
-    bool tmp_luma_weight_l1_flag = false;
     for( int i = 0; i < NumWeightsL1; i++ ){
+      bool tmp_luma_weight_l1_flag = false;
       TRUE_OR_RETURN(br->ReadBool(&tmp_luma_weight_l1_flag));
       rpl->luma_weight_l1_flag.push_back(tmp_luma_weight_l1_flag);
     }
-    bool tmp_chroma_weight_l1_flag = false;
-    if( sps->sps_chroma_format_idc != 0 ){
+    if( sps.sps_chroma_format_idc != 0 ){
       for( int i = 0; i < NumWeightsL1; i++ ){
+        bool tmp_chroma_weight_l1_flag = false;
         TRUE_OR_RETURN(br->ReadBool(&tmp_chroma_weight_l1_flag));
         pwt->chroma_weight_l1_flag.push_back(tmp_chroma_weight_l1_flag);
       }
     }
-    int tmp_delta_luma_weight_l1 = 0;
-    int tmp_luma_offset_l1 = 0;
-    int tmp_delta_chroma_weight_l1 = 0;
-    int delta_chroma_offset_l1 = 0
+
     for( int i = 0; i < NumWeightsL1; i++ ){
       if( rpl->luma_weight_l1_flag[i] ) {
+         int tmp_delta_luma_weight_l1 = 0;
+        int tmp_luma_offset_l1 = 0;
         TRUE_OR_RETURN(br->ReadSE(&tmp_delta_luma_weight_l1));
         TRUE_OR_RETURN(br->ReadSE(&tmp_luma_offset_l1));
         rpl->delta_luma_weight_l1.push_back(tmp_delta_luma_weight_l1);
@@ -3761,6 +3773,8 @@ H266Parser::Result H266Parser::PredWeightTable( const H266Sps& sps, const H266Pp
       }
       if( rpl->chroma_weight_l1_flag[i]){
         for(int j = 0; j < 2; j++ ) {
+          int tmp_delta_chroma_weight_l1 = 0;
+          int delta_chroma_offset_l1 = 0
           TRUE_OR_RETURN(br->ReadSE(&tmp_delta_chroma_weight_l1));
           TRUE_OR_RETURN(br->ReadSE(&delta_chroma_offset_l1));
           rpl->delta_chroma_weight_l1.push_back(tmp_delta_chroma_weight_l1);

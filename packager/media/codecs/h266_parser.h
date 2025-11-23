@@ -970,6 +970,7 @@ struct H266PictureHeaderStructure{
 
  bool ph_alf_cc_cr_enabled_flag = false;
  bool ph_alf_cc_cb_enabled_flag = false;
+ int ph_alf_cc_cb_aps_id = 0;
  int ph_alf_cc_cr_aps_id = 0;
  bool ph_lmcs_enabled_flag = false;
  int ph_lmcs_aps_id = 0;
@@ -1332,7 +1333,8 @@ class H266Parser {
   Result PredWeightTable( const H266Sps& sps, const H266Pps& pps,
                           H26xBitReader* br,
                           H266ReferencePicList *rpl,
-                          H266PredWeightTable *pwt);
+                          H266PredWeightTable *pwt,
+                          int numweightsw0);
 
 
   Result ParseGeneralConstraintsInfo(H266GeneralConstraintsInfo *gci,
