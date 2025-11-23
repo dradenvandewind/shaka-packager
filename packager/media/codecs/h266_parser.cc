@@ -948,6 +948,10 @@ void AddCtbsToSlice(std::vector<std::vector<int>>& CtbAddrInSlice,
     for (int ctbY = startY; ctbY < stopY; ctbY++) {
         for (int ctbX = startX; ctbX < stopX; ctbX++) {
             int ctbAddr = ctbY * PicWidthInCtbsY + ctbX;
+            if (sliceIdx < 0 || sliceIdx >= slice_header->CtbAddrInSlice.size()) {
+              LOG(ERROR) << "Invalid slice index in AddCtbsToSlice";
+              return kInvalidStream;
+            }
             CtbAddrInSlice[sliceIdx].push_back(ctbAddr);
             NumCtusInSlice[sliceIdx]++;
         }
@@ -987,6 +991,51 @@ std::vector<uint32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY,
         ctbToTileColIdx[ctbAddrX] = tileX;
     }    
     return ctbToTileColIdx;
+}
+
+// Compute tiles coulumns
+std::vector<uint32_t> CalculateColWidthVal(const H266Pps* pps, int PicWidthInCtbsY) {
+    std::vector<uint32_t> ColWidthVal;
+    int remainingWidth = PicWidthInCtbsY;
+    
+    // Tiles 
+    for (int i = 0; i <= pps->pps_num_exp_tile_columns_minus1; i++) {
+        int width = pps->pps_tile_column_width_minus1[i] + 1;
+        ColWidthVal.push_back(width);
+        remainingWidth -= width;
+    }
+    
+    // Tiles uniform
+    if (pps->pps_num_exp_tile_columns_minus1 < pps->NumTileColumns - 1) {
+        uint32_t uniformWidth = pps->pps_tile_column_width_minus1[pps->pps_num_exp_tile_columns_minus1] + 1;
+        int numUniformTiles = (remainingWidth + uniformWidth - 1) / uniformWidth;
+        
+        for (int i = 0; i < numUniformTiles && ColWidthVal.size() < pps->NumTileColumns; i++) {
+            int width = (i == numUniformTiles - 1) ? remainingWidth : uniformWidth;
+            ColWidthVal.push_back(width);
+            remainingWidth -= width;
+        }
+    }
+    
+    return ColWidthVal;
+}
+
+bool ValidateSliceHeader(const H266SliceHeader* slice_header, 
+                        const H266Sps* sps, 
+                        const H266Pps* pps) {
+    // Vérifier que CurrSubpicIdx est valide
+    if (slice_header->CurrSubpicIdx < 0 || 
+        slice_header->CurrSubpicIdx > sps->sps_num_subpics_minus1) {
+        return false;
+    }
+    
+    // Vérifier la cohérence des dimensions
+    if (slice_header->PicWidthInCtbsY <= 0 || 
+        slice_header->PicHeightInCtbsY <= 0) {
+        return false;
+    }
+    
+    return true;
 }
 
 
@@ -1030,6 +1079,15 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
    const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
    TRUE_OR_RETURN(sps);
 
+   if (!ValidateSliceHeader(slice_header, sps, pps)) {
+    LOG(ERROR) << "Slice header validation failed";
+    return kInvalidStream;
+  }
+
+
+
+
+
   if(sps->sps_subpic_info_present_flag ){
     int tmp_sh_subpic_id = 0;
     int len_sh_subpic_id = sps->sps_subpic_id_len_minus1 + 1;
@@ -1071,9 +1129,16 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
             LOG(ERROR) << "Subpic ID " << slice_header->sh_subpic_id << " not found in SubpicIdVal";
             return kInvalidStream;
         }
+        if (slice_header->CurrSubpicIdx < 0 ||  slice_header->CurrSubpicIdx > sps->sps_num_subpics_minus1) {
+           LOG(ERROR) << "CurrSubpicIdx out of range: " << slice_header->CurrSubpicIdx;
+           return kInvalidStream;
+        }
   }else{
     slice_header->CurrSubpicIdx = 0;
   }
+
+
+
 /* 
   The lists NumSlicesInSubpic[ i ], SubpicLevelSliceIdx[ j ], and SubpicIdxForSlice[ j ], specifying the number of slices
 in the i-th subpicture, the subpicture-level slice index of the slice with picture-level slice index j, and the subpicture index
@@ -1083,6 +1148,14 @@ PAGE 32
  //PicWidthInCtbsY eq 64 page 118 
  slice_header->PicWidthInCtbsY = ceil( pps->pps_pic_width_in_luma_samples / pps->CtbSizeY );
  slice_header->PicHeightInCtbsY = ceil( pps->pps_pic_height_in_luma_samples / pps->CtbSizeY );
+
+if (slice_header->PicWidthInCtbsY <= 0 || slice_header->PicHeightInCtbsY <= 0) {
+    LOG(ERROR) << "Invalid picture dimensions in CTBs";
+    return kInvalidStream;
+}
+
+
+
  // need populate CtbAddrInSlice  eq 22 pgae 32 ...
  /****************************************************************************************/
 //todo AddCtbsToSlice func;                        ok
@@ -1101,6 +1174,8 @@ PAGE 32
 /***************************need ColWidthVal to compute TileColBdVal ************************* */
 //6.5.1 CTB raster scanning, tile scanning, and subpicture scanning processes
 //ColWidthVal  equqtion 14 Page 28
+
+/* 
 int local_NumTileColumns = 0;
 int inc_i= 0;
 int remainingWidthInCtbsY = slice_header->PicWidthInCtbsY;
@@ -1126,8 +1201,19 @@ if(pps->NumTileColumns != local_NumTileColumns ){
   return kInvalidStream; 
 }
 
-/***************************************************************************/
+ */
+
+slice_header->ColWidthVal = CalculateColWidthVal(pps, slice_header->PicWidthInCtbsY);
+
+ /***************************************************************************/
 slice_header->TileColBdVal = DeriveTileColumnBoundaries(NumTileColumns, slice_header->ColWidthVal);
+
+if (slice_header->TileColBdVal.size() != NumTileColumns + 1) {
+    LOG(ERROR) << "Failed to derive tile column boundaries";
+    return kInvalidStream;
+}
+
+
 
 /*******************compute RowHeightVal[**********************************/
 int remainingHeightInCtbsY = slice_header->PicHeightInCtbsY;
@@ -1192,6 +1278,9 @@ for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
 
 
 /************************************************************************************************************/
+slice_header->NumCtusInSlice.clear();
+slice_header->CtbAddrInSlice.resize(pps->pps_num_slices_in_pic_minus1 + 1);
+slice_header->NumSlicesInSubpic.resize(sps->sps_num_subpics_minus1 + 1, 0);
 
 
 
