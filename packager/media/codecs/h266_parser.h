@@ -436,7 +436,8 @@ struct H266RefPicListEntry {
 
 struct H266ReferencePicListStruct {
 
-    int num_ref_entries = 0;
+    //int num_ref_entries = 0;
+    std::vector<std::vector<int>> num_ref_entries;
     bool ltrp_in_header_flag = false;
     std::vector<H266RefPicListEntry> entries;
 };
@@ -1224,7 +1225,7 @@ std::vector<uint32_t> CtbToTileRowBd;
 std::vector<uint32_t> CtbToTileColBd;
 int sh_luma_beta_offset_div2 = 0;
 int sh_luma_tc_offset_div2 = 0;
-std::vector<uint32_t> NumRefIdxActive;
+std::vector<int> NumRefIdxActive;
 
 };
  
@@ -1318,9 +1319,6 @@ class H266Parser {
 
   std::vector<const H266Pps*> GetPpsForSps(int sps_id);
   const H266Pps* GetFirstPpsForSps(int sps_id);
-  
-
- private:
   Result Vui_Payload(int max_num_sub_layers_minus1,
                      H26xBitReader* br,
                      H266VuiParameters* vui);
@@ -1339,58 +1337,33 @@ class H266Parser {
                           H266ReferencePicList *rpl,
                           H266PredWeightTable *pwt,
                           int numweightsw0);
+  Result Ols_Timing_Hrd_parameters(int firstsublayer, int sps_max_sublayers_minus1,
+                            const H266Sps& sps, 
+                            H26xBitReader* br,
+                            H266OlsTimingHrdParameters* olf);     
 
-
+  Result dpb_parameters( int MaxSubLayersMinus1, int subLayerInfoFlag ,
+                          H266DPB_Parameters* dpd,
+                          H26xBitReader* br);
   Result ParseGeneralConstraintsInfo(H266GeneralConstraintsInfo *gci,
                                                      H26xBitReader* br);
 
   Result GetGeneralTimingHrdParameters(GeneralTimingHrdParameters *time,
                                       H26xBitReader* br);                          
   
-  Result Ols_Timing_Hrd_parameters(int firstsublayer, int sps_max_sublayers_minus1,
-                            const H266Sps& sps, 
-                            H26xBitReader* br,
-                            H266OlsTimingHrdParameters* olf);
 
-  Result dpb_parameters( int MaxSubLayersMinus1, int subLayerInfoFlag ,
-                          H266DPB_Parameters* dpd,
-                          H26xBitReader* br);
                             
   Result ParseProfileTierLevel(bool profile_tier_present,
                                int max_num_sub_layers_minus1,
                                H26xBitReader* br,
                                H266ProfileTierLevel* profile_tier_level);
-
-#if 0   
-//future update perhaps
-  Result ParseReferencePictureList(const H266Sps& sps,
-                                  const H266Pps& pps,
-                                  H26xBitReader* br,
-                                  H266SliceHeader* slice_header);
-#endif
-
   Result SkipScalingListData(H26xBitReader* br);
-#if 0   
-//future update perhaps
-  Result SkipAlfData(H26xBitReader* br);
- 
-  Result SkipLmcsData(H26xBitReader* br);
-#endif
-
   Result ByteAlignment(H26xBitReader* br);
 
   Result rbsp_trailing_bits(H26xBitReader* br);
-#if 0   
-//future update perhaps
-  // H.266 specific parsing helpers
-  Result ParseOlsIds(H26xBitReader* br, std::vector<int>* ols_ids);
-  Result ParseDpbParameters(int max_sublayers_minus1,
-                           bool sublayer_info_flag,
-                           H26xBitReader* br);
-  Result ParseGeneralConstraintsInfo(H26xBitReader* br);
-#endif
 
-
+ private:
+  
   typedef std::map<int, std::unique_ptr<H266Vps>> VpsById;
   typedef std::map<int, std::unique_ptr<H266Sps>> SpsById;
   typedef std::map<int, std::unique_ptr<H266Pps>> PpsById;
