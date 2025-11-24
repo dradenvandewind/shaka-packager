@@ -3406,7 +3406,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
 
         //PredWeightTable(sps, pps, br, phs->rpl, phs->p_pwt);
         if (phs->rpl.has_value() && phs->p_pwt) {
-           TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), phs->p_pwt,phs->rpl->reference_pic_list->NumRefIdxActive[0]));
+           TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), phs->rpl,phs->rpl->reference_pic_list->NumRefIdxActive[0]));
         }
         
       }
@@ -3833,16 +3833,18 @@ H266Parser::Result H266Parser::PredWeightTable( const H266Sps& sps, const H266Pp
     if (rpl->reference_pic_list.has_value()) {
         check_entry = rpl->reference_pic_list->num_ref_entries[1][rpl->RplsIdx[1]];
     } */
+    int check_entry = 0;
     if (rpl->reference_pic_list.has_value()) {
           auto& rpl_struct = rpl->reference_pic_list.value();
           if (1 < rpl_struct.num_ref_entries.size() && 
               static_cast<size_t>(rpl->RplsIdx[1]) < rpl_struct.num_ref_entries[1].size()) {
-            int check_entry = rpl_struct.num_ref_entries[1][rpl->RplsIdx[1]];
+            check_entry = rpl_struct.num_ref_entries[1][rpl->RplsIdx[1]];
+            if (check_entry > 0) {
+              DVLOG(3) << "L1 reference entries: " << check_entry;//fot remove warning
+            }
            }
     }
-    if (check_entry > 0) {
-      DVLOG(3) << "L1 reference entries: " << check_entry;
-    }
+    
 
     if( pps.pps_weighted_bipred_flag && pps.pps_wp_info_in_ph_flag && rpl->reference_pic_list.has_value() && check_entry > 0){// rpl->reference_pic_list->num_ref_entries[1][rpl->RplsIdx[1]] > 0 ){
       TRUE_OR_RETURN(br->ReadSE(&pwt->num_l1_weights));
@@ -4025,8 +4027,7 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
                   const auto& rpl_struct = rpl->reference_pic_list.value();
     
                   // Vérifiez que les indices sont dans les bornes
-                  if (static_cast<size_t>(i) < rpl_struct.ltrp_in_header_flag.size() &&
-                  static_cast<size_t>(rpl->RplsIdx[i]) < rpl_struct.ltrp_in_header_flag[i].size() &&
+                  if (static_cast<size_t>(i) < static_cast<size_t>(rpl->RplsIdx[i]) < rpl_struct.ltrp_in_header_flag[i].size() &&
                   rpl_struct.ltrp_in_header_flag[i][rpl->RplsIdx[i]]) {
                       int tmp_poc_lsb_lt = 0;
                       int len_poc_lsb_lt = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
@@ -4041,6 +4042,7 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
                       }
                       rpl->poc_lsb_lt[i][j].push_back(tmp_poc_lsb_lt);
                   }
+
                   if (rpl->delta_poc_msb_cycle_present_flag.size() <= static_cast<size_t>(i)) {
                   rpl->delta_poc_msb_cycle_present_flag.resize(i + 1);  
                 }
@@ -4049,15 +4051,15 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
                 }
 
                 //check_delta_poc_msb_cycle_present_flag = rpl->delta_poc_msb_cycle_present_flag[i][j];
-                if (i < rpl->delta_poc_msb_cycle_present_flag.size() &&
-                    j < rpl->delta_poc_msb_cycle_present_flag[i].size()) {
+                //if (i < rpl->delta_poc_msb_cycle_present_flag.size() &&
+                //    j < rpl->delta_poc_msb_cycle_present_flag[i].size()) {
                       bool tmp_delta_poc_msb_cycle_present_flag = false;
                       TRUE_OR_RETURN(br->ReadBool(&tmp_delta_poc_msb_cycle_present_flag));
-                      rpl->delta_poc_msb_cycle_present_flag[i][j].pop_back(tmp_delta_poc_msb_cycle_present_flag);
+                      rpl->delta_poc_msb_cycle_present_flag[i][j] = tmp_delta_poc_msb_cycle_present_flag;
 
 
                   check_delta_poc_msb_cycle_present_flag = rpl->delta_poc_msb_cycle_present_flag[i][j];
-                } 
+               // } 
 
                 if (rpl->delta_poc_msb_cycle_lt.size() <= static_cast<size_t>(i)) {
                     rpl->delta_poc_msb_cycle_lt.resize(i + 1);
@@ -4156,9 +4158,10 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
         rpls->entries.push_back(entry);
     }
     
-    return kOk;
+
+  }
+return kOk;
 }
-                            }
 
 
 
