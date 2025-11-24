@@ -438,7 +438,7 @@ struct H266ReferencePicListStruct {
 
     //int num_ref_entries = 0;
     std::vector<std::vector<int>> num_ref_entries;
-    bool ltrp_in_header_flag = false;
+    std::vector<std::vector<bool>> ltrp_in_header_flag;
     std::vector<H266RefPicListEntry> entries;
     std::vector<int> NumRefIdxActive;
 
@@ -1332,10 +1332,11 @@ class H266Parser {
                      H26xBitReader* br,
                      H266VuiParameters* vui);
 
-  Result Ref_Pic_List_Struct(int listIdx, int rplsIdx,
-                            const H266Sps& sps,
-                            H26xBitReader* br,
-                            H266ReferencePicListStruct* rpls);
+  Result Ref_Pic_List_Struct(int listIdx,
+                             int rplsIdx,
+                             const H266Sps& sps,
+                             H26xBitReader* br,
+                             H266ReferencePicListStruct* rpls);
 
   Result Ref_Pic_List(const H266Sps& sps, const H266Pps& pps,
                             H26xBitReader* br,

@@ -3402,12 +3402,14 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
         TRUE_OR_RETURN(br->ReadBool(&phs->ph_prof_disabled_flag));
       }
       if( ( pps->pps_weighted_pred_flag || pps->pps_weighted_bipred_flag ) && pps->pps_wp_info_in_ph_flag ){
-        phs->p_pwt.emplace();
+        phs->pwt.emplace();
 
         //PredWeightTable(sps, pps, br, phs->rpl, phs->p_pwt);
-        if (phs->rpl.has_value() && phs->p_pwt) {
+        if (phs->rpl.has_value() && phs->pwt) {
            //TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), phs->rpl,phs->rpl->reference_pic_list->NumRefIdxActive[0]));
-           TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), &phs->rpl.value(), phs->rpl->reference_pic_list->NumRefIdxActive[0]));
+           //TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), &phs->rpl.value(), phs->rpl->reference_pic_list->NumRefIdxActive[0]));
+           TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), &phs->pwt.value(), phs->rpl->reference_pic_list->NumRefIdxActive[0]));
+
         }
         
       }
@@ -3904,7 +3906,8 @@ int ceil_log2(int value) {
     
     return static_cast<int>(std::ceil(std::log2(value)));
 }
-
+#if 0
+//  comment this version for the moment 
 H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& pps,
                             H26xBitReader* br,
                             H266ReferencePicList* rpl) {
@@ -4080,10 +4083,13 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
                   int tmp_delta_poc_msb_cycle_lt = 0;
                   TRUE_OR_RETURN(br->ReadUE(&tmp_delta_poc_msb_cycle_lt));
                   //rpl->delta_poc_msb_cycle_lt[i][j] =tmp_delta_poc_msb_cycle_lt;
-                  if (static_cast<size_t>(i) < rpl->delta_poc_msb_cycle_lt.size() &&
-                        static_cast<size_t>(j) < rpl->delta_poc_msb_cycle_lt[i].size()) {
-                    rpl->delta_poc_msb_cycle_lt[i][j].push_back(tmp_delta_poc_msb_cycle_lt);
+                  if (rpl->delta_poc_msb_cycle_lt.size() <= static_cast<size_t>(i)) {
+                                  rpl->delta_poc_msb_cycle_lt.resize(i + 1);
                   }
+                  if (rpl->delta_poc_msb_cycle_lt[i].size() <= static_cast<size_t>(j)) {
+                        rpl->delta_poc_msb_cycle_lt[i].resize(j + 1);
+                  }
+                  rpl->delta_poc_msb_cycle_lt[i][j] = tmp_delta_poc_msb_cycle_lt;
                 }
 
               }
@@ -4094,9 +4100,10 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
         }
     }
    
+
+}
 return kOk;
 }
-
 
 H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
                             const H266Sps& sps,
@@ -4165,12 +4172,223 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
         rpls->entries.push_back(entry);
     }
     
-
-  }
 return kOk;
+  }
+#else
+H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& pps,
+                            H26xBitReader* br,
+                            H266ReferencePicList* rpl) {
+    LOG(INFO) << "Parsing H.266 Reference picture list ";
+    
+    // Initialize vectors to proper size
+    rpl->rpl_sps_flag.clear();
+    rpl->rpl_idx.clear();
+    rpl->NumLtrpEntries.clear();
+    rpl->RplsIdx.clear();
+    rpl->poc_lsb_lt.clear();
+    rpl->delta_poc_msb_cycle_present_flag.clear();
+    rpl->delta_poc_msb_cycle_lt.clear();
+    
+    for(int i = 0; i < 2; i++) {
+        if(sps.sps_num_ref_pic_lists[i] > 0 && (i == 0 || (i == 1 && pps.pps_rpl1_idx_present_flag))) {
+            bool tmp_rpl_sps_flag = false;
+            TRUE_OR_RETURN(br->ReadBool(&tmp_rpl_sps_flag));
+            rpl->rpl_sps_flag.push_back(tmp_rpl_sps_flag);
+        } else {
+            rpl->rpl_sps_flag.push_back(false);
+        }
+        
+        if(rpl->rpl_sps_flag[i]) {
+            if(sps.sps_num_ref_pic_lists[i] > 1 && (i == 0 || (i == 1 && pps.pps_rpl1_idx_present_flag))) {
+                int len_rpl_idx = ceil_log2(sps.sps_num_ref_pic_lists[i]);
+                int tmp_rpl_idx = 0;
+                TRUE_OR_RETURN(br->ReadBits(len_rpl_idx, &tmp_rpl_idx));
+                rpl->rpl_idx.push_back(tmp_rpl_idx);
+            } else {
+                rpl->rpl_idx.push_back(0);
+            }
+        } else {
+            // Parse reference picture list structure
+            H266ReferencePicListStruct rpl_struct;
+            TRUE_OR_RETURN(Ref_Pic_List_Struct(i, sps.sps_num_ref_pic_lists[i], sps, br, &rpl_struct));
+            
+            // Store the parsed structure
+            if(!rpl->reference_pic_list.has_value()) {
+                rpl->reference_pic_list = H266ReferencePicListStruct();
+            }
+            // You need to properly store rpl_struct in reference_pic_list
+            // This depends on how reference_pic_list is structured
+        }
+    }
+    
+    // Initialize NumLtrpEntries and RplsIdx
+    rpl->NumLtrpEntries.resize(2);
+    rpl->RplsIdx.resize(2);
+    
+    for(int listIdx = 0; listIdx < 2; listIdx++) {
+        rpl->RplsIdx[listIdx] = rpl->rpl_idx.size() > static_cast<size_t>(listIdx) ? 
+                               rpl->rpl_idx[listIdx] : 0;
+        
+        // Calculate NumLtrpEntries
+        if(rpl->reference_pic_list.has_value()) {
+            const auto& rpl_struct = rpl->reference_pic_list.value();
+            int numLtrp = 0;
+            
+            // You need to access the actual entries from rpl_struct
+            // This depends on the structure of H266ReferencePicListStruct
+            // For now, using a placeholder:
+            numLtrp = 0; // Calculate based on actual entries
+            
+            rpl->NumLtrpEntries[listIdx].resize(sps.sps_num_ref_pic_lists[listIdx]);
+            if(static_cast<size_t>(rpl->RplsIdx[listIdx]) < rpl->NumLtrpEntries[listIdx].size()) {
+                rpl->NumLtrpEntries[listIdx][rpl->RplsIdx[listIdx]] = numLtrp;
+            }
+        }
+    }
+    
+    // Parse additional LTRP information
+    bool check_delta_poc_msb_cycle_present_flag = false;
+    
+    for(int i = 0; i < 2; i++) {
+        if(!rpl->rpl_sps_flag[i] && rpl->reference_pic_list.has_value()) {
+            const auto& rpl_struct = rpl->reference_pic_list.value();
+            
+            // Resize vectors for this list
+            if(rpl->poc_lsb_lt.size() <= static_cast<size_t>(i)) {
+                rpl->poc_lsb_lt.resize(i + 1);
+            }
+            if(rpl->delta_poc_msb_cycle_present_flag.size() <= static_cast<size_t>(i)) {
+                rpl->delta_poc_msb_cycle_present_flag.resize(i + 1);
+            }
+            if(rpl->delta_poc_msb_cycle_lt.size() <= static_cast<size_t>(i)) {
+                rpl->delta_poc_msb_cycle_lt.resize(i + 1);
+            }
+            
+            // Get the number of LTRP entries for this list
+            int numLtrpEntries = 0;
+            if(static_cast<size_t>(i) < rpl->NumLtrpEntries.size() && 
+               static_cast<size_t>(rpl->RplsIdx[i]) < rpl->NumLtrpEntries[i].size()) {
+                numLtrpEntries = rpl->NumLtrpEntries[i][rpl->RplsIdx[i]];
+            }
+            
+            for(int j = 0; j < numLtrpEntries; j++) {
+                // Check if we need to parse LTRP in header
+                bool parseLtrp = false;
+                if(sps.sps_long_term_ref_pics_flag && 
+                   static_cast<size_t>(i) < rpl_struct.ltrp_in_header_flag.size() &&
+                   static_cast<size_t>(rpl->RplsIdx[i]) < rpl_struct.ltrp_in_header_flag[i].size()) {
+                    parseLtrp = rpl_struct.ltrp_in_header_flag[i][rpl->RplsIdx[i]];
+                }
+                
+                if(parseLtrp) {
+                    // Parse POC LSB for long-term reference picture
+                    uint32_t tmp_poc_lsb_lt = 0;
+                    int len_poc_lsb_lt = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
+                    TRUE_OR_RETURN(br->ReadBits(len_poc_lsb_lt, &tmp_poc_lsb_lt));
+                    
+                    // Store POC LSB
+                    if(rpl->poc_lsb_lt[i].size() <= static_cast<size_t>(j)) {
+                        rpl->poc_lsb_lt[i].resize(j + 1);
+                    }
+                    rpl->poc_lsb_lt[i][j].push_back(tmp_poc_lsb_lt);
+                    
+                    // Parse delta POC MSB cycle present flag
+                    bool tmp_delta_poc_msb_cycle_present_flag = false;
+                    TRUE_OR_RETURN(br->ReadBool(&tmp_delta_poc_msb_cycle_present_flag));
+                    
+                    if(rpl->delta_poc_msb_cycle_present_flag[i].size() <= static_cast<size_t>(j)) {
+                        rpl->delta_poc_msb_cycle_present_flag[i].resize(j + 1);
+                    }
+                    rpl->delta_poc_msb_cycle_present_flag[i][j] = tmp_delta_poc_msb_cycle_present_flag;
+                    check_delta_poc_msb_cycle_present_flag = tmp_delta_poc_msb_cycle_present_flag;
+                    
+                    // Parse delta POC MSB cycle if present
+                    if(check_delta_poc_msb_cycle_present_flag) {
+                        int tmp_delta_poc_msb_cycle_lt = 0;
+                        TRUE_OR_RETURN(br->ReadUE(&tmp_delta_poc_msb_cycle_lt));
+                        
+                        if(rpl->delta_poc_msb_cycle_lt[i].size() <= static_cast<size_t>(j)) {
+                            rpl->delta_poc_msb_cycle_lt[i].resize(j + 1);
+                        }
+                        rpl->delta_poc_msb_cycle_lt[i][j] = tmp_delta_poc_msb_cycle_lt;
+                    }
+                }
+            }
+        }
+    }
+    
+    return kOk;
+}
+
+H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
+                            const H266Sps& sps,
+                            H26xBitReader* br,
+                            H266ReferencePicListStruct* rpls) {
+    LOG(INFO) << "Parsing H.266 Reference picture list structure parameters";
+    
+    int tmp_num_ref_entries = 0;
+    bool tmp_ltrp_in_header_flag = false;
+    
+    TRUE_OR_RETURN(br->ReadUE(&tmp_num_ref_entries));
+    rpls->num_ref_entries = tmp_num_ref_entries;
+    
+    // Initialize ltrp_in_header_flag as vector
+    rpls->ltrp_in_header_flag.clear();
+    if(sps.sps_long_term_ref_pics_flag && rplsIdx < sps.sps_num_ref_pic_lists[listIdx] && 
+       rpls->num_ref_entries > 0) {
+        TRUE_OR_RETURN(br->ReadBool(&tmp_ltrp_in_header_flag));
+        // Store as single value or resize vector based on your needs
+        rpls->ltrp_in_header_flag.resize(1);
+        rpls->ltrp_in_header_flag[0] = tmp_ltrp_in_header_flag;
+    }
+    
+    rpls->entries.clear();
+    for(int i = 0; i < rpls->num_ref_entries; i++) {
+        H266RefPicListEntry entry;
+        
+        if(sps.sps_inter_layer_prediction_enabled_flag) {
+            bool tmp_inter_layer_ref_pic_flag = false;
+            TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
+            entry.inter_layer_ref_pic_flag = tmp_inter_layer_ref_pic_flag;
+        }
+        
+        if(!entry.inter_layer_ref_pic_flag) {
+            if(sps.sps_long_term_ref_pics_flag) {
+                bool tmp_st_ref_pic_flag = false;
+                TRUE_OR_RETURN(br->ReadBool(&tmp_st_ref_pic_flag));
+                entry.st_ref_pic_flag = tmp_st_ref_pic_flag;
+            }
+            
+            if(entry.st_ref_pic_flag) {
+                int tmp_abs_delta_poc_st = 0;
+                TRUE_OR_RETURN(br->ReadUE(&tmp_abs_delta_poc_st));
+                entry.abs_delta_poc_st = tmp_abs_delta_poc_st;
+                
+                if(entry.abs_delta_poc_st > 0) {
+                    bool tmp_strp_entry_sign_flag = false;
+                    TRUE_OR_RETURN(br->ReadBool(&tmp_strp_entry_sign_flag));
+                    entry.strp_entry_sign_flag = tmp_strp_entry_sign_flag;
+                }
+            } else if(rpls->ltrp_in_header_flag.size() > 0 && !rpls->ltrp_in_header_flag[0]) {
+                uint32_t tmp_rpls_poc_lsb_lt = 0;
+                int bit_length = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
+                TRUE_OR_RETURN(br->ReadBits(bit_length, &tmp_rpls_poc_lsb_lt));
+                entry.rpls_poc_lsb_lt = tmp_rpls_poc_lsb_lt;
+            }
+        } else {
+            int tmp_ilrp_idx = 0;
+            TRUE_OR_RETURN(br->ReadUE(&tmp_ilrp_idx));
+            entry.ilrp_idx = tmp_ilrp_idx;
+        }
+        
+        rpls->entries.push_back(entry);
+    }
+    
+    return kOk;
 }
 
 
+#endif
 
 
 
