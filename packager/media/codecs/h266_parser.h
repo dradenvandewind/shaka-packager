@@ -1317,6 +1317,8 @@ class H266Parser {
   const H266Aps* GetAps(int aps_id);
 
   std::vector<const H266Pps*> GetPpsForSps(int sps_id);
+  const H266Pps* GetFirstPpsForSps(int sps_id);
+  
 
  private:
   Result Vui_Payload(int max_num_sub_layers_minus1,

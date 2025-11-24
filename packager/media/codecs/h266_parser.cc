@@ -33,7 +33,7 @@ struct H266PredWeightTable;
 #define TRUE_OR_RETURN(a)                            \
   do {                                               \
     if (!(a)) {                                      \
-      DLOG(1) << "Failure while processing " << #a; \
+      DVLOG(1) << "Failure while processing " << #a; \
       return kInvalidStream;                         \
     }                                                \
   } while (0)
@@ -49,12 +49,12 @@ struct H266PredWeightTable;
   do {                                                                     \
     int _top_half, _bottom_half;                                           \
     if (!br->ReadBits(16, &_top_half)) {                                   \
-      DLOG(1)                                                             \
+      DVLOG(1)                                                             \
           << "Error in stream: unexpected EOS while trying to read " #out; \
       return kInvalidStream;                                               \
     }                                                                      \
     if (!br->ReadBits(16, &_bottom_half)) {                                \
-      DLOG(1)                                                             \
+      DVLOG(1)                                                             \
           << "Error in stream: unexpected EOS while trying to read " #out; \
       return kInvalidStream;                                               \
     }                                                                      \
@@ -3406,7 +3406,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     }
     if(pps->pps_dbf_info_in_ph_flag){
         TRUE_OR_RETURN(br->ReadBool(&phs->ph_deblocking_params_present_flag));
-      if(pps->ph_deblocking_params_present_flag && pps){
+      if(phs->ph_deblocking_params_present_flag && pps){
         if(!pps->pps_deblocking_filter_disabled_flag){
             TRUE_OR_RETURN(br->ReadBool(&phs->ph_deblocking_filter_disabled_flag));
           if(!phs->ph_deblocking_filter_disabled_flag){
@@ -3784,9 +3784,16 @@ H266Parser::Result H266Parser::PredWeightTable( const H266Sps& sps, const H266Pp
     }
 
     //int check_entry = rpl->reference_pic_list->num_ref_entries[1][rpl->RplsIdx[1]];
-    int check_entry = 0;
+    /* int check_entry = 0;
     if (rpl->reference_pic_list.has_value()) {
         check_entry = rpl->reference_pic_list->num_ref_entries[1][rpl->RplsIdx[1]];
+    } */
+    if (rpl->reference_pic_list.has_value()) {
+          auto& rpl_struct = rpl->reference_pic_list.value();
+          if (1 < rpl_struct.num_ref_entries.size() && 
+              rpl->RplsIdx[1] < rpl_struct.num_ref_entries[1].size()) {
+            int check_entry = rpl_struct.num_ref_entries[1][rpl->RplsIdx[1]];
+           }
     }
 
     if( pps.pps_weighted_bipred_flag && pps.pps_wp_info_in_ph_flag && rpl->reference_pic_list.has_value() && rpl->reference_pic_list->num_ref_entries[1][rpl->RplsIdx[1]] > 0 ){
