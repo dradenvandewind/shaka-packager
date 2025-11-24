@@ -450,8 +450,10 @@ struct H266ReferencePicList{
   std::vector <bool> rpl_sps_flag;
   std::vector <int> rpl_idx;
   std::vector<std::vector<std::vector<int>>> poc_lsb_lt;
-  std::vector<std::vector<std::vector<bool>>> delta_poc_msb_cycle_present_flag;
-  std::vector<std::vector<std::vector<int>>> delta_poc_msb_cycle_lt;
+  //std::vector<std::vector<std::vector<bool>>> delta_poc_msb_cycle_present_flag;
+  std::vector<std::vector<bool>> delta_poc_msb_cycle_present_flag;
+  //std::vector<std::vector<std::vector<int>>> delta_poc_msb_cycle_lt;
+  std::vector<std::vector<int>> delta_poc_msb_cycle_lt;
   std::optional<H266ReferencePicListStruct> reference_pic_list;
 
   //aditionnal variables

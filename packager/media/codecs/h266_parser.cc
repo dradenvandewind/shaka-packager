@@ -3406,7 +3406,8 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
 
         //PredWeightTable(sps, pps, br, phs->rpl, phs->p_pwt);
         if (phs->rpl.has_value() && phs->p_pwt) {
-           TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), phs->rpl,phs->rpl->reference_pic_list->NumRefIdxActive[0]));
+           //TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), phs->rpl,phs->rpl->reference_pic_list->NumRefIdxActive[0]));
+           TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), &phs->rpl.value(), phs->rpl->reference_pic_list->NumRefIdxActive[0]));
         }
         
       }
@@ -3892,10 +3893,9 @@ H266Parser::Result H266Parser::PredWeightTable( const H266Sps& sps, const H266Pp
           pwt->delta_chroma_offset_l1[i].push_back(delta_chroma_offset_l1);
         }
       }
-return kOk;
+
 }
-
-
+return kOk;
 
 }
 int ceil_log2(int value) {
@@ -4027,8 +4027,12 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
                   const auto& rpl_struct = rpl->reference_pic_list.value();
     
                   // Vérifiez que les indices sont dans les bornes
-                  if (static_cast<size_t>(i) < static_cast<size_t>(rpl->RplsIdx[i]) < rpl_struct.ltrp_in_header_flag[i].size() &&
-                  rpl_struct.ltrp_in_header_flag[i][rpl->RplsIdx[i]]) {
+                  //if (static_cast<size_t>(i) < static_cast<size_t>(rpl->RplsIdx[i]) < rpl_struct.ltrp_in_header_flag[i].size() &&
+                  //rpl_struct.ltrp_in_header_flag[i][rpl->RplsIdx[i]]) {
+                  if (static_cast<size_t>(i) < rpl_struct.ltrp_in_header_flag.size() &&
+                      static_cast<size_t>(rpl->RplsIdx[i]) < rpl_struct.ltrp_in_header_flag[i].size() &&
+                      rpl_struct.ltrp_in_header_flag[i][rpl->RplsIdx[i]]) {
+
                       int tmp_poc_lsb_lt = 0;
                       int len_poc_lsb_lt = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
                       TRUE_OR_RETURN(br->ReadBits(len_poc_lsb_lt, &tmp_poc_lsb_lt));
@@ -4055,6 +4059,9 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
                 //    j < rpl->delta_poc_msb_cycle_present_flag[i].size()) {
                       bool tmp_delta_poc_msb_cycle_present_flag = false;
                       TRUE_OR_RETURN(br->ReadBool(&tmp_delta_poc_msb_cycle_present_flag));
+                      if (rpl->delta_poc_msb_cycle_present_flag[i].size() <= static_cast<size_t>(j)) {
+                        rpl->delta_poc_msb_cycle_present_flag[i].resize(j + 1);
+                      }
                       rpl->delta_poc_msb_cycle_present_flag[i][j] = tmp_delta_poc_msb_cycle_present_flag;
 
 
@@ -4073,8 +4080,8 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
                   int tmp_delta_poc_msb_cycle_lt = 0;
                   TRUE_OR_RETURN(br->ReadUE(&tmp_delta_poc_msb_cycle_lt));
                   //rpl->delta_poc_msb_cycle_lt[i][j] =tmp_delta_poc_msb_cycle_lt;
-                  if (i < rpl->delta_poc_msb_cycle_lt.size() &&
-                        j < rpl->delta_poc_msb_cycle_lt[i].size()) {
+                  if (static_cast<size_t>(i) < rpl->delta_poc_msb_cycle_lt.size() &&
+                        static_cast<size_t>(j) < rpl->delta_poc_msb_cycle_lt[i].size()) {
                     rpl->delta_poc_msb_cycle_lt[i][j].push_back(tmp_delta_poc_msb_cycle_lt);
                   }
                 }
