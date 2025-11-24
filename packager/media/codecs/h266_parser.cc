@@ -1552,6 +1552,9 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
            slice_header->NumRefIdxActive[ i ] = 0;      
 
       }
+    // to inject this value  in PredWeightTable func
+    slice_header->rpl->reference_pic_list->NumRefIdxActive[i] = slice_header->NumRefIdxActive[i];
+
   }
 
 
@@ -3403,9 +3406,9 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
 
         //PredWeightTable(sps, pps, br, phs->rpl, phs->p_pwt);
         if (phs->rpl.has_value() && phs->p_pwt) {
-           TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), phs->p_pwt,phs->NumRefIdxActive[0]));
+           TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), phs->p_pwt,phs->rpl->reference_pic_list->NumRefIdxActive[0]));
         }
-
+        
       }
     }
     if( pps->pps_qp_delta_info_in_ph_flag ){

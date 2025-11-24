@@ -440,6 +440,9 @@ struct H266ReferencePicListStruct {
     std::vector<std::vector<int>> num_ref_entries;
     bool ltrp_in_header_flag = false;
     std::vector<H266RefPicListEntry> entries;
+    std::vector<int> NumRefIdxActive;
+
+
 };
 
 struct H266ReferencePicList{
