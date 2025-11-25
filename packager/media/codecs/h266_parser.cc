@@ -3402,13 +3402,13 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
         TRUE_OR_RETURN(br->ReadBool(&phs->ph_prof_disabled_flag));
       }
       if( ( pps->pps_weighted_pred_flag || pps->pps_weighted_bipred_flag ) && pps->pps_wp_info_in_ph_flag ){
-        phs->pwt.emplace();
+        phs->p_pwt.emplace();
 
         //PredWeightTable(sps, pps, br, phs->rpl, phs->p_pwt);
-        if (phs->rpl.has_value() && phs->pwt) {
+        if (phs->rpl.has_value() && phs->p_pwt) {
            //TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), phs->rpl,phs->rpl->reference_pic_list->NumRefIdxActive[0]));
            //TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), &phs->rpl.value(), phs->rpl->reference_pic_list->NumRefIdxActive[0]));
-           TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), &phs->pwt.value(), phs->rpl->reference_pic_list->NumRefIdxActive[0]));
+           TRUE_OR_RETURN(PredWeightTable(*sps, *pps, br, &phs->rpl.value(), &phs->p_pwt.value(), phs->rpl->reference_pic_list->NumRefIdxActive[0]));
 
         }
         
@@ -3668,7 +3668,7 @@ H266Parser::Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdPar
     return kOk;
 }
 #endif
-#if 0
+#if 1
 // first version light
 H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
                             const H266Sps& sps,
@@ -3683,9 +3683,9 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
   bool tmp_st_ref_pic_flag = 0;
   //int tmp_abs_delta_poc_st = 0;
   bool tmp_strp_entry_sign_flag = 0;
-  int tmp rpls_poc_lsb_lt = 0;
+  int tmp_rpls_poc_lsb_lt = 0;
   int tmp_ilrp_idx = 0;
-  bool tmp st_ref_pic_flag = 0;
+  bool tmp_st_ref_pic_flag = 0;
 
   TRUE_OR_RETURN(br->ReadUE(&tmp_num_ref_entries));
   //rpls->num_ref_entries[listIdx][rplsIdx].push_back(tmp_num_ref_entries);
@@ -3716,8 +3716,11 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
         rpls->st_ref_pic_flag[listIdx][rplsIdx][i].push_back(tmp_inter_layer_ref_pic_flag);
       }
       if( rpls->st_ref_pic_flag[listIdx][rplsIdx][i]) {
-        TRUE_OR_RETURN(br->ReadUE(&tmp_st_ref_pic_flag));
-        rpls->abs_delta_poc_st[listIdx][rplsIdx][i].push_back(tmp_st_ref_pic_flag);
+
+        //TRUE_OR_RETURN(br->ReadUE(&tmp_st_ref_pic_flag));
+        int tmp_abs_delta_poc_st = 0;
+        TRUE_OR_RETURN(br->ReadUE(&tmp_abs_delta_poc_st));
+        rpls->abs_delta_poc_st[listIdx][rplsIdx][i].push_back(tmp_abs_delta_poc_st);
         //compute AbsDeltaPocSt
         int abs_delta_poc_st_value = 0;
         if( ( sps.sps_weighted_pred_flag || sps.sps_weighted_bipred_flag ) && i != 0 )
@@ -3727,7 +3730,8 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
         else{
           //AbsDeltaPocSt[listIdx][rplsIdx][i] = rpls->abs_delta_poc_st[listIdx][rplsIdx].at(i) + 1; // [i]+1;
           int abs_delta_poc_st_value = rpls->abs_delta_poc_st[listIdx][rplsIdx].at(i) + 1;
-           AbsDeltaPocSt[listIdx][rplsIdx][i] = abs_delta_poc_st_value;
+           AbsDeltaPocSt[listIdx][rplsIdx][i] = std::vector<int>{abs_delta_poc_st_value};
+           //abs_delta_poc_st_value;    NOT SURE
 
         }
         //if( AbsDeltaPocSt[listIdx][rplsIdx].at(i) > 0 )

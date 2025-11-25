@@ -442,6 +442,15 @@ struct H266ReferencePicListStruct {
     std::vector<H266RefPicListEntry> entries;
     std::vector<int> NumRefIdxActive;
 
+    /*     test pour compile */
+  //std::vector<std::vector<std::vector<bool>>> ltrp_in_header_flag;
+  std::vector<std::vector<std::vector<bool>>> inter_layer_ref_pic_flag;
+  std::vector<std::vector<std::vector<bool>>> st_ref_pic_flag;
+  std::vector<std::vector<std::vector<int>>> abs_delta_poc_st;
+  std::vector<std::vector<std::vector<bool>>> strp_entry_sign_flag;
+  std::vector<std::vector<std::vector<int>>> rpls_poc_lsb_lt;
+  std::vector<std::vector<std::vector<int>>> ilrp_idx;
+
 
 };
 
