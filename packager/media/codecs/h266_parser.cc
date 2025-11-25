@@ -3678,57 +3678,111 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
   //7.3.10 Reference picture list structure syntax
   std::vector<std::vector<std::vector<std::vector<int>>>> AbsDeltaPocSt;
   int tmp_num_ref_entries = 0;
-  bool tmp_ltrp_in_header_flag = 0;
-  bool tmp_inter_layer_ref_pic_flag = 0;
-  bool tmp_st_ref_pic_flag = 0;
-  //int tmp_abs_delta_poc_st = 0;
-  bool tmp_strp_entry_sign_flag = 0;
-  int tmp_rpls_poc_lsb_lt = 0;
-  int tmp_ilrp_idx = 0;
-  bool tmp_st_ref_pic_flag = 0;
-
   TRUE_OR_RETURN(br->ReadUE(&tmp_num_ref_entries));
   //rpls->num_ref_entries[listIdx][rplsIdx].push_back(tmp_num_ref_entries);
-  if (rpls->num_ref_entries.size() <= listIdx) {
+  if (rpls->num_ref_entries.size() <= static_cast<size_t>(listIdx)) {
     rpls->num_ref_entries.resize(listIdx + 1);
   }
-  if (rpls->num_ref_entries[listIdx].size() <= rplsIdx) {
+  if (rpls->num_ref_entries[listIdx].size() <= static_cast<size_t>(rplsIdx)) {
     rpls->num_ref_entries[listIdx].resize(rplsIdx + 1);
   }
   rpls->num_ref_entries[listIdx][rplsIdx] = tmp_num_ref_entries;
 
 
   
-  if( sps.sps_long_term_ref_pics_flag && rplsIdx < sps->sps_num_ref_pic_lists[listIdx] && rpls->num_ref_entries[listIdx][rplsIdx] > 0 ){
-    TRUE_OR_RETURN(br->ReadBool(&tmp_ltrp_in_header_flag));
-    rpls->ltrp_in_header_flag[ listIdx ][ rplsIdx ].push_back(tmp_ltrp_in_header_flag);
+  if( sps.sps_long_term_ref_pics_flag && rplsIdx < sps.sps_num_ref_pic_lists[listIdx] && rpls->num_ref_entries[listIdx][rplsIdx] > 0 ){
+    
+
+    if (rpls->ltrp_in_header_flag.size() <= static_cast<size_t>(listIdx)) {
+       rpls->ltrp_in_header_flag.resize(listIdx + 1);
+    }
+    if (rpls->ltrp_in_header_flag[listIdx].size() <= static_cast<size_t>(rplsIdx)) {
+      rpls->ltrp_in_header_flag[listIdx].resize(rplsIdx + 1);
+      
+    }
+      bool tmp_ltrp_in_header_flag = 0;
+      TRUE_OR_RETURN(br->ReadBool(&tmp_ltrp_in_header_flag));
+      rpls->ltrp_in_header_flag[ listIdx ][ rplsIdx ] = tmp_ltrp_in_header_flag;
   }
   int num_ref_entries = rpls->num_ref_entries[listIdx][rplsIdx];
+  
+
 
   for( int i = 0, j = 0; i <  num_ref_entries; i++) {
-    if( sps.sps_inter_layer_prediction_enabled_flag ){
-          TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
-          rpls->inter_layer_ref_pic_flag[listIdx][rplsIdx][i].push_back(tmp_inter_layer_ref_pic_flag);
+
+    if (rpls->inter_layer_ref_pic_flag.size() <= static_cast<size_t>(listIdx)) {
+        rpls->inter_layer_ref_pic_flag.resize(listIdx + 1);
     }
+    if (rpls->inter_layer_ref_pic_flag[listIdx].size() <= static_cast<size_t>(rplsIdx)) {
+      rpls->inter_layer_ref_pic_flag[listIdx].resize(rplsIdx + 1);
+    }
+    if (rpls->inter_layer_ref_pic_flag[listIdx][rplsIdx].size() <= static_cast<size_t>(i)) {
+      rpls->inter_layer_ref_pic_flag[listIdx][rplsIdx].resize(i + 1);
+    }
+
+
+
+    if( sps.sps_inter_layer_prediction_enabled_flag ){
+
+          bool tmp_inter_layer_ref_pic_flag = false;
+          TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
+          rpls->inter_layer_ref_pic_flag[listIdx][rplsIdx][i] = tmp_inter_layer_ref_pic_flag;
+    }
+
+    
+
+
+
+
     if( !rpls->inter_layer_ref_pic_flag[listIdx][rplsIdx][i] ) {
+
+       // Resize st_ref_pic_flag vector
+      if (rpls->st_ref_pic_flag.size() <= static_cast<size_t>(listIdx)) {
+        rpls->st_ref_pic_flag.resize(listIdx + 1);
+      }
+      if (rpls->st_ref_pic_flag[listIdx].size() <= static_cast<size_t>(rplsIdx)) {
+        rpls->st_ref_pic_flag[listIdx].resize(rplsIdx + 1);
+      }
+      if (rpls->st_ref_pic_flag[listIdx][rplsIdx].size() <= static_cast<size_t>(i)) {
+        rpls->st_ref_pic_flag[listIdx][rplsIdx].resize(i + 1);
+      }
+
+
+
+
+
       if( sps.sps_long_term_ref_pics_flag ){
-        TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
-        rpls->st_ref_pic_flag[listIdx][rplsIdx][i].push_back(tmp_inter_layer_ref_pic_flag);
+        bool tmp_st_ref_pic_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_st_ref_pic_flag));
+        rpls->st_ref_pic_flag[listIdx][rplsIdx][i].push_back(tmp_st_ref_pic_flag);
       }
       if( rpls->st_ref_pic_flag[listIdx][rplsIdx][i]) {
 
         //TRUE_OR_RETURN(br->ReadUE(&tmp_st_ref_pic_flag));
         int tmp_abs_delta_poc_st = 0;
         TRUE_OR_RETURN(br->ReadUE(&tmp_abs_delta_poc_st));
-        rpls->abs_delta_poc_st[listIdx][rplsIdx][i].push_back(tmp_abs_delta_poc_st);
+        rpls->abs_delta_poc_st[listIdx][rplsIdx][i] = tmp_abs_delta_poc_st;
         //compute AbsDeltaPocSt
         int abs_delta_poc_st_value = 0;
+
+        if (AbsDeltaPocSt.size() <= static_cast<size_t>(listIdx)) {
+            AbsDeltaPocSt.resize(listIdx + 1);
+        }
+        if (AbsDeltaPocSt[listIdx].size() <= static_cast<size_t>(rplsIdx)) {
+           AbsDeltaPocSt[listIdx].resize(rplsIdx + 1);
+        }
+        if (AbsDeltaPocSt[listIdx][rplsIdx].size() <= static_cast<size_t>(i)) {
+          AbsDeltaPocSt[listIdx][rplsIdx].resize(i + 1);
+        }
+
+
+
         if( ( sps.sps_weighted_pred_flag || sps.sps_weighted_bipred_flag ) && i != 0 )
         {
           AbsDeltaPocSt[listIdx][rplsIdx][i] = rpls->abs_delta_poc_st[listIdx][rplsIdx][i];
         }
         else{
-          //AbsDeltaPocSt[listIdx][rplsIdx][i] = rpls->abs_delta_poc_st[listIdx][rplsIdx].at(i) + 1; // [i]+1;
+          
           int abs_delta_poc_st_value = rpls->abs_delta_poc_st[listIdx][rplsIdx].at(i) + 1;
            AbsDeltaPocSt[listIdx][rplsIdx][i] = std::vector<int>{abs_delta_poc_st_value};
            //abs_delta_poc_st_value;    NOT SURE
@@ -3737,8 +3791,9 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
         //if( AbsDeltaPocSt[listIdx][rplsIdx].at(i) > 0 )
         if( abs_delta_poc_st_value > 0 )
         {
+          bool tmp_strp_entry_sign_flag = false;
           TRUE_OR_RETURN(br->ReadBool(&tmp_strp_entry_sign_flag));
-          rpls->strp_entry_sign_flag[ listIdx ][ rplsIdx ][ i ].push_back(tmp_strp_entry_sign_flag);
+          rpls->strp_entry_sign_flag[ listIdx ][ rplsIdx ][ i ] = tmp_strp_entry_sign_flag;
         }
       
       }     
@@ -3748,12 +3803,13 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
         int bit_read = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
         int tmp_rpls_poc_lsb_lt = 0;
         TRUE_OR_RETURN(br->ReadBits(bit_read,&tmp_rpls_poc_lsb_lt));
-        rpls->rpls_poc_lsb_lt[ listIdx ][ rplsIdx ][ j++ ].push_back(tmp_rpls_poc_lsb_lt);
+        rpls->rpls_poc_lsb_lt[ listIdx ][ rplsIdx ][ j++ ] = tmp_rpls_poc_lsb_lt;
       }
 
     }else{
+      int tmp_ilrp_idx = 0;
       TRUE_OR_RETURN(br->ReadUE(&tmp_ilrp_idx));
-      rpls->ilrp_idx[listIdx][rplsIdx][i].push_back(tmp_ilrp_idx);
+      rpls->ilrp_idx[listIdx][rplsIdx][i] = tmp_ilrp_idx;
     }
   }
   return kOk;
@@ -3960,13 +4016,13 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
             }
          //init
          if (static_cast<size_t>(listIdx) < rpl->ltrp_in_header_flag.size() && static_cast<size_t>(rplsIdx) < rpl->ltrp_in_header_flag[listIdx].size()) {
-               rpl->ltrp_in_header_flag[listIdx][rplsIdx].push_back(false);
+               rpl->ltrp_in_header_flag[listIdx][rplsIdx] = false;
         }
 
 
          if (sps.sps_long_term_ref_pics_flag &&  rplsIdx == sps.sps_num_ref_pic_lists[listIdx]) {
 
-          rpl->ltrp_in_header_flag[listIdx][rplsIdx].push_back(true);
+          rpl->ltrp_in_header_flag[listIdx][rplsIdx] = true;
          }
     
 
@@ -4183,6 +4239,7 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
                             H26xBitReader* br,
                             H266ReferencePicList* rpl) {
     LOG(INFO) << "Parsing H.266 Reference picture list ";
+    //in use
     
     // Initialize vectors to proper size
     rpl->rpl_sps_flag.clear();
@@ -4329,10 +4386,9 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
                             H26xBitReader* br,
                             H266ReferencePicListStruct* rpls) {
     LOG(INFO) << "Parsing H.266 Reference picture list structure parameters";
-    
+    //in use
     int tmp_num_ref_entries = 0;
-    bool tmp_ltrp_in_header_flag = false;
-    
+   
     TRUE_OR_RETURN(br->ReadUE(&tmp_num_ref_entries));
     rpls->num_ref_entries = tmp_num_ref_entries;
     
@@ -4340,6 +4396,7 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
     rpls->ltrp_in_header_flag.clear();
     if(sps.sps_long_term_ref_pics_flag && rplsIdx < sps.sps_num_ref_pic_lists[listIdx] && 
        rpls->num_ref_entries > 0) {
+        bool tmp_ltrp_in_header_flag = false;
         TRUE_OR_RETURN(br->ReadBool(&tmp_ltrp_in_header_flag));
         // Store as single value or resize vector based on your needs
         rpls->ltrp_in_header_flag.resize(1);
