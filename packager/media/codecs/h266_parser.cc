@@ -3668,7 +3668,7 @@ H266Parser::Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdPar
     return kOk;
 }
 #endif
-#if 1
+#if 0
 // first version light
 H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
                             const H266Sps& sps,
@@ -3754,7 +3754,7 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
       if( sps.sps_long_term_ref_pics_flag ){
         bool tmp_st_ref_pic_flag = false;
         TRUE_OR_RETURN(br->ReadBool(&tmp_st_ref_pic_flag));
-        rpls->st_ref_pic_flag[listIdx][rplsIdx][i].push_back(tmp_st_ref_pic_flag);
+        rpls->st_ref_pic_flag[listIdx][rplsIdx][i] =tmp_st_ref_pic_flag;
       }
       if( rpls->st_ref_pic_flag[listIdx][rplsIdx][i]) {
 
@@ -3899,6 +3899,9 @@ H266Parser::Result H266Parser::PredWeightTable( const H266Sps& sps, const H266Pp
     int check_entry = 0;
     if (rpl->reference_pic_list.has_value()) {
           auto& rpl_struct = rpl->reference_pic_list.value();
+          if (!rpl_struct.is_valid) {
+            DVLOG(3) << "no rpl_struct";
+          }
           if (1 < rpl_struct.num_ref_entries.size() && 
               static_cast<size_t>(rpl->RplsIdx[1]) < rpl_struct.num_ref_entries[1].size()) {
             check_entry = rpl_struct.num_ref_entries[1][rpl->RplsIdx[1]];
@@ -3966,275 +3969,7 @@ int ceil_log2(int value) {
     
     return static_cast<int>(std::ceil(std::log2(value)));
 }
-#if 0
-//  comment this version for the moment 
-H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& pps,
-                            H26xBitReader* br,
-                            H266ReferencePicList* rpl) {
-    LOG(INFO) << "Parsing H.266 Reference picture list ";
-    for( int i = 0; i < 2; i++ ) {
-      if( sps.sps_num_ref_pic_lists[i] > 0 && ( i == 0 || ( i == 1 && pps.pps_rpl1_idx_present_flag ) ) ){
-        bool tmp_rpl_sps_flag = false;
-        TRUE_OR_RETURN(br->ReadBool(&tmp_rpl_sps_flag));
-        rpl->rpl_sps_flag.push_back(tmp_rpl_sps_flag);
-      }
-      if(rpl->rpl_sps_flag[i]){
-        if( sps.sps_num_ref_pic_lists[i] > 1 && ( i == 0 || ( i == 1 && pps.pps_rpl1_idx_present_flag ) ) ){
-          
-          int len_rpl_idx = ceil_log2(sps.sps_num_ref_pic_lists[i]);
-          int tmp_rpl_idx = 0;
-          TRUE_OR_RETURN(br->ReadBits(len_rpl_idx,&tmp_rpl_idx));
-          rpl->rpl_idx.push_back(tmp_rpl_idx);     
 
-      } else {
-
-        //ref_pic_list_struct( i, sps_num_ref_pic_lists[ i ] )
-        //ref_pic_list_struct( listIdx, rplsIdx )
-        rpl->reference_pic_list.emplace();
-        Ref_Pic_List_Struct(i, sps.sps_num_ref_pic_lists[i], sps, br, &rpl->reference_pic_list.value());
-
-
-
-        /************************************************************ */
-        int numLists = 0;
-        int numRpls = 0;
-        numLists = i;
-        size_t size_sps_num_ref_pic_lists = sps.sps_num_ref_pic_lists.size();
-        numRpls = sps.sps_num_ref_pic_lists[ i ];
-
-        rpl->NumLtrpEntries.resize(i, std::vector<int>(numRpls, 0));
-
-        for(int listIdx = 0; listIdx < numLists; listIdx++) {
-        for(int rplsIdx = 0; rplsIdx < numRpls; rplsIdx++) {
-            rpl->NumLtrpEntries[listIdx][rplsIdx] = 0;
-            
-            for(int i = 0; i < rpl->num_ref_entries[listIdx][rplsIdx]; i++) {
-                if(!rpl->inter_layer_ref_pic_flag[listIdx][rplsIdx][i] && 
-                   !rpl->st_ref_pic_flag[listIdx][rplsIdx][i]) {
-                    rpl->NumLtrpEntries[listIdx][rplsIdx]++;
-                }
-            }
-         //init
-         if (static_cast<size_t>(listIdx) < rpl->ltrp_in_header_flag.size() && static_cast<size_t>(rplsIdx) < rpl->ltrp_in_header_flag[listIdx].size()) {
-               rpl->ltrp_in_header_flag[listIdx][rplsIdx] = false;
-        }
-
-
-         if (sps.sps_long_term_ref_pics_flag &&  rplsIdx == sps.sps_num_ref_pic_lists[listIdx]) {
-
-          rpl->ltrp_in_header_flag[listIdx][rplsIdx] = true;
-         }
-    
-
-        }
-        // 8.3.2
-        size_t size_sps_num_ref_pic_lists = sps.sps_num_ref_pic_lists.size();
-        for (size_t i = 0; i < size_sps_num_ref_pic_lists; i++) {
-          rpl->RplsIdx[i] = sps.sps_num_ref_pic_lists[i];
-        }
-    }
-        /************************************************************ */
-
-        bool check_delta_poc_msb_cycle_present_flag = false;
-        // populate NumLtrpEntries and RplsIdx ltrp_in_header_flag
-        for (size_t i = 0; i < size_sps_num_ref_pic_lists; i++) {
-            for( int j = 0; j < rpl->NumLtrpEntries[i][rpl->RplsIdx[i]]; j++ ){
-              
-            #if 0
-              if(rpl->ltrp_in_header_flag.size() && rpl->reference_pic_list.has_value() &&
-                  static_cast<size_t>(rpl->RplsIdx[i]) < rpl->ltrp_in_header_flag[i].size() &&
-                  rpl->reference_pic_list->ltrp_in_header_flag[i][rpl->RplsIdx[i]] ){
-                int tmp_poc_lsb_lt = 0;
-
-
-                int len_poc_lsb_lt = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
-                TRUE_OR_RETURN(br->ReadBits(len_poc_lsb_lt,&tmp_poc_lsb_lt));
-
-                if (static_cast<size_t>(i) < rpl->poc_lsb_lt.size() && static_cast<size_t>(j) < rpl->poc_lsb_lt[i].size()) {
-                    rpl->poc_lsb_lt[i][j].push_back(tmp_poc_lsb_lt);
-                }
-                if (rpl->delta_poc_msb_cycle_present_flag.size() <= static_cast<size_t>(i)) {
-                  rpl->delta_poc_msb_cycle_present_flag.resize(i + 1);  
-                }
-                if (rpl->delta_poc_msb_cycle_present_flag[i].size() <= static_cast<size_t>(j)) {
-                  rpl->delta_poc_msb_cycle_present_flag[i].resize(j + 1);
-                }
-
-                //check_delta_poc_msb_cycle_present_flag = rpl->delta_poc_msb_cycle_present_flag[i][j];
-                if (i < rpl->delta_poc_msb_cycle_present_flag.size() &&
-                    j < rpl->delta_poc_msb_cycle_present_flag[i].size()) {
-                  check_delta_poc_msb_cycle_present_flag = rpl->delta_poc_msb_cycle_present_flag[i][j];
-                } 
-
-                if (rpl->delta_poc_msb_cycle_lt.size() <= static_cast<size_t>(i)) {
-                    rpl->delta_poc_msb_cycle_lt.resize(i + 1);
-                }
-                if (rpl->delta_poc_msb_cycle_lt[i].size() <= static_cast<size_t>(j)) {
-                   rpl->delta_poc_msb_cycle_lt[i].resize(j + 1);
-                }
-
-                if(check_delta_poc_msb_cycle_present_flag){
-                  
-                  int tmp_delta_poc_msb_cycle_lt = 0;
-                  TRUE_OR_RETURN(br->ReadUE(&tmp_delta_poc_msb_cycle_lt));
-                  //rpl->delta_poc_msb_cycle_lt[i][j] =tmp_delta_poc_msb_cycle_lt;
-                  if (i < rpl->delta_poc_msb_cycle_lt.size() &&
-                        j < rpl->delta_poc_msb_cycle_lt[i].size()) {
-                    rpl->delta_poc_msb_cycle_lt[i][j] = tmp_delta_poc_msb_cycle_lt;
-                  }
-                }
-              }
-            
-            #else
-              if (rpl->reference_pic_list.has_value()) {
-                  const auto& rpl_struct = rpl->reference_pic_list.value();
-    
-                  // Vérifiez que les indices sont dans les bornes
-                  //if (static_cast<size_t>(i) < static_cast<size_t>(rpl->RplsIdx[i]) < rpl_struct.ltrp_in_header_flag[i].size() &&
-                  //rpl_struct.ltrp_in_header_flag[i][rpl->RplsIdx[i]]) {
-                  if (static_cast<size_t>(i) < rpl_struct.ltrp_in_header_flag.size() &&
-                      static_cast<size_t>(rpl->RplsIdx[i]) < rpl_struct.ltrp_in_header_flag[i].size() &&
-                      rpl_struct.ltrp_in_header_flag[i][rpl->RplsIdx[i]]) {
-
-                      int tmp_poc_lsb_lt = 0;
-                      int len_poc_lsb_lt = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
-                      TRUE_OR_RETURN(br->ReadBits(len_poc_lsb_lt, &tmp_poc_lsb_lt));
-                      
-                      // Assurez-vous que le vector est dimensionné
-                      if (rpl->poc_lsb_lt.size() <= static_cast<size_t>(i)) {
-                          rpl->poc_lsb_lt.resize(i + 1);
-                      }
-                      if (rpl->poc_lsb_lt[i].size() <= static_cast<size_t>(j)) {
-                          rpl->poc_lsb_lt[i].resize(j + 1);
-                      }
-                      rpl->poc_lsb_lt[i][j].push_back(tmp_poc_lsb_lt);
-                  }
-
-                  if (rpl->delta_poc_msb_cycle_present_flag.size() <= static_cast<size_t>(i)) {
-                  rpl->delta_poc_msb_cycle_present_flag.resize(i + 1);  
-                }
-                if (rpl->delta_poc_msb_cycle_present_flag[i].size() <= static_cast<size_t>(j)) {
-                  rpl->delta_poc_msb_cycle_present_flag[i].resize(j + 1);
-                }
-
-                //check_delta_poc_msb_cycle_present_flag = rpl->delta_poc_msb_cycle_present_flag[i][j];
-                //if (i < rpl->delta_poc_msb_cycle_present_flag.size() &&
-                //    j < rpl->delta_poc_msb_cycle_present_flag[i].size()) {
-                      bool tmp_delta_poc_msb_cycle_present_flag = false;
-                      TRUE_OR_RETURN(br->ReadBool(&tmp_delta_poc_msb_cycle_present_flag));
-                      if (rpl->delta_poc_msb_cycle_present_flag[i].size() <= static_cast<size_t>(j)) {
-                        rpl->delta_poc_msb_cycle_present_flag[i].resize(j + 1);
-                      }
-                      rpl->delta_poc_msb_cycle_present_flag[i][j] = tmp_delta_poc_msb_cycle_present_flag;
-
-
-                  check_delta_poc_msb_cycle_present_flag = rpl->delta_poc_msb_cycle_present_flag[i][j];
-               // } 
-
-                if (rpl->delta_poc_msb_cycle_lt.size() <= static_cast<size_t>(i)) {
-                    rpl->delta_poc_msb_cycle_lt.resize(i + 1);
-                }
-                if (rpl->delta_poc_msb_cycle_lt[i].size() <= static_cast<size_t>(j)) {
-                   rpl->delta_poc_msb_cycle_lt[i].resize(j + 1);
-                }
-
-                if(check_delta_poc_msb_cycle_present_flag){
-                  
-                  int tmp_delta_poc_msb_cycle_lt = 0;
-                  TRUE_OR_RETURN(br->ReadUE(&tmp_delta_poc_msb_cycle_lt));
-                  //rpl->delta_poc_msb_cycle_lt[i][j] =tmp_delta_poc_msb_cycle_lt;
-                  if (rpl->delta_poc_msb_cycle_lt.size() <= static_cast<size_t>(i)) {
-                                  rpl->delta_poc_msb_cycle_lt.resize(i + 1);
-                  }
-                  if (rpl->delta_poc_msb_cycle_lt[i].size() <= static_cast<size_t>(j)) {
-                        rpl->delta_poc_msb_cycle_lt[i].resize(j + 1);
-                  }
-                  rpl->delta_poc_msb_cycle_lt[i][j] = tmp_delta_poc_msb_cycle_lt;
-                }
-
-              }
-
-            #endif
-            }
-          }
-        }
-    }
-   
-
-}
-return kOk;
-}
-
-H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
-                            const H266Sps& sps,
-                            H26xBitReader* br,
-                            H266ReferencePicListStruct* rpls) {
-    LOG(INFO) << "Parsing H.266 Reference picture list structure parameters";
-    
-    int tmp_num_ref_entries = 0;
-    bool tmp_ltrp_in_header_flag = false;
-    
-    TRUE_OR_RETURN(br->ReadUE(&tmp_num_ref_entries));
-    
-    rpls->num_ref_entries = tmp_num_ref_entries;
-    
-    if (sps.sps_long_term_ref_pics_flag && rplsIdx < sps.sps_num_ref_pic_lists[listIdx] && 
-        rpls->num_ref_entries > 0) {
-        TRUE_OR_RETURN(br->ReadBool(&tmp_ltrp_in_header_flag));
-        rpls->ltrp_in_header_flag = tmp_ltrp_in_header_flag;
-    }
-    
-    for (int i = 0; i < rpls->num_ref_entries; i++) {
-        H266RefPicListEntry entry;
-        
-        if (sps.sps_inter_layer_prediction_enabled_flag) {
-            bool tmp_inter_layer_ref_pic_flag = false;
-            TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
-            entry.inter_layer_ref_pic_flag = tmp_inter_layer_ref_pic_flag;
-        }
-        
-        if (!entry.inter_layer_ref_pic_flag) {
-            if (sps.sps_long_term_ref_pics_flag) {
-                bool tmp_st_ref_pic_flag = false;
-                TRUE_OR_RETURN(br->ReadBool(&tmp_st_ref_pic_flag));
-                entry.st_ref_pic_flag = tmp_st_ref_pic_flag;
-            }
-            
-            if (entry.st_ref_pic_flag) {
-                int tmp_abs_delta_poc_st = 0;
-                TRUE_OR_RETURN(br->ReadUE(&tmp_abs_delta_poc_st));
-                entry.abs_delta_poc_st = tmp_abs_delta_poc_st;
-                
-                int abs_delta_poc_st_value = 0;
-                if ((sps.sps_weighted_pred_flag || sps.sps_weighted_bipred_flag) && i != 0) {
-                    abs_delta_poc_st_value = entry.abs_delta_poc_st;
-                } else {
-                    abs_delta_poc_st_value = entry.abs_delta_poc_st + 1;
-                }
-                
-                if (abs_delta_poc_st_value > 0) {
-                    bool tmp_strp_entry_sign_flag = false;
-                    TRUE_OR_RETURN(br->ReadBool(&tmp_strp_entry_sign_flag));
-                    entry.strp_entry_sign_flag = tmp_strp_entry_sign_flag;
-                }
-            } else if (!rpls->ltrp_in_header_flag) {
-                uint32_t tmp_rpls_poc_lsb_lt = 0;
-                int bit_length = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
-                TRUE_OR_RETURN(br->ReadBits(bit_length, &tmp_rpls_poc_lsb_lt));
-                entry.rpls_poc_lsb_lt = tmp_rpls_poc_lsb_lt;
-            }
-        } else {
-            int tmp_ilrp_idx = 0;
-            TRUE_OR_RETURN(br->ReadUE(&tmp_ilrp_idx));
-            entry.ilrp_idx = tmp_ilrp_idx;
-        }
-        
-        rpls->entries.push_back(entry);
-    }
-    
-return kOk;
-  }
-#else
 H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& pps,
                             H26xBitReader* br,
                             H266ReferencePicList* rpl) {
@@ -4390,7 +4125,7 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
     int tmp_num_ref_entries = 0;
    
     TRUE_OR_RETURN(br->ReadUE(&tmp_num_ref_entries));
-    rpls->num_ref_entries = tmp_num_ref_entries;
+    rpls->num_ref_entries[listIdx][rplsIdx] = tmp_num_ref_entries;
     
     // Initialize ltrp_in_header_flag as vector
     rpls->ltrp_in_header_flag.clear();
@@ -4400,11 +4135,11 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
         TRUE_OR_RETURN(br->ReadBool(&tmp_ltrp_in_header_flag));
         // Store as single value or resize vector based on your needs
         rpls->ltrp_in_header_flag.resize(1);
-        rpls->ltrp_in_header_flag[0] = tmp_ltrp_in_header_flag;
+        rpls->ltrp_in_header_flag = tmp_ltrp_in_header_flag;
     }
     
     rpls->entries.clear();
-    for(int i = 0; i < rpls->num_ref_entries; i++) {
+    for(int i = 0; i < rpls->num_ref_entries.size(); i++) {
         H266RefPicListEntry entry;
         
         if(sps.sps_inter_layer_prediction_enabled_flag) {
@@ -4449,7 +4184,6 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
 }
 
 
-#endif
 
 
 
