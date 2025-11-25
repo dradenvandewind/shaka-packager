@@ -52,9 +52,9 @@ struct H266ReferencePictureSet {
   bool used_by_curr_pic_s0[kVvcMaxRefPicSetCount];
   bool used_by_curr_pic_s1[kVvcMaxRefPicSetCount];
 
-  int num_negative_pics;
-  int num_positive_pics;
-  int num_delta_pocs;
+  int num_negative_pics = 0;
+  int num_positive_pics = 0;
+  int num_delta_pocs = 0;
 };
 struct H266OlsTimingHrdParameters{
     std::vector<bool> fixed_pic_rate_general_flag;
@@ -103,22 +103,22 @@ struct H266VuiParameters {
   int vui_chroma_sample_loc_type_top_field = 0;
   int vui_chroma_sample_loc_type_bottom_field = 0;
   //T-REC-H.274-202309-I!!PDF-E.pdf
-  bool vui_progressive_source_flag;
-  bool vui_interlaced_source_flag;
-  bool vui_non_packed_constraint_flag;
-  bool vui_non_projected_constraint_flag;
-  bool vui_aspect_ratio_info_present_flag;
-  bool vui_aspect_ratio_constant_flag;
-  int vui_aspect_ratio_idc;
-  int vui_sar_width;
-  int vui_sar_height;
-  bool vui_overscan_info_present_flag;
-  bool vui_overscan_appropriate_flag;
+  bool vui_progressive_source_flag = false;
+  bool vui_interlaced_source_flag = false;
+  bool vui_non_packed_constraint_flag = false;
+  bool vui_non_projected_constraint_flag = false;
+  bool vui_aspect_ratio_info_present_flag = false;
+  bool vui_aspect_ratio_constant_flag = false;
+  int vui_aspect_ratio_idc = 0;
+  int vui_sar_width = 0;
+  int vui_sar_height = 0;
+  bool vui_overscan_info_present_flag = false;
+  bool vui_overscan_appropriate_flag = false;
 
-  bool vui_colour_description_present_flag;
-  int vui_colour_primaries;
-  int vui_transfer_characteristics;
-  int vui_matrix_coeffs;
+  bool vui_colour_description_present_flag = false;
+  int vui_colour_primaries = 0;
+  int vui_transfer_characteristics = 0;
+  int vui_matrix_coeffs = 0;
   //int vui_full_range_flag;
 
   //bool vui_chroma_loc_info_present_flag;
@@ -128,106 +128,106 @@ struct H266VuiParameters {
   // Incomplete...
 };
 struct H266GeneralConstraintsInfo{
-bool gci_present_flag;
+bool gci_present_flag = false;
 /* general */
-bool gci_intra_only_constraint_flag;
-bool gci_all_layers_independent_constraint_flag;
-bool gci_one_au_only_constraint_flag;
+bool gci_intra_only_constraint_flag = false;
+bool gci_all_layers_independent_constraint_flag = false;
+bool gci_one_au_only_constraint_flag = false;
 /* picture format */
-int gci_sixteen_minus_max_bitdepth_constraint_idc; //4 bits
-int gci_three_minus_max_chroma_format_constraint_idc;//2 bits
+int gci_sixteen_minus_max_bitdepth_constraint_idc = 0; //4 bits
+int gci_three_minus_max_chroma_format_constraint_idc = 0;//2 bits
 /* NAL unit type related */
-bool gci_no_mixed_nalu_types_in_pic_constraint_flag;
-bool gci_no_trail_constraint_flag;
-bool gci_no_stsa_constraint_flag;
-bool gci_no_rasl_constraint_flag;
-bool gci_no_radl_constraint_flag;
-bool gci_no_idr_constraint_flag;
-bool gci_no_cra_constraint_flag;
-bool gci_no_gdr_constraint_flag;
-bool gci_no_aps_constraint_flag;
-bool gci_no_idr_rpl_constraint_flag;
+bool gci_no_mixed_nalu_types_in_pic_constraint_flag = false;
+bool gci_no_trail_constraint_flag = false;
+bool gci_no_stsa_constraint_flag = false;
+bool gci_no_rasl_constraint_flag = false;
+bool gci_no_radl_constraint_flag = false;
+bool gci_no_idr_constraint_flag = false;
+bool gci_no_cra_constraint_flag = false;
+bool gci_no_gdr_constraint_flag = false;
+bool gci_no_aps_constraint_flag = false;
+bool gci_no_idr_rpl_constraint_flag = false;
 /* tile, slice, subpicture partitioning */
-bool gci_one_tile_per_pic_constraint_flag;
-bool gci_pic_header_in_slice_header_constraint_flag;
-bool gci_one_slice_per_pic_constraint_flag;
-bool gci_no_rectangular_slice_constraint_flag;
-bool gci_one_slice_per_subpic_constraint_flag;
-bool gci_no_subpic_info_constraint_flag;
+bool gci_one_tile_per_pic_constraint_flag = false;
+bool gci_pic_header_in_slice_header_constraint_flag = false;
+bool gci_one_slice_per_pic_constraint_flag = false;
+bool gci_no_rectangular_slice_constraint_flag = false;
+bool gci_one_slice_per_subpic_constraint_flag = false;
+bool gci_no_subpic_info_constraint_flag = false;
 /* CTU and block partitioning */
-int gci_three_minus_max_log2_ctu_size_constraint_idc; //2 bits
-bool gci_no_partition_constraints_override_constraint_flag;
-bool gci_no_mtt_constraint_flag;
-bool gci_no_qtbtt_dual_tree_intra_constraint_flag;
+int gci_three_minus_max_log2_ctu_size_constraint_idc = 0; //2 bits
+bool gci_no_partition_constraints_override_constraint_flag = false;
+bool gci_no_mtt_constraint_flag = false;
+bool gci_no_qtbtt_dual_tree_intra_constraint_flag = false;
 /* intra */
-bool gci_no_palette_constraint_flag;
-bool gci_no_ibc_constraint_flag;
-bool gci_no_isp_constraint_flag;
-bool gci_no_mrl_constraint_flag;
-bool gci_no_mip_constraint_flag;
-bool gci_no_cclm_constraint_flag;
+bool gci_no_palette_constraint_flag = false;
+bool gci_no_ibc_constraint_flag = false;
+bool gci_no_isp_constraint_flag = false;
+bool gci_no_mrl_constraint_flag = false;
+bool gci_no_mip_constraint_flag = false;
+bool gci_no_cclm_constraint_flag = false;
 /* inter */
-bool gci_no_ref_pic_resampling_constraint_flag;
-bool gci_no_res_change_in_clvs_constraint_flag;
-bool gci_no_weighted_prediction_constraint_flag;
-bool gci_no_ref_wraparound_constraint_flag;
-bool gci_no_temporal_mvp_constraint_flag;
-bool gci_no_amvr_constraint_flag;
-bool gci_no_bdof_constraint_flag;
-bool gci_no_smvd_constraint_flag;
-bool gci_no_dmvr_constraint_flag;
-bool gci_no_mmvd_constraint_flag;
-bool gci_no_affine_motion_constraint_flag;
-bool gci_no_prof_constraint_flag;
-bool gci_no_bcw_constraint_flag;
-bool gci_no_ciip_constraint_flag;
-bool gci_no_gpm_constraint_flag;
+bool gci_no_ref_pic_resampling_constraint_flag = false;
+bool gci_no_res_change_in_clvs_constraint_flag = false;
+bool gci_no_weighted_prediction_constraint_flag = false;
+bool gci_no_ref_wraparound_constraint_flag = false;
+bool gci_no_temporal_mvp_constraint_flag = false;
+bool gci_no_amvr_constraint_flag = false;
+bool gci_no_bdof_constraint_flag = false;
+bool gci_no_smvd_constraint_flag = false;
+bool gci_no_dmvr_constraint_flag = false;
+bool gci_no_mmvd_constraint_flag = false;
+bool gci_no_affine_motion_constraint_flag = false;
+bool gci_no_prof_constraint_flag = false;
+bool gci_no_bcw_constraint_flag = false;
+bool gci_no_ciip_constraint_flag = false;
+bool gci_no_gpm_constraint_flag = false;
 /* transform, quantization, residual */
-bool gci_no_luma_transform_size_64_constraint_flag;
-bool gci_no_transform_skip_constraint_flag;
-bool gci_no_bdpcm_constraint_flag;
-bool gci_no_mts_constraint_flag;
-bool gci_no_lfnst_constraint_flag;
-bool gci_no_joint_cbcr_constraint_flag;
-bool gci_no_sbt_constraint_flag;
-bool gci_no_act_constraint_flag;
-bool gci_no_explicit_scaling_list_constraint_flag;
-bool gci_no_dep_quant_constraint_flag;
-bool gci_no_sign_data_hiding_constraint_flag;
-bool gci_no_cu_qp_delta_constraint_flag;
-bool gci_no_chroma_qp_offset_constraint_flag;
+bool gci_no_luma_transform_size_64_constraint_flag = false;
+bool gci_no_transform_skip_constraint_flag = false;
+bool gci_no_bdpcm_constraint_flag = false;
+bool gci_no_mts_constraint_flag = false;
+bool gci_no_lfnst_constraint_flag = false;
+bool gci_no_joint_cbcr_constraint_flag = false;
+bool gci_no_sbt_constraint_flag = false;
+bool gci_no_act_constraint_flag = false;
+bool gci_no_explicit_scaling_list_constraint_flag = false;
+bool gci_no_dep_quant_constraint_flag = false;
+bool gci_no_sign_data_hiding_constraint_flag = false;
+bool gci_no_cu_qp_delta_constraint_flag = false;
+bool gci_no_chroma_qp_offset_constraint_flag = false;
 /* loop filter */
-bool gci_no_sao_constraint_flag;
-bool gci_no_alf_constraint_flag;
-bool gci_no_ccalf_constraint_flag;
-bool gci_no_lmcs_constraint_flag;
-bool gci_no_ladf_constraint_flag;
-bool gci_no_virtual_boundaries_constraint_flag;
-int gci_num_additional_bits; //8 bits
-bool gci_all_rap_pictures_constraint_flag;
-bool gci_no_extended_precision_processing_constraint_flag;
-bool gci_no_ts_residual_coding_rice_constraint_flag;
-bool gci_no_rrc_rice_extension_constraint_flag;
-bool gci_no_persistent_rice_adaptation_constraint_flag;
-bool gci_no_reverse_last_sig_coeff_constraint_flag;
+bool gci_no_sao_constraint_flag = false;
+bool gci_no_alf_constraint_flag = false;
+bool gci_no_ccalf_constraint_flag = false;
+bool gci_no_lmcs_constraint_flag = false;
+bool gci_no_ladf_constraint_flag = false;
+bool gci_no_virtual_boundaries_constraint_flag = false;
+int gci_num_additional_bits = 0; //8 bits
+bool gci_all_rap_pictures_constraint_flag = false;
+bool gci_no_extended_precision_processing_constraint_flag = false;
+bool gci_no_ts_residual_coding_rice_constraint_flag = false;
+bool gci_no_rrc_rice_extension_constraint_flag = false;
+bool gci_no_persistent_rice_adaptation_constraint_flag = false;
+bool gci_no_reverse_last_sig_coeff_constraint_flag = false;
 
 };
 
 struct H266ProfileTierLevel{
   H266ProfileTierLevel();
-  ~H266ProfileTierLeve();
+  ~H266ProfileTierLevel();
 
-  int general_profile_idc;
-  bool general_tier_flag;
-  int general_level_idc;
-  bool ptl_frame_only_constraint_flag;
-  bool ptl_multilayer_enabled_flag;
+  int general_profile_idc = 0;
+  bool general_tier_flag = 0;
+  int general_level_idc = 0;
+  bool ptl_frame_only_constraint_flag = false;
+  bool ptl_multilayer_enabled_flag = false;
 
   H266GeneralConstraintsInfo gci;
 
   std::vector <bool> ptl_sublayer_level_present_flag;
   std::vector <bool> sublayer_level_idc;
-  int ptl_num_sub_profiles;
+  int ptl_num_sub_profiles = 0;
   std::vector <uint32_t> general_sub_profile_idc;
 };
 
@@ -342,7 +342,7 @@ struct H266Pps {
 
   bool pps_slice_chroma_qp_offsets_present_flag = false;
   bool pps_cu_chroma_qp_offset_list_enabled_flag = false;
-  int pps_cu_chroma_qp_offset_list_len_minus1; 
+  int pps_cu_chroma_qp_offset_list_len_minus1 = 0; 
   int pps_chroma_qp_offset_list_len_minus1 = 0;
   std::vector<int> pps_qp_offset_list; //256 not sure need check
   std::vector<int> pps_cr_qp_offset_list;
@@ -375,7 +375,7 @@ struct H266Pps {
   bool pps_extension_flag = false;
   bool pps_extension_data_flags = false;
   bool pps_extension_data_flag = false;
-  int CtbSizeY;
+  int CtbSizeY = 0;
 
 
   //we need back up for slice_parsing
@@ -389,7 +389,7 @@ struct H266Pps {
 // Dans h266_parser.h, ajouter :
 struct GeneralTimingHrdParameters {
   GeneralTimingHrdParameters();
-  ~GeneralTimingHrdParameter();
+  ~GeneralTimingHrdParameters();
 
     uint32_t num_units_in_tick = 0;
     uint32_t time_scale = 0;
@@ -432,6 +432,8 @@ struct H266ReferencePicListStruct{
 };
  */
 struct H266RefPicListEntry {
+  H266RefPicListEntry();
+  ~H266RefPicListEntry();
   
     bool inter_layer_ref_pic_flag = false;
     bool st_ref_pic_flag = false;
@@ -489,9 +491,9 @@ struct H266PredWeightTable{
   H266PredWeightTable();
   ~H266PredWeightTable();
 
-  int luma_log2_weight_denom;
-  int delta_chroma_log2_weight_denom;
-  int num_l0_weights;
+  int luma_log2_weight_denom = 0;
+  int delta_chroma_log2_weight_denom = 0;
+  int num_l0_weights = 0;
   std::vector<bool> luma_weight_l0_flag;
   std::vector<bool> chroma_weight_l0_flag;
   std::vector<int> delta_luma_weight_l0;
@@ -563,7 +565,7 @@ struct H266Sps {
   std::vector<int> sps_subpic_height_minus1;
   std::vector<bool> sps_subpic_treated_as_pic_flag;
   std::vector<bool> sps_loop_filter_across_subpic_enabled_flag;
-  int sps_subpic_id_len_minus1;
+  int sps_subpic_id_len_minus1 = 0;
   bool sps_subpic_id_mapping_explicitly_signalled_flag = false;
   
   bool sps_subpic_id_mapping_present_flag = false;
@@ -731,16 +733,16 @@ struct H266Sps {
 
   bool sps_range_extension_flag = false;
   bool sps_extension_7bits_flag = false;
-  int sps_extension_7bits;
+  int sps_extension_7bits = 0;
   bool sps_extension_data_flag = false;
  
 // sp_range_extension  
 // todo make struct and funct
-bool sps_extended_precision_flag;
-bool sps_ts_residual_coding_rice_present_in_sh_flag;
-bool sps_rrc_rice_extension_flag;
-bool sps_persistent_rice_adaptation_enabled_flag;
-bool sps_reverse_last_sig_coeff_enabled_flag;
+bool sps_extended_precision_flag = false;
+bool sps_ts_residual_coding_rice_present_in_sh_flag = false;
+bool sps_rrc_rice_extension_flag = false;
+bool sps_persistent_rice_adaptation_enabled_flag = false;
+bool sps_reverse_last_sig_coeff_enabled_flag  = false;
 
 
  // end H.266 specific fields
@@ -749,7 +751,6 @@ bool sps_reverse_last_sig_coeff_enabled_flag;
   bool sps_temporal_id_nesting_flag = false;
 
   // H.266 profile_tier_level structure
-  int general_profile_tier_level_data[12] = {};
 
   int chroma_format_idc = 0;
   int pic_width_max_in_luma_samples = 0;
@@ -826,12 +827,12 @@ struct H266Vps {
     kNone = 16
   };
 
-  int vps_video_parameter_set_id; //4 bits
+  int vps_video_parameter_set_id = 0 //4 bits
   //int vps_max_layers_minus1;
-  uint32_t vps_max_layers_minus1; //6 bits
-  int vps_max_sublayers_minus1; //3 bits
+  uint32_t vps_max_layers_minus1 = 0; //6 bits
+  int vps_max_sublayers_minus1 = 0; //3 bits
   bool vps_default_ptl_dpb_hrd_max_tid_flag = false; //bool
-  bool vps_all_independent_layers_flag; //bool
+  bool vps_all_independent_layers_flag = false; //bool
 
   std::vector<uint8_t> vps_layer_id; // 6 bits each, size = vpsMaxLayersMinus1 + 1
   std::vector<bool> vps_independent_layer_flag;
@@ -850,12 +851,12 @@ struct H266Vps {
   std::vector<bool> vps_pt_present_flag;
   std::vector<int> vps_ptl_max_tid;
 
-  bool vps_ptl_alignment_zero_bit;
+  bool vps_ptl_alignment_zero_bit = false;
   std::optional<H266ProfileTierLevel> vps_ptl;
   std::vector<int> vps_ols_ptl_idx;
  
-  int vps_num_dpb_params_minus1;
-  bool vps_sublayer_dpb_params_present_flag;
+  int vps_num_dpb_params_minus1 = 0;
+  bool vps_sublayer_dpb_params_present_flag = false;
   std::vector<int> vps_dpb_max_tid;
   std::optional<H266DPB_Parameters> vps_dpd;
 
@@ -867,11 +868,11 @@ struct H266Vps {
   std::vector<int> vps_ols_dpb_bitdepth_minus8;
 
   std::vector<int> vps_ols_dpb_params_idx;
-  bool vps_timing_hrd_params_present_flag;
+  bool vps_timing_hrd_params_present_flag = false;
   //general_timing_hrd_parameters()
   std::optional<GeneralTimingHrdParameters> vps_general_timing_hrd_parameters;
-  bool vps_sublayer_cpb_params_present_flag;
-  int vps_num_ols_timing_hrd_params_minus1;
+  bool vps_sublayer_cpb_params_present_flag = false;
+  int vps_num_ols_timing_hrd_params_minus1 = 0;
   //general_timing_hrd_parameters( )
 
   std::vector<int> vps_hrd_max_tid;
@@ -880,8 +881,8 @@ struct H266Vps {
   std::optional<H266OlsTimingHrdParameters> vps_ols_parameters;
 
   std::vector<int> vps_ols_timing_hrd_idx;
-  bool vps_extension_flag;
-  bool vps_extension_data_flag;
+  bool vps_extension_flag = false;
+  bool vps_extension_data_flag = false;
 
   //extra variales 
   int TotalNumOlss = 0;
@@ -911,16 +912,16 @@ struct H266Vps {
   std::vector<std::vector<bool>> vps_direct_dependency_flag;
 
   // Timing info in VPS (H.266 specific)
-  bool vps_timing_info_present_flag;
-  long vps_num_units_in_tick;
-  long vps_time_scale;
+  bool vps_timing_info_present_flag = false;
+  long vps_num_units_in_tick= 0;
+  long vps_time_scale= 0;
 
   // General constraints
   bool vps_each_layer_is_an_ols_flag = false;
   int vps_ols_mode_idc = 0;
 
   // Output layer sets
-  int vps_num_output_layer_sets_minus1;
+  int vps_num_output_layer_sets_minus1= 0;
   int vps_num_ptls_minus1 = 0;
 
   // Profile tier level
@@ -928,28 +929,28 @@ struct H266Vps {
                                      [kVvcGeneralProfileTierLevelBytes];
 
   // Layer sets
-  int vps_num_layer_sets_minus1;
-  int vps_max_layer_id;
+  int vps_num_layer_sets_minus1= 0;
+  int vps_max_layer_id = 0;
 
   // Scalability info
   int scalability_type = kNone;
 
   // H.266 specific: OPI (Operating Point Information) support
-  bool vps_opi_present_flag;
+  bool vps_opi_present_flag = false;
 
   /*                */
-  bool vps_default_output_layer_idc;
+  bool vps_default_output_layer_idc = false;
   //bool vps_all_independent_layers_flag;
   //std::vector<uint32_t> layer_id_included_flag;
   std::vector<bool> layer_id_included_flag;
 
 
   // Timing info
-  bool vps_poc_proportional_to_timing_flag;
-  uint32_t vps_num_ticks_poc_diff_one_minus1;
+  bool vps_poc_proportional_to_timing_flag = false;
+  uint32_t vps_num_ticks_poc_diff_one_minus1= 0;
   
   // Output layer sets
-  uint32_t vps_num_output_layer_sets;
+  uint32_t vps_num_output_layer_sets= 0;
   std::vector<std::vector<bool>> output_layer_flag;
   
   // Profile tier level
@@ -1009,7 +1010,7 @@ struct H266PictureHeaderStructure{
  bool ph_virtual_boundaries_present_flag = false;
  int ph_num_ver_virtual_boundaries = 0;
  std::vector<int> ph_virtual_boundary_pos_x_minus1;
- int ph_num_hor_virtual_boundaries;
+ int ph_num_hor_virtual_boundaries = 0;
  std::vector <int> ph_virtual_boundary_pos_y_minus1;
  bool ph_pic_output_flag = false;
  //ref_pic_lists
@@ -1214,14 +1215,14 @@ struct H266SliceHeader {
 
 int sh_entry_offset_len_minus1 = 0;
 std::vector<uint32_t> sh_entry_point_offset_minus1; //256 not sure need check
-int CurrSubpicIdx;
+int CurrSubpicIdx = 0;
 std::vector<int> SubpicIdVal;
 std::vector<int> NumSlicesInSubpic;
 std::vector<int> SubpicLevelSliceIdx;
 std::vector<int> SubpicIdxForSlice;
 std::vector<std::vector<int>> CtbAddrInSlice;
-int PicWidthInCtbsY;
-int PicHeightInCtbsY;
+int PicWidthInCtbsY = 0;
+int PicHeightInCtbsY = 0;
 
 std::vector <bool> subpicHeightLessThanOneTileFlag;
 std::vector <uint32_t> ctbToTileColIdx;
@@ -1286,11 +1287,7 @@ class H266Parser {
 
 
   /// Parses a slice header with picture header context
-  /* 
-  Result ParseSliceHeader(const Nalu& nalu, 
-                         H266SliceHeader* slice_header,
-                         const H266PictureHeader* picture_header);
- */
+  
   /// Parse NAL units from a buffer and extract their information
   /// @param data Buffer containing NAL units
   /// @param size Size of the buffer

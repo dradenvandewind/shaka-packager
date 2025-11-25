@@ -28,7 +28,9 @@ struct H266PictureHeaderStructure;
 struct H266ReferencePicList;
 struct H266PredWeightTable;
 struct GeneralTimingHrdParameters;
-
+struct H266RefPicListEntry;
+struct H266ReferencePicListStruct;
+struct H266PredWeightTable;
 
 
 
