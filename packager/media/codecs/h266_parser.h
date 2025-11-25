@@ -76,6 +76,8 @@ struct H266DPB_Parameters{
 };
 
 struct H266VuiParameters {
+  H266VuiParameters();
+  ~H266VuiParameters();
   enum { kExtendedSar = 255 };
 
   bool aspect_ratio_info_present_flag = false;
@@ -212,6 +214,9 @@ bool gci_no_reverse_last_sig_coeff_constraint_flag;
 };
 
 struct H266ProfileTierLevel{
+  H266ProfileTierLevel();
+  ~H266ProfileTierLeve();
+
   int general_profile_idc;
   bool general_tier_flag;
   int general_level_idc;
@@ -223,7 +228,7 @@ struct H266ProfileTierLevel{
   std::vector <bool> ptl_sublayer_level_present_flag;
   std::vector <bool> sublayer_level_idc;
   int ptl_num_sub_profiles;
-  std::vector <u_int32_t> general_sub_profile_idc;
+  std::vector <uint32_t> general_sub_profile_idc;
 };
 
 
@@ -383,6 +388,8 @@ struct H266Pps {
 };
 // Dans h266_parser.h, ajouter :
 struct GeneralTimingHrdParameters {
+  GeneralTimingHrdParameters();
+  ~GeneralTimingHrdParameter();
 
     uint32_t num_units_in_tick = 0;
     uint32_t time_scale = 0;
@@ -435,6 +442,8 @@ struct H266RefPicListEntry {
 };
 
 struct H266ReferencePicListStruct {
+  H266ReferencePicListStruct();
+  ~H266ReferencePicListStruct();
 
     //int num_ref_entries = 0;
     std::vector<std::vector<int>> num_ref_entries;
@@ -455,6 +464,8 @@ struct H266ReferencePicListStruct {
 };
 
 struct H266ReferencePicList{
+  H266ReferencePicList();
+  ~H266ReferencePicList();
 
   std::vector <bool> rpl_sps_flag;
   std::vector <int> rpl_idx;
@@ -475,6 +486,8 @@ struct H266ReferencePicList{
 };
 
 struct H266PredWeightTable{
+  H266PredWeightTable();
+  ~H266PredWeightTable();
 
   int luma_log2_weight_denom;
   int delta_chroma_log2_weight_denom;
@@ -601,8 +614,8 @@ struct H266Sps {
   bool sps_joint_cbcr_enabled_flag = false;
   bool sps_same_qp_table_for_chroma_flag = false;
 
-  std::vector <u_int> sps_qp_table_start_minus26;//not sure need check
-  std::vector <u_int> sps_num_points_in_qp_table_minus1;//not sure need check
+  std::vector <uint32_t> sps_qp_table_start_minus26;//not sure need check
+  std::vector <uint32_t> sps_num_points_in_qp_table_minus1;//not sure need check
   
   std::vector<std::vector<std::vector<int>>> sps_delta_qp_in_val_minus1;//not sure need check
   std::vector<std::vector<std::vector<int>>> sps_delta_qp_diff_val;//not sure need check
