@@ -1969,13 +1969,13 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
 
   int tmp_pps_pic_height_in_luma_samples = 0;
-  TRUE_OR_RETURN(br->ReadUE(&pps_pic_height_in_luma_samples));
+  TRUE_OR_RETURN(br->ReadUE(&tmp_pps_pic_height_in_luma_samples));
   pps->pps_pic_height_in_luma_samples = tmp_pps_pic_height_in_luma_samples;
   DLOG(INFO) << "## pps_pic_height_in_luma_samples: " << tmp_pps_pic_height_in_luma_samples;
 
 
   bool tmp_pps_conformance_window_flag = false;
-  TRUE_OR_RETURN(br->ReadBool(&pps_conformance_window_flag));
+  TRUE_OR_RETURN(br->ReadBool(&tmp_pps_conformance_window_flag));
   pps->pps_conformance_window_flag = tmp_pps_conformance_window_flag;
   DLOG(INFO) << "## pps_conformance_window_flag : " << ( tmp_pps_conformance_window_flag ? "1" : "0");
 
@@ -1985,9 +1985,9 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     TRUE_OR_RETURN(br->ReadUE(&tmp_pps_conf_win_left_offset));
     pps->pps_conf_win_left_offset = tmp_pps_conf_win_left_offset;
 
-    int tmp_pps_conf_win_left_offset = 0;
-    TRUE_OR_RETURN((br->ReadUE(&tmp_pps_conf_win_left_offset)));
-    pps->pps_conf_win_left_offset = tmp_pps_conf_win_left_offset;
+    int tmp_pps_conf_win_right_offset = 0;
+    TRUE_OR_RETURN((br->ReadUE(&tmp_pps_conf_win_right_offset)));
+    pps->pps_conf_win_right_offset = tmp_pps_conf_win_right_offset;
 
     int tmp_pps_conf_win_top_offset = 0;
     TRUE_OR_RETURN((br->ReadUE(&tmp_pps_conf_win_top_offset)));
@@ -2011,16 +2011,16 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     pps->pps_scaling_win_left_offset = tmp_pps_scaling_win_left_offset;
 
     int tmp_pps_scaling_win_right_offset = 0;
-    TRUE_OR_RETURN((br->ReadSE(&pps_scaling_win_right_offset)));
+    TRUE_OR_RETURN((br->ReadSE(&tmp_pps_scaling_win_right_offset)));
     pps->pps_scaling_win_right_offset = tmp_pps_scaling_win_right_offset;
     
     int tmp_pps_scaling_win_top_offset = 0;
-    TRUE_OR_RETURN((br->ReadSE(&pps_scaling_win_top_offset)));
+    TRUE_OR_RETURN((br->ReadSE(&tmp_pps_scaling_win_top_offset)));
     pps->pps_scaling_win_top_offset = tmp_pps_scaling_win_top_offset;
 
     int tmp_pps_scaling_win_bottom_offset = 0;
 
-    TRUE_OR_RETURN((br->ReadSE(&pps->pps_scaling_win_bottom_offset)));
+    TRUE_OR_RETURN((br->ReadSE(&tmp_pps_scaling_win_bottom_offset)));
     pps->pps_scaling_win_bottom_offset = tmp_pps_scaling_win_bottom_offset;
 
   }
@@ -2067,7 +2067,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   }
   if(!pps->pps_no_pic_partition_flag){
     int tmp_pps_log2_ctu_size_minus5 = 0;
-    TRUE_OR_RETURN(br->ReadBits(2,&tmp_pps->pps_log2_ctu_size_minus5));
+    TRUE_OR_RETURN(br->ReadBits(2,&tmp_pps_log2_ctu_size_minus5));
     pps->pps_log2_ctu_size_minus5 = tmp_pps_log2_ctu_size_minus5;  // 2 bits
 
     int tmp_pps_num_exp_tile_columns_minus1 = 0;
@@ -2273,7 +2273,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
         }
         int tmp_pps_init_qp_minus26 = 0;
         TRUE_OR_RETURN(br->ReadSE(&tmp_pps_init_qp_minus26));
-        pps->pps_init_qp_minus26 -> tmp_pps_init_qp_minus26;
+        pps->pps_init_qp_minus26 = tmp_pps_init_qp_minus26;
 
         bool tmp_pps_cu_qp_delta_enabled_flag = false;
         TRUE_OR_RETURN(br->ReadBool(&tmp_pps_cu_qp_delta_enabled_flag));
@@ -2296,13 +2296,14 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
           pps->pps_joint_cbcr_qp_offset_present_flag = tmp_pps_joint_cbcr_qp_offset_present_flag;
 
           if( pps->pps_joint_cbcr_qp_offset_present_flag ) {
-            int tmp_pps_joint_cbcr_qp_offset_value 0 0;
+            int tmp_pps_joint_cbcr_qp_offset_value = 0;
             TRUE_OR_RETURN(br->ReadSE(&tmp_pps_joint_cbcr_qp_offset_value));
             pps->pps_joint_cbcr_qp_offset_value = tmp_pps_joint_cbcr_qp_offset_value;
           }
-          int bool tmp_pps_slice_chroma_qp_offsets_present_flag = false;
-          TRUE_OR_RETURN(br->ReadBool(&pps->pps_slice_chroma_qp_offsets_present_flag));
+          bool tmp_pps_slice_chroma_qp_offsets_present_flag = false;
+          TRUE_OR_RETURN(br->ReadBool(&tmp_pps_slice_chroma_qp_offsets_present_flag));
           pps->pps_slice_chroma_qp_offsets_present_flag = tmp_pps_slice_chroma_qp_offsets_present_flag;
+
           bool tmp_pps_cu_chroma_qp_offset_list_enabled_flag = false;
           TRUE_OR_RETURN(br->ReadBool(&tmp_pps_cu_chroma_qp_offset_list_enabled_flag));
           pps->pps_cu_chroma_qp_offset_list_enabled_flag = tmp_pps_cu_chroma_qp_offset_list_enabled_flag;
