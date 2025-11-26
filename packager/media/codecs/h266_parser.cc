@@ -1089,7 +1089,10 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
   
 
    DCHECK(nalu.is_video_slice());
-  *slice_header = H266SliceHeader();
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+  *slice_header = H266SliceHeader{};//();
+  #pragma GCC diagnostic pop
 
   // Parses whole element.
   H26xBitReader reader;
@@ -2046,7 +2049,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
         int CtbSizeY = 1 << CtbLog2SizeY;
 
         int PicHeightInCtbsY = ceil( pps->pps_pic_height_in_luma_samples / CtbSizeY );
-        int jj;
+        int jj = 0;
 
         remainingHeightInCtbsY = PicHeightInCtbsY;
         for( int jj = 0; jj <= pps->pps_num_exp_tile_rows_minus1; jj++ ) {

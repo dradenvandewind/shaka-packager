@@ -751,6 +751,7 @@ bool sps_reverse_last_sig_coeff_enabled_flag  = false;
   bool sps_temporal_id_nesting_flag = false;
 
   // H.266 profile_tier_level structure
+  int general_profile_tier_level_data[12] = {};
 
   int chroma_format_idc = 0;
   int pic_width_max_in_luma_samples = 0;
@@ -827,7 +828,7 @@ struct H266Vps {
     kNone = 16
   };
 
-  int vps_video_parameter_set_id = 0 //4 bits
+  int vps_video_parameter_set_id = 0; //4 bits
   //int vps_max_layers_minus1;
   uint32_t vps_max_layers_minus1 = 0; //6 bits
   int vps_max_sublayers_minus1 = 0; //3 bits
