@@ -303,16 +303,18 @@ bool EsParserH266::ProcessVclNalu(const Nalu& nalu,
 LOG(INFO) << "Processing VCL NALU of type: " << nalu.type();
 
 
+
   const bool is_key_frame = (nalu.type() == Nalu::H266_IDR_W_RADL ||
                                nalu.type() == Nalu::H266_IDR_N_LP);
+
   LOG(INFO) << "Nalu: slice KeyFrame=" << is_key_frame;
 
 
   // Parse slice header to get PPS ID and other information
   H266SliceHeader slice_header;
   auto status = (parser_->ParseSliceHeader(nalu, &slice_header));
-
-  if ( status == H266Parser::kOk) {
+  if ( status == H266Parser::kOk)
+  {
     video_slice_info->valid = true;
     video_slice_info->is_key_frame = is_key_frame;
     video_slice_info->frame_num = 0; // frame_num is only for H264.
@@ -332,32 +334,88 @@ LOG(INFO) << "Processing VCL NALU of type: " << nalu.type();
 
 }
 
-void EsParserH266::ProcessOtherNonVclNalu(const Nalu& nalu) {
+bool EsParserH266::ProcessOtherNonVclNalu(const Nalu& nalu) {
   LOG(INFO) << "Processing non-VCL NALU of type: " << nalu.type();
   switch (nalu.type()) {
     case Nalu::H266_VPS_NUT: {
+      LOG(INFO) << "Processing VPS";
       int vps_id;
-      if (parser_->ParseVps(nalu, &vps_id) == H266Parser::kOk) {
+      auto status = parser_->ParseVps(nalu, &vps_id);
+      if (status == H266Parser::kOk){
         // VPS parsed successfully
+        decoder_config_check_pending_ = true;
+      } else if (status == H266Parser::kUnsupportedStream){
+          new_stream_info_cb_(nullptr);
+      } else{
+             
+      return false;
       }
+    
       break;
     }
     case Nalu::H266_SPS_NUT: {
+      LOG(INFO) << "Processing SPS";
       int sps_id;
-      if (parser_->ParseSps(nalu, &sps_id) == H266Parser::kOk) {
+      auto status = parser_->ParseSps(nalu, &sps_id);
+      if (status == H266Parser::kOk){
         // SPS parsed successfully
+        decoder_config_check_pending_ = true;
+      } else if (status == H266Parser::kUnsupportedStream){
+          new_stream_info_cb_(nullptr);
+      } else{
+             
+      return false;
       }
+
       break;
     }
     case Nalu::H266_PPS_NUT: {
+      LOG(INFO) << "Processing PPS";
       int pps_id;
-      if (parser_->ParsePps(nalu, &pps_id) == H266Parser::kOk) {
+      auto status = parser_->ParsePps(nalu, &pps_id);
+      if (status == H266Parser::kOk){
         // PPS parsed successfully
+        decoder_config_check_pending_ = true;
+      } else if (status == H266Parser::kUnsupportedStream){
+          new_stream_info_cb_(nullptr);
+      } else{
+        // Allow PPS parsing to fail if waiting for SPS.
+        if (last_video_decoder_config_)
+          return false;
+             
+      return false;
       }
       break;
     }
+    case Nalu::H266_AUD_NUT:
+      //decoding AUD information
+      LOG(INFO) << "Processing AUD need to add processing";
+      break; 
+    case Nalu::H266_PH_NUT: {
+      //decodgin picture header information
+      LOG(INFO) << "Processing PH";
+
+      H266PictureHeaderRbsp pictureheader;
+      //ParsePictureHeaderRbsp
+
+      auto status = parser_->ParsePictureHeaderRbsp(nalu, &pictureheader);
+      if ( status == H266Parser::kOk)
+      {
+          LOG(INFO) << "Success Processing PH";
+      } else if (status == H266Parser::kUnsupportedStream) {
+          LOG(INFO) << "Unsupported feature in H.266 picture header rbsp.";
+          new_stream_info_cb_(nullptr);  // Signal an error.
+      } else {
+          return false;                 
+      }
+      break;
+    }    
     case Nalu::H266_DCI_NUT:
       // Decoding Capability Information
+      break;
+    case Nalu::H266_PREFIX_APS_NUT:
+    case Nalu::H266_SUFFIX_APS_NUT:
+      LOG(INFO) << "Processing APS need add processing";
       break;
     case Nalu::H266_OPI_NUT:
       // Operating Point Information
@@ -365,11 +423,13 @@ void EsParserH266::ProcessOtherNonVclNalu(const Nalu& nalu) {
     case Nalu::H266_PREFIX_SEI_NUT:
     case Nalu::H266_SUFFIX_SEI_NUT:
       // SEI messages
+      LOG(INFO) << "Processing SEI messages need implement section";
       break;
     default:
       // Other NALUs
       break;
   }
+  return true;
 }
 
 bool EsParserH266::UpdateVideoDecoderConfig(int pps_id) {

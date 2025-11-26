@@ -31,6 +31,7 @@ struct GeneralTimingHrdParameters;
 struct H266RefPicListEntry;
 struct H266ReferencePicListStruct;
 struct H266PredWeightTable;
+struct H266PictureHeaderStructure;
 
 
 
@@ -824,6 +825,10 @@ H266ReferencePicList::~H266ReferencePicList() {}
 H266PredWeightTable::H266PredWeightTable() {}
 H266PredWeightTable::~H266PredWeightTable() {}
 
+H266PictureHeaderRbsp::H266PictureHeaderRbsp() {}
+H266PictureHeaderRbsp::~H266PictureHeaderRbsp() {}
+
+
 
 
 int H266Sps::GetPicSizeInCtbsY() const {
@@ -1068,6 +1073,23 @@ bool ValidateSliceHeader(const H266SliceHeader* slice_header,
     }
     
     return true;
+}
+H266Parser::Result H266Parser::ParsePictureHeaderRbsp(const Nalu& nalu, H266PictureHeaderRbsp *pictureheaderrbsp){
+
+    LOG(INFO) << "Parsing H.266 Picture Header Rbsp NALU";
+
+  // Parses whole element.
+  H26xBitReader reader;
+  reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
+  H26xBitReader* br = &reader;
+
+  pictureheaderrbsp->phs.emplace();
+    //picture_header_structure( )
+    //H266PictureHeaderStructure* phs
+    TRUE_OR_RETURN(ParsePictureHeaderStructure(nalu, &pictureheaderrbsp->phs.value()));
+    
+  OK_OR_RETURN(rbsp_trailing_bits(br));
+  return kOk;
 }
 
 
@@ -3221,7 +3243,14 @@ H266Parser::Result H266Parser::ParseAps(const Nalu& nalu, int* aps_id, int* aps_
 
 H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
                                                   H266PictureHeaderStructure* phs) {
-  DCHECK_EQ(Nalu::H266_PH_NUT, nalu.type());
+  //DCHECK_EQ(Nalu::H266_PH_NUT, nalu.type());
+    LOG(INFO) << "Parsing H.266 Picture Header NALU : " << nalu.type(); 
+ // disable to check it
+ /* DCHECK_EQ(true, nalu.type() == Nalu::H266_IDR_W_RADL || 
+                nalu.type() == Nalu::H266_IDR_N_LP ||
+                nalu.type() == Nalu::H266_PH_NUT);
+
+  */ // This function is call in slice_header  and picture_header_rbsp
   LOG(INFO) << "Parsing H.266 Picture Header NALU"; 
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());

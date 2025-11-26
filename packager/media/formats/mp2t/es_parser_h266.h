@@ -44,7 +44,7 @@ class EsParserH266 : public EsParserH26x {
   bool ProcessVclNalu(const Nalu& nalu, VideoSliceInfo* video_slice_info);
 
   // Processes non-VCL NALUs (SPS, PPS, VPS, etc.).
-  void ProcessOtherNonVclNalu(const Nalu& nalu);
+  bool ProcessOtherNonVclNalu(const Nalu& nalu);
 
   // Processes a NAL unit found in ParseInternal.
   bool ProcessNalu(const Nalu& nalu, VideoSliceInfo* video_slice_info) override;

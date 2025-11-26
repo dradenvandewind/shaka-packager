@@ -1105,6 +1105,14 @@ struct H266PictureHeader {
   bool ph_temporal_mvp_enabled_flag = false;
 };
 
+struct H266PictureHeaderRbsp{
+  H266PictureHeaderRbsp();
+  ~H266PictureHeaderRbsp();
+  std::optional<H266PictureHeaderStructure> phs;
+
+};
+
+
 struct H266SliceHeader {
   H266SliceHeader();
   ~H266SliceHeader();
@@ -1285,6 +1293,8 @@ class H266Parser {
 
   /// Parses a video slice header.
   Result ParseSliceHeader(const Nalu& nalu, H266SliceHeader* slice_header);
+  // Parse picture header rbsp
+  Result ParsePictureHeaderRbsp(const Nalu& nalu,H266PictureHeaderRbsp *pictureheaderrbsp);
 
 
   /// Parses a slice header with picture header context
