@@ -1998,7 +1998,11 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     pps->pps_conf_win_bottom_offset = tmp_pps_conf_win_bottom_offset;
 
   }
-  TRUE_OR_RETURN((br->ReadBool(&pps->pps_scaling_window_explicit_signalling_flag)));
+  bool tmp_pps_scaling_window_explicit_signalling_flag = false;
+  TRUE_OR_RETURN((br->ReadBool(&tmp_pps_scaling_window_explicit_signalling_flag)));
+  pps->pps_scaling_window_explicit_signalling_flag = tmp_pps_scaling_window_explicit_signalling_flag;
+  DLOG(INFO) << "## pps_scaling_window_explicit_signalling_flag : " << (tmp_pps_scaling_window_explicit_signalling_flag ? "1" : "0");
+
   
 
   if(pps->pps_scaling_window_explicit_signalling_flag){
@@ -2020,36 +2024,67 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     pps->pps_scaling_win_bottom_offset = tmp_pps_scaling_win_bottom_offset;
 
   }
-  TRUE_OR_RETURN(br->ReadBool(&pps->pps_output_flag_present_flag));
-  TRUE_OR_RETURN(br->ReadBool(&pps->pps_no_pic_partition_flag));
-  TRUE_OR_RETURN(br->ReadBool(&pps->pps_subpic_id_mapping_present_flag));
+  bool tmp_pps_output_flag_present_flag = false;
+  TRUE_OR_RETURN(br->ReadBool(&tmp_pps_output_flag_present_flag));
+  DLOG(INFO) << "## pps_output_flag_present_flag : " << (tmp_pps_output_flag_present_flag ? "1" : "0");
+
+  bool tmp_pps_no_pic_partition_flag = false;  
+  TRUE_OR_RETURN(br->ReadBool(&tmp_pps_no_pic_partition_flag));
+  pps->pps_no_pic_partition_flag = tmp_pps_no_pic_partition_flag;
+  DLOG(INFO) << "## pps_no_pic_partition_flag : " << ( tmp_pps_no_pic_partition_flag ? "1" : "0");
+
+  bool tmp_pps_subpic_id_mapping_present_flag = false;
+  TRUE_OR_RETURN(br->ReadBool(&tmp_pps_subpic_id_mapping_present_flag));
+  pps->pps_subpic_id_mapping_present_flag = tmp_pps_subpic_id_mapping_present_flag;
+
+  DLOG(INFO) << "## pps_subpic_id_mapping_present_flag : " << (tmp_pps_subpic_id_mapping_present_flag ? "1" : "0");
+
   
   if(pps->pps_subpic_id_mapping_present_flag){
     if(!pps->pps_no_pic_partition_flag){
-      TRUE_OR_RETURN((br->ReadUE(&pps->pps_num_subpics_minus1)));
+      int tmp_pps_num_subpics_minus1 = 0;
+      TRUE_OR_RETURN((br->ReadUE(&tmp_pps_num_subpics_minus1)));
+      pps->pps_num_subpics_minus1 = tmp_pps_num_subpics_minus1;
+      DLOG(INFO) << "## pps_num_subpics_minus1 : " << tmp_pps_num_subpics_minus1;
+
+
       NumTileColumns = 1;
       NumTileRows = 1;
     }
-    
-    TRUE_OR_RETURN((br->ReadUE(&pps->pps_num_subpics_minus1)));
-    uint32_t tmp_pps_subpic_id = 0;
+    int tmp_pps_subpic_id_len_minus1 = 0;
+    TRUE_OR_RETURN((br->ReadUE(&tmp_pps_subpic_id_len_minus1)));
+    pps->pps_subpic_id_len_minus1 = tmp_pps_subpic_id_len_minus1;
+    DLOG(INFO) << "## pps_subpic_id_len_minus1: " << tmp_pps_subpic_id_len_minus1;
+
+
     for(int i = 0;i <= pps->pps_num_subpics_minus1;i++){
-      
+      uint32_t tmp_pps_subpic_id = 0;
       TRUE_OR_RETURN(br->ReadBits(sps->sps_subpic_id_len_minus1, &tmp_pps_subpic_id));
       pps->pps_subpic_id.push_back(tmp_pps_subpic_id);
+        DLOG(INFO) << "## pps_subpic_id : " << tmp_pps_subpic_id;
+
     }
   }
   if(!pps->pps_no_pic_partition_flag){
-    TRUE_OR_RETURN(br->ReadBits(2,&pps->pps_log2_ctu_size_minus5));  // 2 bits
-    TRUE_OR_RETURN(br->ReadUE(&pps->pps_num_exp_tile_columns_minus1));
+    int tmp_pps_log2_ctu_size_minus5 = 0;
+    TRUE_OR_RETURN(br->ReadBits(2,&tmp_pps->pps_log2_ctu_size_minus5));
+    pps->pps_log2_ctu_size_minus5 = tmp_pps_log2_ctu_size_minus5;  // 2 bits
+
+    int tmp_pps_num_exp_tile_columns_minus1 = 0;
+    TRUE_OR_RETURN(br->ReadUE(&tmp_pps_num_exp_tile_columns_minus1));
+    pps->pps_num_exp_tile_columns_minus1 = tmp_pps_num_exp_tile_columns_minus1;
+
+    int tmp_pps_num_exp_tile_rows_minus1 = 0;
     TRUE_OR_RETURN(br->ReadUE(&pps->pps_num_exp_tile_rows_minus1));
-    uint32_t tmp_pps_tile_column_width_minus1 = 0;
+    pps->pps_num_exp_tile_rows_minus1 = tmp_pps_num_exp_tile_rows_minus1;
+
     for( int i = 0; i <= pps->pps_num_exp_tile_columns_minus1; i++ ){
+      uint32_t tmp_pps_tile_column_width_minus1 = 0;
       TRUE_OR_RETURN(br->ReadUE(&tmp_pps_tile_column_width_minus1));
       pps->pps_tile_column_width_minus1.push_back(tmp_pps_tile_column_width_minus1);
     }
-    uint32_t tmp_pps_tile_row_height_minus1 = 0;
     for( int i = 0; i <= pps->pps_num_exp_tile_rows_minus1; i++ ){
+      uint32_t tmp_pps_tile_row_height_minus1 = 0;
       TRUE_OR_RETURN(br->ReadUE(&tmp_pps_tile_row_height_minus1));
       pps->pps_tile_row_height_minus1.push_back(tmp_pps_tile_row_height_minus1);
     }
@@ -2100,16 +2135,27 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     /************************************************** */
 
     if( pps->NumTilesInPic > 1 ) {
-        TRUE_OR_RETURN(br->ReadBool(&pps->pps_loop_filter_across_tiles_enabled_flag));
-        TRUE_OR_RETURN(br->ReadBool(&pps->pps_rect_slice_flag));
+        bool tmp_pps_loop_filter_across_tiles_enabled_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_pps_loop_filter_across_tiles_enabled_flag));
+        pps->pps_loop_filter_across_tiles_enabled_flag = tmp_pps_loop_filter_across_tiles_enabled_flag;
+        bool tmp_pps_rect_slice_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_pps_rect_slice_flag));
+        pps->pps_rect_slice_flag = tmp_pps_rect_slice_flag;
     }
     if(pps->pps_single_slice_per_subpic_flag){
-      TRUE_OR_RETURN(br->ReadBool(&pps->pps_subpic_id_mapping_present_flag));
+      bool tmp_pps_subpic_id_mapping_present_flag = false;
+      TRUE_OR_RETURN(br->ReadBool(&tmp_pps_subpic_id_mapping_present_flag));
+      pps->pps_subpic_id_mapping_present_flag = tmp_pps_subpic_id_mapping_present_flag;
     }
     if( pps->pps_rect_slice_flag && !pps->pps_single_slice_per_subpic_flag ) {
-      TRUE_OR_RETURN(br->ReadUE(&pps->pps_num_slices_in_pic_minus1));
+      int tmp_pps_num_slices_in_pic_minus1 = 0;
+      TRUE_OR_RETURN(br->ReadUE(&tmp_pps_num_slices_in_pic_minus1));
+      pps->pps_num_slices_in_pic_minus1 = tmp_pps_num_slices_in_pic_minus1;
+
       if(pps->pps_num_slices_in_pic_minus1 > 1 ){
-          TRUE_OR_RETURN(br->ReadBool(&pps->pps_tile_idx_delta_present_flag));
+          bool tmp_pps_tile_idx_delta_present_flag = false;
+          TRUE_OR_RETURN(br->ReadBool(&tmp_pps_tile_idx_delta_present_flag));
+          pps->pps_tile_idx_delta_present_flag = tmp_pps_tile_idx_delta_present_flag;
       }
       // #### I don't know populate this variable     check slice header 
       std::vector<uint32_t> SliceTopLeftTileIdx; // I don't know populate this variable
@@ -2137,21 +2183,23 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
             RowHeightVal[jj++] = remainingHeightInCtbsY;
         }
         int NumTileRows = jj;
-      int tmp_pps_slice_width_in_tiles_minus1 = 0;
-      int tmp_pps_slice_height_in_tiles_minus1 = 0;
 
       for( int i = 0; i < pps->pps_num_slices_in_pic_minus1; i++ ) {
         if( SliceTopLeftTileIdx[ i ] % NumTileColumns != NumTileColumns-1 ){
+          int tmp_pps_slice_width_in_tiles_minus1 = 0;
           TRUE_OR_RETURN(br->ReadUE(&tmp_pps_slice_width_in_tiles_minus1));
           pps->pps_slice_width_in_tiles_minus1.push_back(tmp_pps_slice_width_in_tiles_minus1);  
+
         }
         if( static_cast<int>(SliceTopLeftTileIdx[ i ] / NumTileColumns) != NumTileRows-1 && ( pps->pps_tile_idx_delta_present_flag || static_cast<int>(SliceTopLeftTileIdx[ i ] % NumTileColumns) == 0 ) ){
+          int tmp_pps_slice_height_in_tiles_minus1 = 0;
           TRUE_OR_RETURN(br->ReadUE(&tmp_pps_slice_height_in_tiles_minus1));
           pps->pps_slice_height_in_tiles_minus1.push_back(tmp_pps_slice_height_in_tiles_minus1);
         }
 
-        u_int tmp_pps_num_exp_slices_in_tile = 0;
         if( pps->pps_slice_width_in_tiles_minus1[ i ] == 0 && pps->pps_slice_height_in_tiles_minus1[ i ] == 0 && RowHeightVal[ SliceTopLeftTileIdx[ i ] / NumTileColumns ] > 1 ) {
+          u_int tmp_pps_num_exp_slices_in_tile = 0;
+
           TRUE_OR_RETURN(br->ReadUE(&tmp_pps_num_exp_slices_in_tile));
           pps->pps_num_exp_slices_in_tile.push_back(tmp_pps_num_exp_slices_in_tile);
           // not sure how to populate this variable
@@ -2184,84 +2232,174 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
         }
         if( !pps->pps_rect_slice_flag || pps->pps_single_slice_per_subpic_flag || pps->pps_num_slices_in_pic_minus1 > 0 ){
-          TRUE_OR_RETURN(br->ReadBool(&pps->pps_loop_filter_across_slices_enabled_flag));
+          bool tmp_pps_loop_filter_across_slices_enabled_flag = false;
+          TRUE_OR_RETURN(br->ReadBool(&tmp_pps_loop_filter_across_slices_enabled_flag));
+          pps->pps_loop_filter_across_slices_enabled_flag = tmp_pps_loop_filter_across_slices_enabled_flag;
         }
-        TRUE_OR_RETURN(br->ReadBool(&pps->pps_cabac_init_present_flag));
-        int tmp_pps_num_ref_idx_default_active_minus1= 0;
+        bool tmp_pps_cabac_init_present_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_pps_cabac_init_present_flag));
+        pps->pps_cabac_init_present_flag = tmp_pps_cabac_init_present_flag;
+        DLOG(INFO) << "## pps_cabac_init_present_flag: " << ( tmp_pps_cabac_init_present_flag ? "1" : "0");
+
+
         for( i = 0; i < 2; i++ ) {
+          int tmp_pps_num_ref_idx_default_active_minus1= 0;
           TRUE_OR_RETURN(br->ReadSE(&tmp_pps_num_ref_idx_default_active_minus1));
           pps->pps_num_ref_idx_default_active_minus1.push_back(tmp_pps_num_ref_idx_default_active_minus1);
+          DLOG(INFO) << "## pps_num_ref_idx_default_active_minus1: " << ( tmp_pps_num_ref_idx_default_active_minus1 ? "1" : "0");
+
+
         }
-        TRUE_OR_RETURN(br->ReadBool(&pps->pps_rpl1_idx_present_flag));
-        TRUE_OR_RETURN(br->ReadBool(&pps->pps_weighted_pred_flag));
-        TRUE_OR_RETURN(br->ReadBool(&pps->pps_weighted_bipred_flag));
-        TRUE_OR_RETURN(br->ReadBool(&pps->pps_ref_wraparound_enabled_flag));
+        bool tmp_pps_rpl1_idx_present_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_pps_rpl1_idx_present_flag));
+        pps->pps_rpl1_idx_present_flag = tmp_pps_rpl1_idx_present_flag;
+
+        bool tmp_pps_weighted_pred_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_pps_weighted_pred_flag));
+        pps->pps_weighted_pred_flag = tmp_pps_weighted_pred_flag;
+
+        bool tmp_pps_weighted_bipred_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_pps_weighted_bipred_flag));
+        pps->pps_weighted_bipred_flag = tmp_pps_weighted_bipred_flag;
+        
+        bool tmp_pps_ref_wraparound_enabled_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_pps_ref_wraparound_enabled_flag));
+        pps->pps_ref_wraparound_enabled_flag = tmp_pps_ref_wraparound_enabled_flag;
+
         if( pps->pps_ref_wraparound_enabled_flag ) {
-          TRUE_OR_RETURN(br->ReadUE(&pps->pps_pic_width_minus_wraparound_offset));
+          int tmp_pps_pic_width_minus_wraparound_offset = 0;
+          TRUE_OR_RETURN(br->ReadUE(&tmp_pps_pic_width_minus_wraparound_offset));
+          pps->pps_pic_width_minus_wraparound_offset = tmp_pps_pic_width_minus_wraparound_offset;
         }
-        TRUE_OR_RETURN(br->ReadSE(&pps->pps_init_qp_minus26));
-        TRUE_OR_RETURN(br->ReadBool(&pps->pps_cu_qp_delta_enabled_flag));
-        TRUE_OR_RETURN(br->ReadBool(&pps->pps_chroma_tool_offsets_present_flag));
+        int tmp_pps_init_qp_minus26 = 0;
+        TRUE_OR_RETURN(br->ReadSE(&tmp_pps_init_qp_minus26));
+        pps->pps_init_qp_minus26 -> tmp_pps_init_qp_minus26;
+
+        bool tmp_pps_cu_qp_delta_enabled_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_pps_cu_qp_delta_enabled_flag));
+        pps->pps_cu_qp_delta_enabled_flag = tmp_pps_cu_qp_delta_enabled_flag;
+
+        bool tmp_pps_chroma_tool_offsets_present_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_pps_chroma_tool_offsets_present_flag));
+        pps->pps_chroma_tool_offsets_present_flag = tmp_pps_chroma_tool_offsets_present_flag;
+
         if( pps->pps_chroma_tool_offsets_present_flag ) {
-          TRUE_OR_RETURN(br->ReadSE(&pps->pps_cb_qp_offset));
-          TRUE_OR_RETURN(br->ReadSE(&pps->pps_cr_qp_offset));
-          TRUE_OR_RETURN(br->ReadBool(&pps->pps_joint_cbcr_qp_offset_present_flag));
+          int tmp_pps_cb_qp_offset = 0;
+          TRUE_OR_RETURN(br->ReadSE(&tmp_pps_cb_qp_offset));
+          pps->pps_cb_qp_offset = tmp_pps_cb_qp_offset;
+
+          int tmp_pps_cr_qp_offset = 0;
+          TRUE_OR_RETURN(br->ReadSE(&tmp_pps_cr_qp_offset));
+          pps->pps_cr_qp_offset = tmp_pps_cr_qp_offset;
+          bool tmp_pps_joint_cbcr_qp_offset_present_flag = false;
+          TRUE_OR_RETURN(br->ReadBool(&tmp_pps_joint_cbcr_qp_offset_present_flag));
+          pps->pps_joint_cbcr_qp_offset_present_flag = tmp_pps_joint_cbcr_qp_offset_present_flag;
+
           if( pps->pps_joint_cbcr_qp_offset_present_flag ) {
-            TRUE_OR_RETURN(br->ReadSE(&pps->pps_joint_cbcr_qp_offset_value));
+            int tmp_pps_joint_cbcr_qp_offset_value 0 0;
+            TRUE_OR_RETURN(br->ReadSE(&tmp_pps_joint_cbcr_qp_offset_value));
+            pps->pps_joint_cbcr_qp_offset_value = tmp_pps_joint_cbcr_qp_offset_value;
           }
+          int bool tmp_pps_slice_chroma_qp_offsets_present_flag = false;
           TRUE_OR_RETURN(br->ReadBool(&pps->pps_slice_chroma_qp_offsets_present_flag));
-          TRUE_OR_RETURN(br->ReadBool(&pps->pps_cu_chroma_qp_offset_list_enabled_flag));
+          pps->pps_slice_chroma_qp_offsets_present_flag = tmp_pps_slice_chroma_qp_offsets_present_flag;
+          bool tmp_pps_cu_chroma_qp_offset_list_enabled_flag = false;
+          TRUE_OR_RETURN(br->ReadBool(&tmp_pps_cu_chroma_qp_offset_list_enabled_flag));
+          pps->pps_cu_chroma_qp_offset_list_enabled_flag = tmp_pps_cu_chroma_qp_offset_list_enabled_flag;
+
           if( pps->pps_cu_chroma_qp_offset_list_enabled_flag ) {
-            TRUE_OR_RETURN(br->ReadUE(&pps->pps_cu_chroma_qp_offset_list_len_minus1));
+            int tmp_pps_cu_chroma_qp_offset_list_len_minus1 = 0;
+            TRUE_OR_RETURN(br->ReadUE(&tmp_pps_cu_chroma_qp_offset_list_len_minus1));
+            pps->pps_cu_chroma_qp_offset_list_len_minus1 = tmp_pps_cu_chroma_qp_offset_list_len_minus1;
+
           }
           for( int i = 0; i <= pps->pps_chroma_qp_offset_list_len_minus1; i++ ){
             int tmp_pps_cb_qp_offset_list = 0;
             TRUE_OR_RETURN(br->ReadSE(&tmp_pps_cb_qp_offset_list));
             pps->pps_cb_qp_offset_list.push_back(tmp_pps_cb_qp_offset_list);
+
             int tmp_pps_cr_qp_offset_list = 0;
             TRUE_OR_RETURN(br->ReadSE(&tmp_pps_cr_qp_offset_list));
             pps->pps_cr_qp_offset_list.push_back(tmp_pps_cr_qp_offset_list);
+
             if( pps->pps_joint_cbcr_qp_offset_present_flag ) {
+
               int tmp_pps_joint_cbcr_qp_offset_list = 0;
               TRUE_OR_RETURN(br->ReadSE(&tmp_pps_joint_cbcr_qp_offset_list));
               pps->pps_joint_cbcr_qp_offset_list.push_back(tmp_pps_joint_cbcr_qp_offset_list);
             }
           }
         }
-        TRUE_OR_RETURN(br->ReadBool(&pps->pps_deblocking_filter_control_present_flag));
-        if( pps->pps_deblocking_filter_control_present_flag ) {
+        bool tmp_pps_deblocking_filter_control_present_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_pps_deblocking_filter_control_present_flag));
+        pps->pps_deblocking_filter_control_present_flag = tmp_pps_deblocking_filter_control_present_flag;
 
-          TRUE_OR_RETURN(br->ReadBool(&pps->pps_deblocking_filter_override_enabled_flag));
-          TRUE_OR_RETURN(br->ReadBool(&pps->pps_deblocking_filter_disabled_flag));
+        if( pps->pps_deblocking_filter_control_present_flag ) {
+          bool tmp_pps_deblocking_filter_override_enabled_flag = false;
+          TRUE_OR_RETURN(br->ReadBool(&tmp_pps_deblocking_filter_override_enabled_flag));
+          pps->pps_deblocking_filter_override_enabled_flag = tmp_pps_deblocking_filter_override_enabled_flag;
+          bool tmp_pps_deblocking_filter_disabled_flag = false;
+          TRUE_OR_RETURN(br->ReadBool(&tmp_pps_deblocking_filter_disabled_flag));
+          pps->pps_deblocking_filter_disabled_flag = tmp_pps_deblocking_filter_disabled_flag;
 
           if( !pps->pps_no_pic_partition_flag && pps->pps_deblocking_filter_override_enabled_flag ) {
-            TRUE_OR_RETURN(br->ReadBool(&pps->pps_dbf_info_in_ph_flag));
+            bool tmp_pps_dbf_info_in_ph_flag = false;
+            TRUE_OR_RETURN(br->ReadBool(&tmp_pps_dbf_info_in_ph_flag));
+            pps->pps_dbf_info_in_ph_flag = tmp_pps_dbf_info_in_ph_flag;
           }
           if( !pps->pps_deblocking_filter_disabled_flag ) {
-            TRUE_OR_RETURN(br->ReadSE(&pps->pps_luma_beta_offset_div2));
-            TRUE_OR_RETURN(br->ReadSE(&pps->pps_luma_tc_offset_div2));
+            int tmp_pps_luma_beta_offset_div2 = 0;
+            TRUE_OR_RETURN(br->ReadSE(&tmp_pps_luma_beta_offset_div2));
+            pps->pps_luma_beta_offset_div2 = tmp_pps_luma_beta_offset_div2;
+            int tmp_pps_luma_tc_offset_div2 = 0;
+            TRUE_OR_RETURN(br->ReadSE(&tmp_pps_luma_tc_offset_div2));
+            pps->pps_luma_tc_offset_div2 = tmp_pps_luma_tc_offset_div2;
+
             if( pps->chroma_tool_offsets_present_flag ) {
-              TRUE_OR_RETURN(br->ReadSE(&pps->pps_cb_beta_offset_div2));
-              TRUE_OR_RETURN(br->ReadSE(&pps->pps_cb_tc_offset_div2));
-              TRUE_OR_RETURN(br->ReadSE(&pps->pps_cr_beta_offset_div2));
-              TRUE_OR_RETURN(br->ReadSE(&pps->pps_cr_tc_offset_div2));
+              int tmp_pps_cb_beta_offset_div2 = 0;
+              TRUE_OR_RETURN(br->ReadSE(&tmp_pps_cb_beta_offset_div2));
+              pps->pps_cb_beta_offset_div2 = tmp_pps_cb_beta_offset_div2;
+              int tmp_pps_cb_tc_offset_div2 = 0;
+              TRUE_OR_RETURN(br->ReadSE(&tmp_pps_cb_tc_offset_div2));
+              pps->pps_cb_tc_offset_div2 = tmp_pps_cb_tc_offset_div2;
+              int tmp_pps_cr_beta_offset_div2 = 0;
+              TRUE_OR_RETURN(br->ReadSE(&tmp_pps_cr_beta_offset_div2));
+              pps->pps_cr_beta_offset_div2 = tmp_pps_cr_beta_offset_div2;
+              int tmp_pps_cr_tc_offset_div2 = 0;
+              TRUE_OR_RETURN(br->ReadSE(&tmp_pps_cr_tc_offset_div2));
+              pps->pps_cr_tc_offset_div2 = tmp_pps_cr_tc_offset_div2;
+
             }
         }
       }
 
       if( !pps->pps_no_pic_partition_flag ) {
-      TRUE_OR_RETURN(br->ReadBool(&pps->pps_rpl_info_in_ph_flag));
-      TRUE_OR_RETURN(br->ReadBool(&pps->pps_sao_info_in_ph_flag));
-      TRUE_OR_RETURN(br->ReadBool(&pps->pps_alf_info_in_ph_flag));
+      bool tmp_pps_rpl_info_in_ph_flag = false;
+      TRUE_OR_RETURN(br->ReadBool(&tmp_pps_rpl_info_in_ph_flag));
+      pps->pps_rpl_info_in_ph_flag = tmp_pps_rpl_info_in_ph_flag;
+      bool tmp_pps_sao_info_in_ph_flag = false;
+      TRUE_OR_RETURN(br->ReadBool(&tmp_pps_sao_info_in_ph_flag));
+      pps->pps_sao_info_in_ph_flag = tmp_pps_sao_info_in_ph_flag;
+      bool tmp_pps_alf_info_in_ph_flag = false;
+      TRUE_OR_RETURN(br->ReadBool(&tmp_pps_alf_info_in_ph_flag));
+      pps->pps_alf_info_in_ph_flag = tmp_pps_alf_info_in_ph_flag;
+
       
         if( ( pps->pps_weighted_pred_flag || pps->pps_weighted_bipred_flag ) && pps->pps_rpl_info_in_ph_flag ){
-          TRUE_OR_RETURN(br->ReadBool(&pps->pps_wp_info_in_ph_flag));
+          bool tmp_pps_wp_info_in_ph_flag = false;
+          TRUE_OR_RETURN(br->ReadBool(&tmp_pps_wp_info_in_ph_flag));
+          pps->pps_wp_info_in_ph_flag = tmp_pps_wp_info_in_ph_flag;
          }
-        TRUE_OR_RETURN(br->ReadBool(&pps->pps_qp_delta_info_in_ph_flag));
+        bool tmp_pps_qp_delta_info_in_ph_flag = false;
+        TRUE_OR_RETURN(br->ReadBool(&tmp_pps_qp_delta_info_in_ph_flag));
+        pps->pps_qp_delta_info_in_ph_flag = tmp_pps_qp_delta_info_in_ph_flag;
       }
-
-      TRUE_OR_RETURN(br->ReadBool(&pps->pps_slice_header_extension_present_flag));
-      TRUE_OR_RETURN(br->ReadBool(&pps->pps_extension_flag)); 
+      bool tmp_pps_slice_header_extension_present_flag = false;
+      TRUE_OR_RETURN(br->ReadBool(&tmp_pps_slice_header_extension_present_flag));
+      pps->pps_slice_header_extension_present_flag = tmp_pps_slice_header_extension_present_flag;
+      bool tmp_pps_extension_flag = false;
+      TRUE_OR_RETURN(br->ReadBool(&tmp_pps_extension_flag)); 
+      pps->pps_extension_flag = tmp_pps_extension_flag;
 
       if( pps->pps_extension_flag ) {
           while( br->more_rbsp_data() ) { 
