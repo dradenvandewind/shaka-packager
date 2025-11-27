@@ -586,6 +586,8 @@ struct H266Sps {
   std::vector<bool> sps_extra_sh_bit_present_flag;//256 not sure need check
   bool sps_sublayer_dpb_params_flag = false;
 
+  std::optional<H266DPB_Parameters> sps_dpd;
+
   int sps_log2_min_luma_coding_block_size_minus2 = 0;
   bool sps_partition_constraints_override_enabled_flag = false;
   int sps_log2_diff_min_qt_min_cb_intra_slice_luma = 0;
