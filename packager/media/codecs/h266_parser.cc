@@ -891,11 +891,32 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
   }
 
   TRUE_OR_RETURN(br->ReadUE(&slice_header->pic_parameter_set_id));
-  const H266Pps* pps = GetPps(slice_header->pic_parameter_set_id);
-  TRUE_OR_RETURN(pps);
 
-  const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
+  const H266Pps* pps = nullptr;
+  const H266Sps* sps = nullptr;
+  pps = GetPps(slice_header->phs->ph_pic_parameter_set_id);
+  if (!pps) {
+      LOG(ERROR) << "PPS " << slice_header->phs->ph_pic_parameter_set_id 
+                 << " from picture header not found";
+      //return kInvalidStream;
+  }
+  sps = GetSps(pps->pps_seq_parameter_set_id);
+  if (!sps) {
+    LOG(ERROR) << "SPS " << pps->pps_seq_parameter_set_id 
+               << " referenced by PPS " << pps->pic_parameter_set_id << " not found";
+    //return kInvalidStream;
+  }
+
+
+
+  //const H266Pps* pps = GetPps(slice_header->pic_parameter_set_id);
+  TRUE_OR_RETURN(pps);
+  DLOG(INFO) << "Found PPS " << slice_header->phs->ph_pic_parameter_set_id 
+               << " from picture header in slice";
+
+  //const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
   TRUE_OR_RETURN(sps);
+  DLOG(INFO) << "Successfully retrieved SPS " << pps->pps_seq_parameter_set_id;
 
   // H.266 has simpler slice header structure in some cases
   if (!slice_header->first_slice_segment_in_pic_flag) {
@@ -1037,17 +1058,17 @@ std::vector<uint32_t> CalculateColWidthVal(const H266Pps& pps, int PicWidthInCtb
     int remainingWidth = PicWidthInCtbsY;
     
     // Tiles explicites
-    for (int i = 0; i <= pps->pps_num_exp_tile_columns_minus1; i++) {
-        uint32_t width = static_cast<uint32_t>(pps->pps_tile_column_width_minus1[i] + 1);
+    for (int i = 0; i <= pps.pps_num_exp_tile_columns_minus1; i++) {
+        uint32_t width = static_cast<uint32_t>(pps.pps_tile_column_width_minus1[i] + 1);
         ColWidthVal.push_back(width);
         remainingWidth -= static_cast<int>(width);
     }
     
     // Tiles uniformes
-    if (static_cast<int>(pps->pps_num_exp_tile_columns_minus1) < static_cast<int>(pps->NumTileColumns) - 1) {
-        uint32_t uniformWidth = static_cast<uint32_t>(pps->pps_tile_column_width_minus1[pps->pps_num_exp_tile_columns_minus1] + 1);
+    if (static_cast<int>(pps.pps_num_exp_tile_columns_minus1) < static_cast<int>(pps.NumTileColumns) - 1) {
+        uint32_t uniformWidth = static_cast<uint32_t>(pps.pps_tile_column_width_minus1[pps.pps_num_exp_tile_columns_minus1] + 1);
         
-        while (remainingWidth > 0 && ColWidthVal.size() < pps->NumTileColumns) {
+        while (remainingWidth > 0 && ColWidthVal.size() < pps.NumTileColumns) {
             uint32_t width = std::min(static_cast<uint32_t>(remainingWidth), uniformWidth);
             ColWidthVal.push_back(width);
             remainingWidth -= static_cast<int>(width);
@@ -2467,6 +2488,9 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   DLOG(INFO) << "## sps->sps_pic_width_max_in_luma_samples : " << sps->sps_pic_height_max_in_luma_samples; 
 
   TRUE_OR_RETURN(br->ReadBool(&sps->sps_conformance_window_flag));
+  DLOG(INFO) << "## sps_conformance_window_flag : " << ( sps->sps_conformance_window_flag ? "1" : "0");
+
+
   if (sps->sps_conformance_window_flag) {
     TRUE_OR_RETURN(br->ReadUE(&sps->sps_conf_win_left_offset));
     DLOG(INFO) << "## sps->sps_conf_win_left_offset  : " << sps->sps_conf_win_left_offset;
@@ -2748,23 +2772,41 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         DLOG(INFO) << "## sps->sps_six_minus_max_num_merge_cand : " << sps->sps_six_minus_max_num_merge_cand;
 
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_sbt_enabled_flag));
+        DLOG(INFO) << "## sps_sbt_enabled_flag : " << (sps->sps_sbt_enabled_flag  ? "1" : "0");
+
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_affine_enabled_flag));
+        DLOG(INFO) << "## sps_affine_enabled_flag : " << ( sps->sps_affine_enabled_flag ? "1" : "0");
+
         if (sps->sps_affine_enabled_flag){
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_five_minus_max_num_subblock_merge_cand));
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_6param_affine_enabled_flag));
-        }
+        DLOG(INFO) << "## sps_6param_affine_enabled_flag : " << ( sps->sps_6param_affine_enabled_flag ? "1" : "0");
+
+      }
         if(sps->sps_amvr_enabled_flag){
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_affine_amvr_enabled_flag));
+          DLOG(INFO) << "## sps_affine_amvr_enabled_flag : " << (sps->sps_affine_amvr_enabled_flag ? "1" : "0");
+
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_affine_prof_enabled_flag));
+        DLOG(INFO) << "## sps_affine_prof_enabled_flag : " << ( sps->sps_affine_prof_enabled_flag ? "1" : "0");
+  
         if(sps->sps_affine_prof_enabled_flag){
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_prof_control_present_in_ph_flag));
+          DLOG(INFO) << "## sps_prof_control_present_in_ph_flag : " << ( sps->sps_prof_control_present_in_ph_flag ? "1" : "0");
+
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_bcw_enabled_flag));
+        DLOG(INFO) << "## sps_bcw_enabled_flag : " << ( sps->sps_bcw_enabled_flag ? "1" : "0");
+
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_ciip_enabled_flag));
+        DLOG(INFO) << "## sps_ciip_enabled_flag : " << ( sps->sps_ciip_enabled_flag ? "1" : "0");
+
         int MaxNumMergeCand = 6 - sps->sps_six_minus_max_num_merge_cand;
         if (MaxNumMergeCand >= 2){
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_gpm_enabled_flag));
+          DLOG(INFO) << "## sps_gpm_enabled_flag : " << ( sps->sps_gpm_enabled_flag ? "1" : "0");
+
           if( sps->sps_gpm_enabled_flag && MaxNumMergeCand >= 3 ){
             TRUE_OR_RETURN(br->ReadUE(&sps->sps_max_num_merge_cand_minus_max_num_gpm_cand));
           }
@@ -2772,8 +2814,14 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_parallel_merge_level_minus2));
 
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_isp_enabled_flag));
+        DLOG(INFO) << "## sps_isp_enabled_flag : " << ( sps->sps_isp_enabled_flag ? "1" : "0");
+  
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_mrl_enabled_flag));
+        DLOG(INFO) << "## sps_mrl_enabled_flag : " << ( sps->sps_mrl_enabled_flag ? "1" : "0");
+  
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_mip_enabled_flag));
+        DLOG(INFO) << "## sps_mip_enabled_flag : " << ( sps->sps_mip_enabled_flag ? "1" : "0");
+
         if( sps->sps_chroma_format_idc != 0 ){
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_cclm_enabled_flag));
         }
@@ -2872,13 +2920,14 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         }
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_field_seq_flag));
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_vui_parameters_present_flag));
+
         if(sps->sps_vui_parameters_present_flag){
           TRUE_OR_RETURN(br->ReadUE(&sps->sps_vui_payload_size_minus1));
           bool tmp_sps_vui_alignment_zero_bit=false;
         
           while(! br->byte_aligned( )){
             TRUE_OR_RETURN(br->ReadBool(&tmp_sps_vui_alignment_zero_bit));
-            sps->sps_vui_alignment_zero_bit = tmp_sps_vui_alignment_zero_bit;
+            //sps->sps_vui_alignment_zero_bit = tmp_sps_vui_alignment_zero_bit;
           }
          
           OK_OR_RETURN(Vui_Payload(sps->max_sublayers_minus1, br, &sps->vui_parameters));
@@ -2941,6 +2990,8 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 
       LOG(INFO) << " ## vps_video_parameter_set_id : " << vps->vps_video_parameter_set_id;
 
+
+      
 
   const H266Sps* sps = GetFirstSpsForVps(*vps_id);
 
@@ -3477,7 +3528,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   DLOG(INFO) << "## phs->ph_pic_parameter_set_id : " << phs->ph_pic_parameter_set_id;
 
   std::unique_ptr<H266Pps> pps_holder;
-  const H266Pps* pps = GetFirstPps();//GetPps(phs->ph_pic_parameter_set_id);
+  const H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id);
 
   if (!pps){
     pps = GetFirstPps();
@@ -3485,6 +3536,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
       DLOG(INFO) << "error need to investigate why i can t get pps";
     }
   }
+  
 
 
    if (!pps) {
@@ -3498,7 +3550,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   LOG(INFO) << "Parsing H.266 Picture Header NALU" << "pps" << pps << "ph_pic_parameter_set_id " << phs->ph_pic_parameter_set_id; 
 
    std::unique_ptr<H266Sps> sps_holder;
-   const H266Sps* sps = GetFirstSps(); //GetSps(pps->seq_parameter_set_id);
+   const H266Sps* sps = GetSps(pps->pps_seq_parameter_set_id);
    
    if(!sps){
     sps = GetFirstSps();
@@ -3512,6 +3564,12 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     sps = sps_holder.get();
     LOG(WARNING) << "Using default SPS (no active SPS found)";
   }
+  if (!sps) {
+    LOG(ERROR) << "SPS " << pps->pps_seq_parameter_set_id 
+               << " referenced by PPS " << phs->ph_pic_parameter_set_id << " not found";
+    //return kInvalidStream;
+  }
+
   TRUE_OR_RETURN(sps);
 
     LOG(INFO) << "Parsing H.266 Picture Header NALU" << "sps : " << sps << "ph_pic_parameter_set_id :" << pps->seq_parameter_set_id; 
