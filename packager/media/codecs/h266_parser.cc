@@ -32,6 +32,7 @@ struct H266RefPicListEntry;
 struct H266ReferencePicListStruct;
 struct H266PredWeightTable;
 struct H266PictureHeaderStructure;
+struct H266SpsRangeExtension;
 
 
 
@@ -2990,6 +2991,10 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
                   if( sps->sps_range_extension_flag ){
                       //todo
                       //sps_range_extension( )
+                      if(!sps->sre){
+                        sps->sre.emplace();
+                      }
+                      TRUE_OR_RETURN(SpsRangeExtension(br,sps->sps_ts_residual_coding_rice_present_in_sh_flag,&sps->sre.value()));
                   }
                 }
                 if(sps->sps_extension_7bits){
@@ -3185,7 +3190,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
           TRUE_OR_RETURN(br->ReadBits(3,&tmp_vps_dpb_max_tid));
           vps->vps_dpb_max_tid.push_back(tmp_vps_dpb_max_tid);
           // TODO
-          if(!vps->vps_dpd){
+          if(!vps->vps_dpd.has_value()){
             vps->vps_dpd.emplace();
           }
           dpb_parameters( vps->vps_dpb_max_tid[i],vps->vps_sublayer_dpb_params_present_flag ,
@@ -3435,7 +3440,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   vps->vps_timing_hrd_params_present_flag = tmp_vps_timing_hrd_params_present_flag;
   if(vps->vps_timing_hrd_params_present_flag){
     //general_timing_hrd_parameters( )}
-      if (!vps->vps_general_timing_hrd_parameters) {
+      if (!vps->vps_general_timing_hrd_parameters.has_value()) {
         vps->vps_general_timing_hrd_parameters.emplace();
       }
       OK_OR_RETURN(GetGeneralTimingHrdParameters(&vps->vps_general_timing_hrd_parameters.value(), br));}
@@ -3454,7 +3459,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
         }
         int firstSubLayer = vps->vps_sublayer_cpb_params_present_flag ? 0 : vps->vps_hrd_max_tid[i];
         //ols_timing_hrd_parameters( firstSubLayer, vps_hrd_max_tid[ i ] );
-        if (!vps->vps_ols_parameters) {
+        if (!vps->vps_ols_parameters.has_value()) {
               vps->vps_ols_parameters.emplace();
         }
 
@@ -3717,7 +3722,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     if( pps->pps_output_flag_present_flag && !phs->ph_non_ref_pic_flag ){
       TRUE_OR_RETURN(br->ReadBool(&phs->ph_pic_output_flag));
     }
-    if( pps->pps_rpl_info_in_ph_flag ){
+    if( !pps->pps_rpl_info_in_ph_flag.has_value() ){
       phs->rpl.emplace();
 
       //Ref_Pic_List(sps,pps,br,&phs->rpl.value());
@@ -3725,7 +3730,6 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
          Ref_Pic_List(*sps, *pps, br, &phs->rpl.value());
       }
 
-      //ref_pic_lists( )
     }
     if( sps->sps_partition_constraints_override_enabled_flag ){
         TRUE_OR_RETURN(br->ReadBool(&phs->ph_partition_constraints_override_flag));
@@ -4831,7 +4835,19 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
 }
 #endif
 
+H266Parser::Result H266Parser::SpsRangeExtension(H26xBitReader* br, bool extended_precision_flag,
+                     H266SpsRangeExtension * sps_sre){
+  //7.3.2.22 Sequence parameter set range extension syntax
+  LOG(INFO) << "Parsing H.266 SpsRangeExtension";
+  TRUE_OR_RETURN(br->ReadBool(&sps->sre->sps_extended_precision_flag));
+  if(extended_precision_flag){
+      TRUE_OR_RETURN(br->ReadBool(&sps->sre->sps_ts_residual_coding_rice_present_in_sh_flag));
+  }
+  TRUE_OR_RETURN(br->ReadBool(&sps->sre->sps_persistent_rice_adaptation_enabled_flag));
+  TRUE_OR_RETURN(br->ReadBool(&sps->sre->sps_reverse_last_sig_coeff_enabled_flag));
 
+  return kOk;
+  }
 
 
 H266Parser::Result H266Parser::Vui_Payload(int max_num_sub_layers_minus1,

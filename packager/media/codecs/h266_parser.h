@@ -512,7 +512,15 @@ struct H266PredWeightTable{
 
 };
 
-
+struct H266SpsRangeExtension{
+  H266SpsRangeExtension();
+  ~H266SpsRangeExtension();
+  bool sps_extended_precision_flag = false;
+  bool sps_ts_residual_coding_rice_present_in_sh_flag = false;
+  bool sps_rrc_rice_extension_flag = false;
+  bool sps_persistent_rice_adaptation_enabled_flag = false;
+  bool sps_reverse_last_sig_coeff_enabled_flag = false;
+};
 
 
 
@@ -739,12 +747,8 @@ struct H266Sps {
   bool sps_extension_data_flag = false;
  
 // sp_range_extension  
-// todo make struct and funct
-bool sps_extended_precision_flag = false;
-bool sps_ts_residual_coding_rice_present_in_sh_flag = false;
-bool sps_rrc_rice_extension_flag = false;
-bool sps_persistent_rice_adaptation_enabled_flag = false;
-bool sps_reverse_last_sig_coeff_enabled_flag  = false;
+
+std::optional<H266SpsRangeExtension> sre;
 
 
  // end H.266 specific fields
@@ -1376,6 +1380,8 @@ class H266Parser {
   const H266Sps* GetFirstSps();
   const H266Pps* GetFirstPps();
 
+ Result SpsRangeExtension(H26xBitReader* br,bool extended_precision_flag,
+                     H266SpsRangeExtension * sps_sre);
 
   Result Vui_Payload(int max_num_sub_layers_minus1,
                      H26xBitReader* br,
