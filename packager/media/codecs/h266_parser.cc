@@ -2457,16 +2457,6 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   TRUE_OR_RETURN(br->ReadBits(4,&sps->sps_video_parameter_set_id));
 
 
-  // const H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id);
-  //  TRUE_OR_RETURN(pps);
-
-  //  const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
-  //  TRUE_OR_RETURN(sps);
-
-   
-
-  //const H266Vps* vps = active_vpses_[sps->sps_video_parameter_set_id].get();
-
 
   TRUE_OR_RETURN(br->ReadBits(3, &sps->max_sublayers_minus1));
   TRUE_OR_RETURN(br->ReadBits(2, &sps->sps_chroma_format_idc));
@@ -2509,7 +2499,6 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   if(sps->sps_subpic_info_present_flag) {
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_num_subpics_minus1));
         DLOG(INFO) << "## sps->sps_num_subpics_minus1 : " << sps->sps_num_subpics_minus1;
-   // }// error ?
         if(sps->sps_num_subpics_minus1 > 0) {
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_independent_subpics_flag));
           DLOG(INFO) << "## sps->sps_independent_subpics_flag : " << (sps->sps_independent_subpics_flag ? "1" : "0");
@@ -2605,7 +2594,13 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
               DLOG(INFO) << "## sps->sps_sublayer_dpb_params_flag : " << ( sps->sps_sublayer_dpb_params_flag ? "1" : "0");
               //TODO
              //dpb_parameters( sps_max_sublayers_minus1, sps_sublayer_dpb_params_flag )
-              }
+             if(!sps->sps_dpd)
+             {
+              sps->sps_dpd.emplace();
+             }
+
+              dpb_parameters( sps->max_sublayers_minus1, sps->sps_sublayer_dpb_params_flag ,
+                          &sps->sps_dpd.value(),br);           
           }
           TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
           DLOG(INFO) << "## sps->sps_log2_min_luma_coding_block_size_minus2 : " << sps->sps_log2_min_luma_coding_block_size_minus2;
