@@ -2595,10 +2595,9 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
               DLOG(INFO) << "## sps->sps_sublayer_dpb_params_flag : " << ( sps->sps_sublayer_dpb_params_flag ? "1" : "0");
               //TODO
              //dpb_parameters( sps_max_sublayers_minus1, sps_sublayer_dpb_params_flag )
-             if(!sps->sps_dpd)
-             {
-              sps->sps_dpd.emplace();
-             }
+            if(!sps->sps_dpd.has_value()) {
+                  sps->sps_dpd.emplace();
+              }
 
               dpb_parameters( sps->max_sublayers_minus1, sps->sps_sublayer_dpb_params_flag ,
                           &sps->sps_dpd.value(),br);           
@@ -2700,9 +2699,14 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             DLOG(INFO) << "## sps->sps_same_qp_table_for_chroma_flag : " << ( sps->sps_same_qp_table_for_chroma_flag ? "1" : "0");
 
             int numQpTables = sps->sps_same_qp_table_for_chroma_flag ? 1 : ( sps->sps_joint_cbcr_enabled_flag ? 3 : 2 );
-            int tmp_sps_qp_table_start_minus26 = 0;
-            int tmp_sps_num_points_in_qp_table_minus1 = 0;
+            
+
+            sps->sps_qp_table_start_minus26.reserve(numQpTables);
+            sps->sps_num_points_in_qp_table_minus1.reserve(numQpTables);
+
             for( int i = 0; i < numQpTables; i++ ) {
+              int tmp_sps_qp_table_start_minus26 = 0;
+              int tmp_sps_num_points_in_qp_table_minus1 = 0;
               
               TRUE_OR_RETURN(br->ReadSE(&tmp_sps_qp_table_start_minus26));
               DLOG(INFO) << "## sps_qp_table_start_minus26 : " << tmp_sps_qp_table_start_minus26;
@@ -2714,6 +2718,15 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
 
               int tmp_sps_delta_qp_in_val_minus1 = 0;
               int tmp_sps_delta_qp_diff_val = 0;
+
+              if (sps->sps_delta_qp_in_val_minus1.size() <= static_cast<size_t>(i)) {
+                  sps->sps_delta_qp_in_val_minus1.resize(i + 1);
+                  sps->sps_delta_qp_diff_val.resize(i + 1);
+              }
+              if (sps->sps_delta_qp_in_val_minus1[i].size() <= static_cast<size_t>(tmp_sps_num_points_in_qp_table_minus1)) {
+                  sps->sps_delta_qp_in_val_minus1[i].resize(tmp_sps_num_points_in_qp_table_minus1 + 1);
+                  sps->sps_delta_qp_diff_val[i].resize(tmp_sps_num_points_in_qp_table_minus1 + 1);
+              }
 
               //for( int j = 0; j <= sps->sps_num_points_in_qp_table_minus1[ i ]; j++ ) {
               for( size_t j = 0; j <= static_cast<size_t>(sps->sps_num_points_in_qp_table_minus1[ i ]); j++ ) {
@@ -2994,7 +3007,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
                       if(!sps->sre){
                         sps->sre.emplace();
                       }
-                      TRUE_OR_RETURN(SpsRangeExtension(br,sps->sps_ts_residual_coding_rice_present_in_sh_flag,&sps->sre.value()));
+                      SpsRangeExtension(br,sps->sps_ts_residual_coding_rice_present_in_sh_flag,&sps->sre.value());
                   }
                 }
                 if(sps->sps_extension_7bits){
@@ -3632,6 +3645,12 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   //Page 107
   int NumExtraPhBits = 0;
   int max_extra_bytes = sps->sps_num_extra_ph_bytes * 8;
+  if (max_extra_bytes > 1024){
+    LOG(ERROR) << "Invalid sps_num_extra_ph_bytes: " << max_extra_bytes;
+    return kInvalidStream;
+  }
+
+
   for( int i = 0; i < max_extra_bytes; i++ ){
     if( sps->sps_extra_ph_bit_present_flag[i]){
       NumExtraPhBits++;
