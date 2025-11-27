@@ -1032,7 +1032,7 @@ std::vector<uint32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY,
 }
 
 // Compute tiles coulumns
-std::vector<uint32_t> CalculateColWidthVal(const H266Pps* pps, int PicWidthInCtbsY) {
+std::vector<uint32_t> CalculateColWidthVal(const H266Pps& pps, int PicWidthInCtbsY) {
     std::vector<uint32_t> ColWidthVal;
     int remainingWidth = PicWidthInCtbsY;
     
@@ -1130,10 +1130,12 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
     //H266PictureHeaderStructure* phs
     TRUE_OR_RETURN(ParsePictureHeaderStructure(nalu, &slice_header->phs.value()));
    }   
-   const H266Pps* pps = GetPps(slice_header->phs->ph_pic_parameter_set_id);
+   const H266Pps* pps = GetFirstPps();
+   //GetPps(slice_header->phs->ph_pic_parameter_set_id);
    TRUE_OR_RETURN(pps);
 
-   const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
+   const H266Sps* sps = GetFirstSps();
+   //GetSps(pps->seq_parameter_set_id);
    TRUE_OR_RETURN(sps);
 
    if (!ValidateSliceHeader(slice_header, sps, pps)) {
@@ -1266,7 +1268,7 @@ if(pps->NumTileColumns != local_NumTileColumns ){
 
  */
 
-slice_header->ColWidthVal = CalculateColWidthVal(pps, slice_header->PicWidthInCtbsY);
+slice_header->ColWidthVal = CalculateColWidthVal(*pps, slice_header->PicWidthInCtbsY);
 
  /***************************************************************************/
 slice_header->TileColBdVal = DeriveTileColumnBoundaries(NumTileColumns, slice_header->ColWidthVal);
@@ -1866,7 +1868,7 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
 
 
 #if 0 
-H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
+/* H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   DCHECK_EQ(Nalu::H266_PPS_NUT, nalu.type());
   LOG(INFO) << "Parsing H.266 PPS NALU";
 
@@ -1899,7 +1901,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
   return kOk;
 }
-
+ */
 
 #else 
 //disable all parsesps to build it
@@ -1914,13 +1916,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   H26xBitReader* br = &reader;
   uint32_t NumTileColumns = 0;  
   uint32_t NumTileRows = 0;   
-  //uint32_t NumTilesInPic = 0; 
-
-  //const H266Pps* pps = GetPps(*pps_id);
-
-  // get from pps
   
-
   *pps_id = -1;
    std::unique_ptr<H266Pps> pps(new H266Pps);
   /*std::unique_ptr<H266Sps> sps(new H266Sps); */
@@ -1940,22 +1936,17 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   // const H266Pps* pps = GetPps(pps->pic_parameter_set_id);
   //TRUE_OR_RETURN(pps);
 
-  const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
+  //const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
+
+  const H266Sps* sps = active_spses_[pps->seq_parameter_set_id].get();
+
+  // GetSps(pps->seq_parameter_set_id);
+  if(!sps){
+    sps = GetFirstSps();
+  }
+
   TRUE_OR_RETURN(sps);
  
-/* 
- if(pps->NumTileColumns != 0){
-    NumTileColumns = pps->NumTileColumns;
-  }
-  if(pps->NumTileRows != 0){
-    NumTileRows = pps->NumTileRows;
-  }
-  if(pps->NumTilesInPic != 0){
-    NumTilesInPic = pps->NumTilesInPic;
-  }
- */
-
-
 
 
   bool tmp_pps_mixed_nalu_types_in_pic_flag = false;
@@ -2019,7 +2010,6 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     pps->pps_scaling_win_top_offset = tmp_pps_scaling_win_top_offset;
 
     int tmp_pps_scaling_win_bottom_offset = 0;
-
     TRUE_OR_RETURN((br->ReadSE(&tmp_pps_scaling_win_bottom_offset)));
     pps->pps_scaling_win_bottom_offset = tmp_pps_scaling_win_bottom_offset;
 
@@ -2884,10 +2874,11 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
         TRUE_OR_RETURN(br->ReadBool(&sps->sps_vui_parameters_present_flag));
         if(sps->sps_vui_parameters_present_flag){
           TRUE_OR_RETURN(br->ReadUE(&sps->sps_vui_payload_size_minus1));
-          bool sps_vui_alignment_zero_bit;
+          bool tmp_sps_vui_alignment_zero_bit=false;
         
           while(! br->byte_aligned( )){
-            TRUE_OR_RETURN(br->ReadBool(&sps_vui_alignment_zero_bit));
+            TRUE_OR_RETURN(br->ReadBool(&tmp_sps_vui_alignment_zero_bit));
+            sps->sps_vui_alignment_zero_bit = tmp_sps_vui_alignment_zero_bit;
           }
          
           OK_OR_RETURN(Vui_Payload(sps->max_sublayers_minus1, br, &sps->vui_parameters));
@@ -2948,9 +2939,16 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   
   TRUE_OR_RETURN(br->ReadBits(4, &vps->vps_video_parameter_set_id)); 
 
+      LOG(INFO) << " ## vps_video_parameter_set_id : " << vps->vps_video_parameter_set_id;
+
+
   const H266Sps* sps = GetFirstSpsForVps(*vps_id);
+
+   if(!sps){
+      sps =GetFirstSps();
+   }
   if (!sps) {
-    LOG(INFO) << "Parsing H.266 none sps use this vps ";
+    LOG(INFO) << "Parsing H.266 ERROR none sps use this vps need investigate ";
     return kOk;
   }
 
@@ -3055,7 +3053,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   }
   
 
-  int tmp_vps_ols_ptl_idx = 0;
+  
   int olsModeIdc = 0;
 
   int TotalNumOlss = 0;
@@ -3075,6 +3073,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 
   for( int i = 0; i < TotalNumOlss; i++ ){
     if( vps->vps_num_ptls_minus1 > 0 && vps->vps_num_ptls_minus1+1 != TotalNumOlss ){
+      int tmp_vps_ols_ptl_idx = 0;
       TRUE_OR_RETURN(br->ReadBits(8,&tmp_vps_ols_ptl_idx));
       vps->vps_ols_ptl_idx.push_back(tmp_vps_ols_ptl_idx);
     }
@@ -3396,8 +3395,8 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   // This will replace any existing VPS instance.
  
 
-  ///vps->vps_max_layers_minus1 = 0;
-
+  //force to sigle layer
+  vps->vps_max_layers_minus1 = 0;
   *vps_id = vps->vps_video_parameter_set_id;
   active_vpses_[*vps_id] = std::move(vps);
 
@@ -3477,21 +3476,46 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   phs->ph_pic_parameter_set_id = tmp_ph_pic_parameter_set_id;
   DLOG(INFO) << "## phs->ph_pic_parameter_set_id : " << phs->ph_pic_parameter_set_id;
 
+  std::unique_ptr<H266Pps> pps_holder;
+  const H266Pps* pps = GetFirstPps();//GetPps(phs->ph_pic_parameter_set_id);
 
-  const H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id);
+  if (!pps){
+    pps = GetFirstPps();
+    if(!pps){
+      DLOG(INFO) << "error need to investigate why i can t get pps";
+    }
+  }
+
+
+   if (!pps) {
+      pps_holder = std::make_unique<H266Pps>();
+     pps = pps_holder.get();
+     LOG(WARNING) << "Using default PPS (no active PPS found)";
+    }
   TRUE_OR_RETURN(pps);
 
 
   LOG(INFO) << "Parsing H.266 Picture Header NALU" << "pps" << pps << "ph_pic_parameter_set_id " << phs->ph_pic_parameter_set_id; 
 
+   std::unique_ptr<H266Sps> sps_holder;
+   const H266Sps* sps = GetFirstSps(); //GetSps(pps->seq_parameter_set_id);
+   
+   if(!sps){
+    sps = GetFirstSps();
+    if(!sps){
+            DLOG(INFO) << "error need to investigate why i can t get sps";
+    }
+   }
 
-   const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
+   if (!sps) {
+     sps_holder = std::make_unique<H266Sps>();
+    sps = sps_holder.get();
+    LOG(WARNING) << "Using default SPS (no active SPS found)";
+  }
   TRUE_OR_RETURN(sps);
 
-    LOG(INFO) << "Parsing H.266 Picture Header NALU" << "sps" << sps << "ph_pic_parameter_set_id " << pps->seq_parameter_set_id; 
+    LOG(INFO) << "Parsing H.266 Picture Header NALU" << "sps : " << sps << "ph_pic_parameter_set_id :" << pps->seq_parameter_set_id; 
 
-
-  TRUE_OR_RETURN(sps);
 
 
   int len_ph_pic_order_cnt_lsb = sps->sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
@@ -3984,6 +4008,32 @@ const H266Vps* H266Parser::GetFirstVpsFromSps(int sps_id) {
   }
   return nullptr;
 }
+
+const H266Vps* H266Parser::GetFirstVps() {
+  if (active_vpses_.empty()) {
+    LOG(INFO) << "GetFirstVps  vps id not available";
+    return nullptr;
+  }
+  return active_vpses_.begin()->second.get();
+}
+
+const H266Sps* H266Parser::GetFirstSps() {
+  if (active_spses_.empty()) {
+        LOG(INFO) << "GetFirstSps  sps id not available";
+
+    return nullptr;
+  }
+  return active_spses_.begin()->second.get();
+}
+
+const H266Pps* H266Parser::GetFirstPps() {
+  if (active_ppses_.empty()) {
+    LOG(INFO) << "GetFirstPps  pps id not available";
+    return nullptr;
+  }
+  return active_ppses_.begin()->second.get();
+}
+
 
 const H266Aps* H266Parser::GetAps(int aps_id) {
   return active_apses_[aps_id].get();

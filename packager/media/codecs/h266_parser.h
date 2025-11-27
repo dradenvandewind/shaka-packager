@@ -1368,7 +1368,12 @@ class H266Parser {
   const H266Vps* GetFirstVpsFromPps(int pps_id);
 
   const H266Vps* GetFirstVpsFromSps(int sps_id);
-  const H266Pps* GetFirstPpsFromVps(int vps_id)
+  const H266Pps* GetFirstPpsFromVps(int vps_id);
+
+  const H266Vps* GetFirstVps();
+  const H266Sps* GetFirstSps();
+  const H266Pps* GetFirstPps();
+
 
   Result Vui_Payload(int max_num_sub_layers_minus1,
                      H26xBitReader* br,
