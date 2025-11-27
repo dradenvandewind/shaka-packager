@@ -4836,16 +4836,16 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
 #endif
 
 H266Parser::Result H266Parser::SpsRangeExtension(H26xBitReader* br, bool extended_precision_flag,
-                     H266SpsRangeExtension * sps_sre){
+                     H266SpsRangeExtension *sps_sre){
   //7.3.2.22 Sequence parameter set range extension syntax
   LOG(INFO) << "Parsing H.266 SpsRangeExtension";
-  TRUE_OR_RETURN(br->ReadBool(&sps->sre->sps_extended_precision_flag));
+  TRUE_OR_RETURN(br->ReadBool(&sps_sre->sps_extended_precision_flag));
   if(extended_precision_flag){
-      TRUE_OR_RETURN(br->ReadBool(&sps->sre->sps_ts_residual_coding_rice_present_in_sh_flag));
+      TRUE_OR_RETURN(br->ReadBool(&sps_sre->sps_ts_residual_coding_rice_present_in_sh_flag));
   }
   TRUE_OR_RETURN(br->ReadBool(&sps->sre->sps_persistent_rice_adaptation_enabled_flag));
   TRUE_OR_RETURN(br->ReadBool(&sps->sre->sps_reverse_last_sig_coeff_enabled_flag));
-
+   
   return kOk;
   }
 
