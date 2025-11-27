@@ -223,7 +223,7 @@ bool Nalu::InitializeFromH266(const uint8_t* data, uint64_t size) {
   DCHECK(data);
   if (size < 2)
     return false;
-  
+  //build 16 bits
   const uint16_t header = (data[0] << 8) | data[1];
   
   // H.266: forbidden_zero_bit (1 bit) - shall be 0
@@ -246,7 +246,7 @@ bool Nalu::InitializeFromH266(const uint8_t* data, uint64_t size) {
 
   // H.266 header structure:
   // forbidden_zero_bit (1) | nuh_reserved_zero_bit (1) | nuh_layer_id (6) | nal_unit_type (5) | nuh_temporal_id_plus1 (3)
-  nuh_layer_id_ = (header >> 9) & 0x3F;  // Bits 9-14 (corrected from 8-13)
+  nuh_layer_id_ = (header >> 8) & 0x3F;  // Bits 8-13)
   type_ = (header >> 3) & 0x1F;          // Bits 3-7
   const int nuh_temporal_id_plus1 = header & 0x7;  // Bits 0-2
 
