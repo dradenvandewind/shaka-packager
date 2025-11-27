@@ -1777,14 +1777,20 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
         TRUE_OR_RETURN(br->ReadBool(&tmp_sh_ts_residual_coding_disabled_flag));
         slice_header->sh_ts_residual_coding_disabled_flag = tmp_sh_ts_residual_coding_disabled_flag;
       }
+      bool tmp_sps_ts_residual_coding_rice_present_in_sh_flag = false; // i can t evaluate this value at this moment 
+      // we can get this in sps_range_extension section or SpsRangeExtension func 
+      //sps->sps_ts_residual_coding_rice_present_in_sh_flag
 
-      if( !slice_header->sh_ts_residual_coding_disabled_flag && sps->sps_ts_residual_coding_rice_present_in_sh_flag ){
+      if( !slice_header->sh_ts_residual_coding_disabled_flag && tmp_sps_ts_residual_coding_rice_present_in_sh_flag ){
         int tmp_sh_ts_residual_coding_rice_idx_minus1 = 0;
         TRUE_OR_RETURN(br->ReadBits(3,&tmp_sh_ts_residual_coding_rice_idx_minus1));
         slice_header->sh_ts_residual_coding_rice_idx_minus1 = tmp_sh_ts_residual_coding_rice_idx_minus1;        
       }
-      
-      if( sps->sps_reverse_last_sig_coeff_enabled_flag ){
+      bool tmp_sps_reverse_last_sig_coeff_enabled_flag = false;
+      //if( sps->sps_reverse_last_sig_coeff_enabled_flag ){
+      // we can get this in sps_range_extension section or SpsRangeExtension func
+      if( tmp_sps_reverse_last_sig_coeff_enabled_flag ){
+
         bool tmp_sh_reverse_last_sig_coeff_flag = false;
         TRUE_OR_RETURN(br->ReadBool(&tmp_sh_reverse_last_sig_coeff_flag));
         slice_header->sh_reverse_last_sig_coeff_flag = tmp_sh_reverse_last_sig_coeff_flag;
@@ -2601,6 +2607,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
 
               dpb_parameters( sps->max_sublayers_minus1, sps->sps_sublayer_dpb_params_flag ,
                           &sps->sps_dpd.value(),br);           
+           }
           }
           TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
           DLOG(INFO) << "## sps->sps_log2_min_luma_coding_block_size_minus2 : " << sps->sps_log2_min_luma_coding_block_size_minus2;
@@ -3007,13 +3014,14 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
                       if(!sps->sre){
                         sps->sre.emplace();
                       }
-                      SpsRangeExtension(br,sps->sps_ts_residual_coding_rice_present_in_sh_flag,&sps->sre.value());
+                      SpsRangeExtension(br,sps->sps_max_luma_transform_size_64_flag,&sps->sre.value());
                   }
                 }
                 if(sps->sps_extension_7bits){
 
+                  bool tmp_sps_extended_precision_flag = false;
                   while(br->more_rbsp_data()){
-                    TRUE_OR_RETURN(br->ReadBool(&sps->sps_extended_precision_flag));
+                    TRUE_OR_RETURN(br->ReadBool(&tmp_sps_extended_precision_flag));
                   }
                 }
 
