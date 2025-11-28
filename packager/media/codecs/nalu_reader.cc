@@ -258,6 +258,15 @@ bool Nalu::InitializeFromH266(const uint8_t* data, uint64_t size) {
   }
   nuh_temporal_id_ = nuh_temporal_id_plus1 - 1;
 
+   LOG(INFO) << " # forbidden_zer_bit : " << (header & 0x8000);
+   LOG(INFO) << " # nuh_reserved_zero_bit : " << (header & 0x4000);
+
+   LOG(INFO) << " # nuh_layer_id : " << ((header >> 8) & 0x3F);
+   LOG(INFO) << " # nal_unit_type : " << ((header >> 3) & 0x1F);
+   LOG(INFO) << " # nuh_temporal_id_plus1 : " << nuh_temporal_id_;
+
+
+
   // H.266 specific constraints
 
   // For EOB_NUT and EOS_NUT, nuh_layer_id shall be equal to 0
