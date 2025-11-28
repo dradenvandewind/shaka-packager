@@ -598,6 +598,8 @@ struct H266Sps {
 
   int sps_log2_min_luma_coding_block_size_minus2 = 0;
   bool sps_partition_constraints_override_enabled_flag = false;
+  int CtbLog2SizeY = 0;
+  int MinCbLog2SizeY = 0;
   int sps_log2_diff_min_qt_min_cb_intra_slice_luma = 0;
   int sps_max_mtt_hierarchy_depth_intra_slice_luma = 0;
   int sps_log2_diff_max_bt_min_qt_intra_slice_luma = 0;

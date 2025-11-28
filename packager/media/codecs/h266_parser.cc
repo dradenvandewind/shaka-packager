@@ -2594,7 +2594,8 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           DLOG(INFO) << "## sps_num_extra_ph_bytes : " << sps->sps_num_extra_ph_bytes;
         
           bool tmp_sps_extra_sh_bit_present_flag = 0;
-          for( int i = 0; i < (sps->sps_num_extra_sh_bytes * 8 ); i++ ){
+          int max_sps_num_extra_sh_bytes = (sps->sps_num_extra_sh_bytes)*8;
+          for( int i = 0; i < max_sps_num_extra_sh_bytes; i++ ){
             TRUE_OR_RETURN(br->ReadBool(&tmp_sps_extra_sh_bit_present_flag));
             sps->sps_extra_sh_bit_present_flag.push_back(tmp_sps_extra_sh_bit_present_flag);
             DLOG(INFO) << "## sps_extra_sh_bit_present_flag : " << ( tmp_sps_extra_sh_bit_present_flag ? "1" : "0");
@@ -2619,8 +2620,21 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_partition_constraints_override_enabled_flag));
           DLOG(INFO) << "## sps_partition_constraints_override_enabled_flag : " << ( sps->sps_partition_constraints_override_enabled_flag ? "1" : "0");
         
-          TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma));
-          DLOG(INFO) << "## sps_log2_diff_min_qt_min_cb_intra_slice_luma : " << sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma;
+          //Min( 6, CtbLog2SizeY ) − MinCbLog2SizeY 
+          int ctb_log2_size_y = sps->sps_log2_ctu_size_minus5 + 5;
+          sps->CtbLog2SizeY = 1 << ctb_log2_size_y;
+          sps->MinCbLog2SizeY = sps->sps_log2_min_luma_coding_block_size_minus2 + 2;
+
+          int tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma = 0;
+          int max_tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma = std::min(6,sps->CtbLog2SizeY) - sps->MinCbLog2SizeY;
+
+          TRUE_OR_RETURN(br->ReadUE(&tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma));
+          if ( tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma > 0 && tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma < max_tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma ){
+            sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma = tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma;
+            DLOG(INFO) << "## sps_log2_diff_min_qt_min_cb_intra_slice_luma : " << sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma;
+          } else {
+            DLOG(INFO) << "## Error sps_log2_diff_min_qt_min_cb_intra_slice_luma : " << sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma;
+          }
         
           TRUE_OR_RETURN(br->ReadUE(&sps->sps_max_mtt_hierarchy_depth_intra_slice_luma));
           DLOG(INFO) << "## sps_max_mtt_hierarchy_depth_intra_slice_luma : " << sps->sps_max_mtt_hierarchy_depth_intra_slice_luma;
@@ -2671,7 +2685,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           }
 
           // Derive CTB size from SPS and use it instead of undefined 'pps'.
-          int ctb_log2_size_y = sps->sps_log2_ctu_size_minus5 + 5;
+          //int ctb_log2_size_y = sps->sps_log2_ctu_size_minus5 + 5;
           int ctb_size_y = 1 << ctb_log2_size_y;
           if (ctb_size_y > 32) {
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_max_luma_transform_size_64_flag));
@@ -2744,11 +2758,12 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
 
                 TRUE_OR_RETURN(br->ReadUE(&tmp_sps_delta_qp_in_val_minus1));
                 DLOG(INFO) << "## sps_delta_qp_in_val_minus1 : " << tmp_sps_delta_qp_in_val_minus1;
-                sps->sps_delta_qp_in_val_minus1[i][j].push_back(tmp_sps_delta_qp_in_val_minus1);
 
                 TRUE_OR_RETURN(br->ReadUE(&tmp_sps_delta_qp_diff_val));
-                sps->sps_delta_qp_diff_val[i][j].push_back(tmp_sps_delta_qp_diff_val);
                 DLOG(INFO) << "## sps_delta_qp_diff_val : " << tmp_sps_delta_qp_diff_val;
+
+                sps->sps_delta_qp_in_val_minus1[i][j].push_back(tmp_sps_delta_qp_in_val_minus1);
+                sps->sps_delta_qp_diff_val[i][j].push_back(tmp_sps_delta_qp_diff_val);
               }
             }
           }
@@ -3657,18 +3672,25 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   //Page 107
   int NumExtraPhBits = 0;
   int max_extra_bytes = sps->sps_num_extra_ph_bytes * 8;
-  if (max_extra_bytes > 1024){
+  if (max_extra_bytes > 16){
     LOG(ERROR) << "Invalid sps_num_extra_ph_bytes: " << max_extra_bytes;
     return kInvalidStream;
   }
+   
 
 
+  ///  add to try fix it  to realign bitstream
   for( int i = 0; i < max_extra_bytes; i++ ){
+    bool tmp_sps_extra_ph_bit_present_flag = false;
+    TRUE_OR_RETURN(br->ReadBool(&tmp_sps_extra_ph_bit_present_flag)); 
+    sps->sps_extra_ph_bit_present_flag.push_back(tmp_sps_extra_ph_bit_present_flag);
+
     if( sps->sps_extra_ph_bit_present_flag[i]){
       NumExtraPhBits++;
     }
   }
   /************************************************/
+  phs->ph_extra_bit.resize(NumExtraPhBits);
   for( int i = 0; i < NumExtraPhBits; i++ ){
     bool tmp_ph_extra_bit;
     TRUE_OR_RETURN(br->ReadBool(&tmp_ph_extra_bit));
