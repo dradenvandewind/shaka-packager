@@ -1355,7 +1355,7 @@ class H266Parser {
   const H266Sps* GetSps(int sps_id);
   
   /// @return a pointer to the VPS with the given ID, or NULL if none exists.
-  const H266Vps* GetVps(int vps_id);
+  const  H266Vps* GetVps(int vps_id);
   
   /// @return a pointer to the APS with the given ID, or NULL if none exists.
   const H266Aps* GetAps(int aps_id);

@@ -2594,7 +2594,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           DLOG(INFO) << "## sps_num_extra_ph_bytes : " << sps->sps_num_extra_ph_bytes;
         
           bool tmp_sps_extra_sh_bit_present_flag = 0;
-          int max_sps_num_extra_sh_bytes = (sps->sps_num_extra_sh_bytes)*8;
+          int max_sps_num_extra_sh_bytes = sps->sps_num_extra_sh_bytes * 8;
           for( int i = 0; i < max_sps_num_extra_sh_bytes; i++ ){
             TRUE_OR_RETURN(br->ReadBool(&tmp_sps_extra_sh_bit_present_flag));
             sps->sps_extra_sh_bit_present_flag.push_back(tmp_sps_extra_sh_bit_present_flag);
@@ -2604,7 +2604,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             if( sps->max_sublayers_minus1 > 0 ){
               TRUE_OR_RETURN(br->ReadBool(&sps->sps_sublayer_dpb_params_flag));
               DLOG(INFO) << "## sps_sublayer_dpb_params_flag : " << ( sps->sps_sublayer_dpb_params_flag ? "1" : "0");
-              //TODO
+            } //TODO
              //dpb_parameters( sps_max_sublayers_minus1, sps_sublayer_dpb_params_flag )
             if(!sps->sps_dpd.has_value()) {
                   sps->sps_dpd.emplace();
@@ -2612,7 +2612,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
 
               dpb_parameters( sps->max_sublayers_minus1, sps->sps_sublayer_dpb_params_flag ,
                           &sps->sps_dpd.value(),br);           
-           }
+           
           }
           TRUE_OR_RETURN(br->ReadUE(&sps->sps_log2_min_luma_coding_block_size_minus2));
           DLOG(INFO) << "## sps_log2_min_luma_coding_block_size_minus2 : " << sps->sps_log2_min_luma_coding_block_size_minus2;
@@ -3616,13 +3616,13 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
 
   std::unique_ptr<H266Pps> pps_holder;
   const H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id);
-
+/* 
   if (!pps){
     pps = GetFirstPps();
     if(!pps){
       DLOG(INFO) << "error need to investigate why i can t get pps";
     }
-  }
+  } */
   
 
 
@@ -3639,12 +3639,12 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
    std::unique_ptr<H266Sps> sps_holder;
    const H266Sps* sps = GetSps(pps->pps_seq_parameter_set_id);
    
-   if(!sps){
+   /* if(!sps){
     sps = GetFirstSps();
     if(!sps){
             DLOG(INFO) << "error need to investigate why i can t get sps";
     }
-   }
+   } */
 
    if (!sps) {
      sps_holder = std::make_unique<H266Sps>();
@@ -5018,15 +5018,15 @@ H266Parser::Result H266Parser::dpb_parameters( int MaxSubLayersMinus1, int subLa
     TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_num_reorder_pics));
     TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_latency_increase_plus1));
  */
-    br->ReadUE(&tmp_dpb_max_dec_pic_buffering_minus1);
+    TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_dec_pic_buffering_minus1));
     DLOG(INFO) << "## dpb_max_dec_pic_buffering_minus1: " << tmp_dpb_max_dec_pic_buffering_minus1 ;
 
-    br->ReadUE(&tmp_dpb_max_num_reorder_pics);
+    TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_num_reorder_pics));
     DLOG(INFO) << "## dpb_max_num_reorder_pics : " << tmp_dpb_max_num_reorder_pics;
-    br->ReadUE(&tmp_dpb_max_latency_increase_plus1);
+    TRUE_OR_RETURN(br->ReadUE(&tmp_dpb_max_latency_increase_plus1));
     DLOG(INFO) << "## dpb_max_latency_increase_plus1 : " << tmp_dpb_max_latency_increase_plus1;
 
-    dpd->dpb_max_dec_pic_buffering_minus1.push_back(tmp_dpb_max_latency_increase_plus1);
+    dpd->dpb_max_dec_pic_buffering_minus1.push_back(tmp_dpb_max_dec_pic_buffering_minus1);
     dpd->dpb_max_num_reorder_pics.push_back(tmp_dpb_max_num_reorder_pics);
     dpd->dpb_max_latency_increase_plus1.push_back(tmp_dpb_max_latency_increase_plus1);
   }
