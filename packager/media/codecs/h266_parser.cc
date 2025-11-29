@@ -898,8 +898,10 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
 
   TRUE_OR_RETURN(br->ReadUE(&slice_header->pic_parameter_set_id));
 
-  const H266Pps* pps = nullptr;
-  const H266Sps* sps = nullptr;
+  //const 
+  H266Pps* pps = nullptr;
+  //const 
+  H266Sps* sps = nullptr;
   pps = GetPps(slice_header->phs->ph_pic_parameter_set_id);
   if (!pps) {
       LOG(ERROR) << "PPS " << slice_header->phs->ph_pic_parameter_set_id 
@@ -1157,11 +1159,13 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
     //H266PictureHeaderStructure* phs
     TRUE_OR_RETURN(ParsePictureHeaderStructure(nalu, &slice_header->phs.value()));
    }   
-   const H266Pps* pps = GetFirstPps();
+   //const 
+   H266Pps* pps = GetFirstPps();
    //GetPps(slice_header->phs->ph_pic_parameter_set_id);
    TRUE_OR_RETURN(pps);
 
-   const H266Sps* sps = GetFirstSps();
+   //const 
+   H266Sps* sps = GetFirstSps();
    //GetSps(pps->seq_parameter_set_id);
    TRUE_OR_RETURN(sps);
 
@@ -1971,7 +1975,10 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
   //const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
 
-  const H266Sps* sps = active_spses_[pps->seq_parameter_set_id].get();
+  //const 
+  //H266Sps* sps = active_spses_[pps->seq_parameter_set_id].get();
+
+  H266Sps* sps = GetSps(pps->seq_parameter_set_id);
 
   // GetSps(pps->seq_parameter_set_id);
   if(!sps){
@@ -2593,13 +2600,27 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           TRUE_OR_RETURN(br->ReadBits(2,&sps->sps_num_extra_ph_bytes));
           DLOG(INFO) << "## sps_num_extra_ph_bytes : " << sps->sps_num_extra_ph_bytes;
         
-          bool tmp_sps_extra_sh_bit_present_flag = 0;
+          
+          int max_sps_num_extra_ph_bytes = sps->sps_num_extra_ph_bytes * 8;
+          for( int i = 0; i < max_sps_num_extra_ph_bytes; i++ ){
+            bool tmp_sps_extra_ph_bit_present_flag = 0;
+            TRUE_OR_RETURN(br->ReadBool(&tmp_sps_extra_ph_bit_present_flag));
+            sps->sps_extra_sh_bit_present_flag.push_back(tmp_sps_extra_ph_bit_present_flag);
+            DLOG(INFO) << "## sps_extra_ph_bit_present_flag : " << ( tmp_sps_extra_ph_bit_present_flag ? "1" : "0");
+          }
+          TRUE_OR_RETURN(br->ReadBits(2,&sps->sps_num_extra_sh_bytes));
+          DLOG(INFO) << "## sps_num_extra_sh_bytes : " << sps->sps_num_extra_sh_bytes;
+
           int max_sps_num_extra_sh_bytes = sps->sps_num_extra_sh_bytes * 8;
           for( int i = 0; i < max_sps_num_extra_sh_bytes; i++ ){
+            bool tmp_sps_extra_sh_bit_present_flag = 0;
             TRUE_OR_RETURN(br->ReadBool(&tmp_sps_extra_sh_bit_present_flag));
             sps->sps_extra_sh_bit_present_flag.push_back(tmp_sps_extra_sh_bit_present_flag);
             DLOG(INFO) << "## sps_extra_sh_bit_present_flag : " << ( tmp_sps_extra_sh_bit_present_flag ? "1" : "0");
           }
+
+
+
           if( sps->sps_ptl_dpb_hrd_params_present_flag ) {
             if( sps->max_sublayers_minus1 > 0 ){
               TRUE_OR_RETURN(br->ReadBool(&sps->sps_sublayer_dpb_params_flag));
@@ -3080,7 +3101,8 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 
       
 
-  const H266Sps* sps = GetFirstSpsForVps(*vps_id);
+  //const 
+  H266Sps* sps = GetFirstSpsForVps(*vps_id);
 
    if(!sps){
       sps =GetFirstSps();
@@ -3637,7 +3659,8 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   LOG(INFO) << "Parsing H.266 Picture Header NALU" << "pps" << pps << "ph_pic_parameter_set_id " << phs->ph_pic_parameter_set_id; 
 
    std::unique_ptr<H266Sps> sps_holder;
-   const H266Sps* sps = GetSps(pps->pps_seq_parameter_set_id);
+   //const 
+   H266Sps* sps = GetSps(pps->pps_seq_parameter_set_id);
    
    /* if(!sps){
     sps = GetFirstSps();
@@ -3964,19 +3987,6 @@ H266Parser::Result H266Parser::ParsePictureHeader(const Nalu& nalu,
   return kOk;
 }
 
-const H266Pps* H266Parser::GetPps(int pps_id) {
-  return active_ppses_[pps_id].get();
-}
-
-const H266Sps* H266Parser::GetSps(int sps_id) {
-  return active_spses_[sps_id].get();
-}
-
-const H266Vps* H266Parser::GetVps(int vps_id) {
-  return active_vpses_[vps_id].get();
-  //auto it = active_vpses_.find(vps_id);
-  //return it != active_vpses_.end() ? it->second.get() : nullptr;
-}
 
 bool H266Parser::GetVpsTimingInfo(int vps_id, uint32_t* num_units_in_tick, 
                                  uint32_t* time_scale) {
@@ -3989,14 +3999,22 @@ bool H266Parser::GetVpsTimingInfo(int vps_id, uint32_t* num_units_in_tick,
   *time_scale = vps->vps_time_scale;
   return true;
 }
-
+/* 
 uint32_t H266Parser::GetMaxLayers(int vps_id) {
   const H266Vps* vps = GetVps(vps_id);
   return vps ? (vps->vps_max_layers_minus1 + 1) : 1;
+} */
+
+uint32_t H266Parser::GetMaxLayers(int vps_id) {
+  // ✅ Version non-const  //)
+  H266Vps* vps = GetVps(vps_id);
+  return vps ? (vps->vps_max_layers_minus1 + 1) : 1;
 }
 
+
 bool H266Parser::IsLayerIndependent(int vps_id, uint32_t layer_id) {
-  const H266Vps* vps = GetVps(vps_id);
+  //const 
+  H266Vps* vps = GetVps(vps_id);
   if (!vps || layer_id > static_cast<uint32_t>(vps->vps_max_layers_minus1)) {
     return false;
   }
@@ -4013,6 +4031,44 @@ bool H266Parser::IsLayerIndependent(int vps_id, uint32_t layer_id) {
   }
   return true;
 }
+
+
+
+
+/******************************************************************* */
+#if 0
+
+const H266Pps* H266Parser::GetPps(int pps_id) {
+  return active_ppses_[pps_id].get();
+}
+ 
+H266Pps* H266Parser::GetPps(int pps_id) {
+  return active_ppses_[pps_id].get();
+}
+
+const H266Sps* H266Parser::GetSps(int sps_id) {
+  return active_spses_[sps_id].get();
+} 
+
+H266Sps* H266Parser::GetSps(int sps_id) {
+  return active_spses_[sps_id].get();
+}
+
+
+const H266Vps* H266Parser::GetVps(int vps_id) {
+  return active_vpses_[vps_id].get();
+  //auto it = active_vpses_.find(vps_id);
+  //return it != active_vpses_.end() ? it->second.get() : nullptr;
+}
+
+
+
+
+
+
+
+
+
 // Function to obtain the first SPS for a given VPS
 std::vector<const H266Pps*> H266Parser::GetPpsForSps(int sps_id) {
   std::vector<const H266Pps*> result;
@@ -4166,6 +4222,7 @@ const H266Vps* H266Parser::GetFirstVpsFromSps(int sps_id) {
   return nullptr;
 }
 
+
 const H266Vps* H266Parser::GetFirstVps() {
   if (active_vpses_.empty()) {
     LOG(INFO) << "GetFirstVps  vps id not available";
@@ -4190,11 +4247,173 @@ const H266Pps* H266Parser::GetFirstPps() {
   }
   return active_ppses_.begin()->second.get();
 }
+#else
 
-
-const H266Aps* H266Parser::GetAps(int aps_id) {
-  return active_apses_[aps_id].get();
+// ==================== GETTERS CONST ====================
+const H266Pps* H266Parser::GetPps(int pps_id) const {
+  auto it = active_ppses_.find(pps_id);
+  return it != active_ppses_.end() ? it->second.get() : nullptr;
 }
+
+const H266Sps* H266Parser::GetSps(int sps_id) const {
+  auto it = active_spses_.find(sps_id);
+  return it != active_spses_.end() ? it->second.get() : nullptr;
+}
+
+const H266Vps* H266Parser::GetVps(int vps_id) const {
+  auto it = active_vpses_.find(vps_id);
+  return it != active_vpses_.end() ? it->second.get() : nullptr;
+}
+
+const H266Aps* H266Parser::GetAps(int aps_id) const {
+  auto it = active_apses_.find(aps_id);
+  return it != active_apses_.end() ? it->second.get() : nullptr;
+}
+
+// ==================== GETTERS NON-CONST ====================
+H266Pps* H266Parser::GetPps(int pps_id) {
+  auto it = active_ppses_.find(pps_id);
+  return it != active_ppses_.end() ? it->second.get() : nullptr;
+}
+
+H266Sps* H266Parser::GetSps(int sps_id) {
+  auto it = active_spses_.find(sps_id);
+  return it != active_spses_.end() ? it->second.get() : nullptr;
+}
+
+H266Vps* H266Parser::GetVps(int vps_id) {
+  auto it = active_vpses_.find(vps_id);
+  return it != active_vpses_.end() ? it->second.get() : nullptr;
+}
+
+// ==================== FIRST GETTERS ====================
+H266Vps* H266Parser::GetFirstVps() {
+  if (active_vpses_.empty()) {
+    LOG(INFO) << "GetFirstVps: vps id not available";
+    return nullptr;
+  }
+  return active_vpses_.begin()->second.get();
+}
+
+H266Sps* H266Parser::GetFirstSps() {
+  if (active_spses_.empty()) {
+    LOG(INFO) << "GetFirstSps: sps id not available";
+    return nullptr;
+  }
+  return active_spses_.begin()->second.get();
+}
+
+H266Pps* H266Parser::GetFirstPps() {
+  if (active_ppses_.empty()) {
+    LOG(INFO) << "GetFirstPps: pps id not available";
+    return nullptr;
+  }
+  return active_ppses_.begin()->second.get();
+}
+
+H266Sps* H266Parser::GetFirstSpsForVps(int vps_id) {
+  for (auto& sps_pair : active_spses_) {
+    if (sps_pair.second->sps_video_parameter_set_id == vps_id) {
+      return sps_pair.second.get();
+    }
+  }
+  return nullptr;
+}
+
+H266Pps* H266Parser::GetFirstPpsForSps(int sps_id) {
+  for (auto& pps_pair : active_ppses_) {
+    if (pps_pair.second->pps_seq_parameter_set_id == sps_id) {
+      return pps_pair.second.get();
+    }
+  }
+  return nullptr;
+}
+
+H266Pps* H266Parser::GetFirstPpsFromVps(int vps_id) {
+  for (auto& pps_pair : active_ppses_) {
+    H266Pps* pps = pps_pair.second.get();
+    auto sps_it = active_spses_.find(pps->pps_seq_parameter_set_id);
+    if (sps_it != active_spses_.end() && 
+        sps_it->second->sps_video_parameter_set_id == vps_id) {
+      return pps;
+    }
+  }
+  return nullptr;
+}
+
+H266Sps* H266Parser::GetFirstSpsFromPps(int pps_id) {
+  auto pps_it = active_ppses_.find(pps_id);
+  if (pps_it != active_ppses_.end()) {
+    int sps_id = pps_it->second->pps_seq_parameter_set_id;
+    auto sps_it = active_spses_.find(sps_id);
+    if (sps_it != active_spses_.end()) {
+      return sps_it->second.get();
+    }
+  }
+  return nullptr;
+}
+
+H266Vps* H266Parser::GetFirstVpsFromPps(int pps_id) {
+  auto pps_it = active_ppses_.find(pps_id);
+  if (pps_it != active_ppses_.end()) {
+    int sps_id = pps_it->second->pps_seq_parameter_set_id;
+    auto sps_it = active_spses_.find(sps_id);
+    if (sps_it != active_spses_.end()) {
+      int vps_id = sps_it->second->sps_video_parameter_set_id;
+      auto vps_it = active_vpses_.find(vps_id);
+      if (vps_it != active_vpses_.end()) {
+        return vps_it->second.get();
+      }
+    }
+  }
+  return nullptr;
+}
+
+H266Vps* H266Parser::GetFirstVpsFromSps(int sps_id) {
+  auto sps_it = active_spses_.find(sps_id);
+  if (sps_it != active_spses_.end()) {
+    int vps_id = sps_it->second->sps_video_parameter_set_id;
+    auto vps_it = active_vpses_.find(vps_id);
+    if (vps_it != active_vpses_.end()) {
+      return vps_it->second.get();
+    }
+  }
+  return nullptr;
+}
+
+// ==================== GETTERS POUR COLLECTIONS (const) ====================
+std::vector<const H266Pps*> H266Parser::GetPpsForSps(int sps_id) const {
+  std::vector<const H266Pps*> result;
+  for (const auto& pps_pair : active_ppses_) {
+    if (pps_pair.second->pps_seq_parameter_set_id == sps_id) {
+      result.push_back(pps_pair.second.get());
+    }
+  }
+  return result;
+}
+
+std::vector<const H266Sps*> H266Parser::GetSpsForVps(int vps_id) const {
+  std::vector<const H266Sps*> result;
+  for (const auto& sps_pair : active_spses_) {
+    if (sps_pair.second->sps_video_parameter_set_id == vps_id) {
+      result.push_back(sps_pair.second.get());
+    }
+  }
+  return result;
+}
+
+
+
+
+
+#endif
+/**************************************************************************** */
+
+
+/* 
+const H266Aps* H266Parser::GetAps(int aps_id) const {
+  return active_apses_[aps_id].get();
+} */
 H266Parser::Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdParameters *time,
                                       H26xBitReader* br){
   LOG(INFO) << "Parsing H.266 GetGeneralTimingHrdParameters in SPS";
@@ -4232,7 +4451,7 @@ H266Parser::Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdPar
     
     TRUE_OR_RETURN(br->ReadUE(&time->hrd_cpb_cnt_minus1));
   }
-  DisplayGeneralTimingHrdParameters(*time);
+  //DisplayGeneralTimingHrdParameters(*time);
   
   return kOk;
 }

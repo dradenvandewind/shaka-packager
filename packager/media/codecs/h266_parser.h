@@ -585,8 +585,6 @@ struct H266Sps {
   bool sps_poc_msb_cycle_flag = false;
   int sps_poc_msb_cycle_len_minus1 = 0;
   int sps_num_extra_ph_bytes = 0;
-
-
   std::vector<bool> sps_extra_ph_bit_present_flag;//256 not sure need check
   
   
@@ -1348,17 +1346,23 @@ class H266Parser {
 
 #endif 
 
+
+#if 0
   /// @return a pointer to the PPS with the given ID, or NULL if none exists.
-  const H266Pps* GetPps(int pps_id);
+  const H266Pps* GetPps(int pps_id) const;
+  H266Pps* GetPps(int pps_id);
+
   
   /// @return a pointer to the SPS with the given ID, or NULL if none exists.
-  const H266Sps* GetSps(int sps_id);
+  const H266Sps* GetSps(int sps_id) const;
+  H266Sps* GetSps(int sps_id);
+
   
   /// @return a pointer to the VPS with the given ID, or NULL if none exists.
-  const  H266Vps* GetVps(int vps_id);
+  const H266Vps* GetVps(int vps_id);
   
   /// @return a pointer to the APS with the given ID, or NULL if none exists.
-  const H266Aps* GetAps(int aps_id);
+  const H266Aps* GetAps(int aps_id) const;
 
   std::vector<const H266Pps*> GetPpsForSps(int sps_id);
   const H266Pps* GetFirstPpsForSps(int sps_id);
@@ -1378,9 +1382,40 @@ class H266Parser {
   const H266Vps* GetFirstVpsFromSps(int sps_id);
   const H266Pps* GetFirstPpsFromVps(int vps_id);
 
-  const H266Vps* GetFirstVps();
+  const  H266Vps* GetFirstVps();
   const H266Sps* GetFirstSps();
   const H266Pps* GetFirstPps();
+#else
+  const H266Pps* GetPps(int pps_id) const;
+  const H266Sps* GetSps(int sps_id) const;
+  const H266Vps* GetVps(int vps_id) const;
+  const H266Aps* GetAps(int aps_id) const;
+  
+  // Versions NON-CONST
+  H266Pps* GetPps(int pps_id);
+  H266Sps* GetSps(int sps_id);
+  H266Vps* GetVps(int vps_id);
+  
+  // ✅ Getters auxiliaires (UNE SEULE FOIS !)
+  H266Sps* GetFirstSpsForVps(int vps_id);
+  H266Pps* GetFirstPpsForSps(int sps_id);
+  H266Pps* GetFirstPpsFromVps(int vps_id);
+  H266Sps* GetFirstSpsFromPps(int pps_id);
+  H266Vps* GetFirstVpsFromPps(int pps_id);
+  H266Vps* GetFirstVpsFromSps(int sps_id);
+  H266Vps* GetFirstVps();
+  H266Sps* GetFirstSps();
+  H266Pps* GetFirstPps();
+  
+  // ✅ Getters pour collections (UNE SEULE FOIS !)
+  std::vector<const H266Pps*> GetPpsForSps(int sps_id) const;
+  std::vector<const H266Sps*> GetSpsForVps(int vps_id) const;
+  std::vector<const H266Pps*> GetPpsFromSps(int sps_id) const;
+  std::vector<const H266Pps*> GetPpsFromVps(int vps_id) const;
+  std::vector<const H266Sps*> GetSpsFromVps(int vps_id) const;
+  std::vector<const H266Vps*> GetVpsFromSps(int sps_id) const;
+
+#endif
 
  Result SpsRangeExtension(H26xBitReader* br,bool extended_precision_flag,
                      H266SpsRangeExtension * sps_sre);
