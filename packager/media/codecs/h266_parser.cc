@@ -2647,15 +2647,21 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           sps->MinCbLog2SizeY = sps->sps_log2_min_luma_coding_block_size_minus2 + 2;
 
           int tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma = 0;
-          int max_tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma = std::min(6,sps->CtbLog2SizeY) - sps->MinCbLog2SizeY;
+          
+          //int max_tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma = std::min(6,sps->CtbLog2SizeY) - sps->MinCbLog2SizeY;
 
           TRUE_OR_RETURN(br->ReadUE(&tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma));
-          if ( tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma > 0 && tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma < max_tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma ){
+          sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma = tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma;
+          DLOG(INFO) << "## sps_log2_diff_min_qt_min_cb_intra_slice_luma : " << sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma;
+
+
+
+         /*  if ( tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma > 0 && tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma < max_tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma ){
             sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma = tmp_sps_log2_diff_min_qt_min_cb_intra_slice_luma;
             DLOG(INFO) << "## sps_log2_diff_min_qt_min_cb_intra_slice_luma : " << sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma;
           } else {
             DLOG(INFO) << "## Error sps_log2_diff_min_qt_min_cb_intra_slice_luma : " << sps->sps_log2_diff_min_qt_min_cb_intra_slice_luma;
-          }
+          } */
         
           TRUE_OR_RETURN(br->ReadUE(&sps->sps_max_mtt_hierarchy_depth_intra_slice_luma));
           DLOG(INFO) << "## sps_max_mtt_hierarchy_depth_intra_slice_luma : " << sps->sps_max_mtt_hierarchy_depth_intra_slice_luma;
@@ -2882,25 +2888,26 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           DLOG(INFO) << "## sps_affine_enabled_flag : " << ( sps->sps_affine_enabled_flag ? "1" : "0");
 
           if (sps->sps_affine_enabled_flag){
-            TRUE_OR_RETURN(br->ReadUE(&sps->sps_five_minus_max_num_subblock_merge_cand));
-             DLOG(INFO) << "## sps_five_minus_max_num_subblock_merge_cand" << sps->sps_five_minus_max_num_subblock_merge_cand;
+              TRUE_OR_RETURN(br->ReadUE(&sps->sps_five_minus_max_num_subblock_merge_cand));
+              DLOG(INFO) << "## sps_five_minus_max_num_subblock_merge_cand" << sps->sps_five_minus_max_num_subblock_merge_cand;
 
-            TRUE_OR_RETURN(br->ReadBool(&sps->sps_6param_affine_enabled_flag));
-            DLOG(INFO) << "## sps_6param_affine_enabled_flag : " << ( sps->sps_6param_affine_enabled_flag ? "1" : "0");
-          }
-          
-          if(sps->sps_amvr_enabled_flag){
+              TRUE_OR_RETURN(br->ReadBool(&sps->sps_6param_affine_enabled_flag));
+              DLOG(INFO) << "## sps_6param_affine_enabled_flag : " << ( sps->sps_6param_affine_enabled_flag ? "1" : "0");
+            //}
+            
+            if(sps->sps_amvr_enabled_flag){
 
-            TRUE_OR_RETURN(br->ReadBool(&sps->sps_affine_amvr_enabled_flag));
-            DLOG(INFO) << "## sps_affine_amvr_enabled_flag : " << (sps->sps_affine_amvr_enabled_flag ? "1" : "0");
-          }
+              TRUE_OR_RETURN(br->ReadBool(&sps->sps_affine_amvr_enabled_flag));
+              DLOG(INFO) << "## sps_affine_amvr_enabled_flag : " << (sps->sps_affine_amvr_enabled_flag ? "1" : "0");
+            }
 
-          TRUE_OR_RETURN(br->ReadBool(&sps->sps_affine_prof_enabled_flag));
-          DLOG(INFO) << "## sps_affine_prof_enabled_flag : " << ( sps->sps_affine_prof_enabled_flag ? "1" : "0");
+            TRUE_OR_RETURN(br->ReadBool(&sps->sps_affine_prof_enabled_flag));
+            DLOG(INFO) << "## sps_affine_prof_enabled_flag : " << ( sps->sps_affine_prof_enabled_flag ? "1" : "0");
 
-          if(sps->sps_affine_prof_enabled_flag){
-            TRUE_OR_RETURN(br->ReadBool(&sps->sps_prof_control_present_in_ph_flag));
-            DLOG(INFO) << "## sps_prof_control_present_in_ph_flag : " << ( sps->sps_prof_control_present_in_ph_flag ? "1" : "0");
+            if(sps->sps_affine_prof_enabled_flag){
+              TRUE_OR_RETURN(br->ReadBool(&sps->sps_prof_control_present_in_ph_flag));
+              DLOG(INFO) << "## sps_prof_control_present_in_ph_flag : " << ( sps->sps_prof_control_present_in_ph_flag ? "1" : "0");
+            }
           }
 
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_bcw_enabled_flag));
@@ -3045,6 +3052,9 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
                   OK_OR_RETURN(Vui_Payload(sps->max_sublayers_minus1, br, &sps->vui_parameters));
               }
               TRUE_OR_RETURN(br->ReadBool(&sps->sps_extension_flag));
+              DLOG(INFO) << "## sps_extension_flag : " << ( sps->sps_extension_flag ? "1" : "0");
+
+
               if(sps->sps_extension_flag){
                   TRUE_OR_RETURN(br->ReadBool(&sps->sps_range_extension_flag));
                   TRUE_OR_RETURN(br->ReadBits(7,&sps->sps_extension_7bits));
@@ -4425,7 +4435,12 @@ H266Parser::Result H266Parser::GetGeneralTimingHrdParameters(GeneralTimingHrdPar
   time->time_scale = time_scale;
   
   TRUE_OR_RETURN(br->ReadBool(&time->general_nal_hrd_params_present_flag));
+  DLOG(INFO) << "## general_nal_hrd_params_present_flag : " << (time->general_nal_hrd_params_present_flag  ? "1" : "0");
+
   TRUE_OR_RETURN(br->ReadBool(&time->general_vcl_hrd_params_present_flag));
+  DLOG(INFO) << "## general_vcl_hrd_params_present_flag: " << (time->general_vcl_hrd_params_present_flag  ? "1" : "0");
+
+
   
   if( time->general_nal_hrd_params_present_flag || time->general_vcl_hrd_params_present_flag ) {
     TRUE_OR_RETURN(br->ReadBool(&time->general_same_pic_timing_in_all_ols_flag));
@@ -5266,6 +5281,9 @@ LOG(INFO) << "Parsing H.266 Ols Timing Hrd parameters";
 
     TRUE_OR_RETURN(br->ReadBool(&tmp_fixed_pic_rate_general_flag));  
     olf->fixed_pic_rate_general_flag.push_back(tmp_fixed_pic_rate_general_flag);
+    DLOG(INFO) << "## fixed_pic_rate_general_flag : " << (olf->fixed_pic_rate_general_flag ? "1" : "0");
+
+
     if( !tmp_fixed_pic_rate_general_flag){
       TRUE_OR_RETURN(br->ReadBool(&tmp_fixed_pic_rate_within_cvs_flag));
       olf->fixed_pic_rate_within_cvs_flag.push_back(tmp_fixed_pic_rate_within_cvs_flag);
