@@ -477,22 +477,31 @@ struct H266ReferencePicList{
   H266ReferencePicList();
   ~H266ReferencePicList();
 
-  std::vector <bool> rpl_sps_flag;
-  std::vector <int> rpl_idx;
-  std::vector<std::vector<std::vector<int>>> poc_lsb_lt;
-  //std::vector<std::vector<std::vector<bool>>> delta_poc_msb_cycle_present_flag;
+   
+  //std::vector <bool> rpl_sps_flag;
+  std::vector <int> rpl_idx; 
+  
+      // [listIdx][rplsIdx]
+  std::vector<int> RplsIdx;  // [listIdx]
+  std::vector<bool> rpl_sps_flag;  // [listIdx]
+  std::vector<std::vector<int>> NumLtrpEntries;
+
+
+      // [listIdx][entryIdx] - 2D vectors
+
+  std::vector<std::vector<std::vector<uint32_t>>> poc_lsb_lt;
   std::vector<std::vector<bool>> delta_poc_msb_cycle_present_flag;
-  //std::vector<std::vector<std::vector<int>>> delta_poc_msb_cycle_lt;
   std::vector<std::vector<int>> delta_poc_msb_cycle_lt;
+
   std::optional<H266ReferencePicListStruct> reference_pic_list;
 
   //aditionnal variables
-  std::vector<std::vector<int>> NumLtrpEntries;
+  //std::vector<std::vector<int>> NumLtrpEntries;
   std::vector<std::vector<std::vector<bool>>> inter_layer_ref_pic_flag;
   std::vector<std::vector<std::vector<bool>>> st_ref_pic_flag;
   std::vector<std::vector<std::vector<bool>>> ltrp_in_header_flag;
   std::vector<std::vector<int>> num_ref_entries;
-  std::vector <int> RplsIdx;
+  //std::vector <int> RplsIdx;
 };
 
 struct H266PredWeightTable{
@@ -1414,6 +1423,11 @@ class H266Parser {
   H266Vps* GetFirstVps();
   H266Sps* GetFirstSps();
   H266Pps* GetFirstPps();
+
+  bool HasVps(int vps_id) const;
+  bool HasSps(int sps_id) const;
+  bool HasPps(int pps_id) const;
+  bool HasAps(int aps_id) const;
   
   // ✅ Getters pour collections (UNE SEULE FOIS !)
   std::vector<const H266Pps*> GetPpsForSps(int sps_id) const;

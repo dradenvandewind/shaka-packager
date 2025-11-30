@@ -1982,14 +1982,14 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   //const 
   //H266Sps* sps = active_spses_[pps->seq_parameter_set_id].get();
 
-  H266Sps* sps = GetSps(pps->seq_parameter_set_id);
+  /* H266Sps* sps = GetSps(pps->seq_parameter_set_id);
 
   // GetSps(pps->seq_parameter_set_id);
   if(!sps){
     sps = GetFirstSps();
   }
 
-  TRUE_OR_RETURN(sps);
+  TRUE_OR_RETURN(sps); */
  
 
 
@@ -2072,6 +2072,13 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   pps->pps_subpic_id_mapping_present_flag = tmp_pps_subpic_id_mapping_present_flag;
 
   DLOG(INFO) << "## pps_subpic_id_mapping_present_flag : " << (tmp_pps_subpic_id_mapping_present_flag ? "1" : "0");
+    DLOG(INFO) << "##  WE NEED ACESS TO PPS to get : " << pps->seq_parameter_set_id;
+
+  H266Sps* sps = GetSps(pps->seq_parameter_set_id);
+    if(!sps){
+      sps = GetFirstSps();
+    }
+    TRUE_OR_RETURN(sps);
 
   
   if(pps->pps_subpic_id_mapping_present_flag){
@@ -2089,6 +2096,17 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     TRUE_OR_RETURN((br->ReadUE(&tmp_pps_subpic_id_len_minus1)));
     pps->pps_subpic_id_len_minus1 = tmp_pps_subpic_id_len_minus1;
     DLOG(INFO) << "## pps_subpic_id_len_minus1: " << tmp_pps_subpic_id_len_minus1;
+
+    /***************************************** */
+
+    DLOG(INFO) << "##  WE NEED ACESS TO PPS to get : " << pps->seq_parameter_set_id;
+    
+     
+   
+
+    /***************************************** */
+
+
 
 
     for(int i = 0;i <= pps->pps_num_subpics_minus1;i++){
@@ -2195,6 +2213,11 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
       }
       // #### I don't know populate this variable     check slice header 
       std::vector<uint32_t> SliceTopLeftTileIdx; // I don't know populate this variable
+
+        
+
+
+
 
       //int tmp_pps_slice_height_in_tiles_minus1 = 0;
         std::vector<int> RowHeightVal;
@@ -2455,7 +2478,16 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
   // This will replace any existing PPS instance.
   *pps_id = pps->pic_parameter_set_id;
-  active_ppses_[*pps_id] = std::move(pps);
+
+  DLOG(INFO) << "## Replace Old PPs instance by New instance wuth this id : " <<  pps->pic_parameter_set_id;
+
+  active_ppses_.emplace(*pps_id, std::move(pps));
+
+  if (!HasPps(*pps_id)){
+    DLOG(ERROR) << "# Back Up Pps Instance no Work";
+  }
+
+  //active_ppses_[*pps_id] = std::move(pps);
 
   return kOk;
 }
@@ -2943,6 +2975,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
 
           if( sps->sps_chroma_format_idc != 0 ){
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_cclm_enabled_flag));
+           DLOG(INFO) << "## sps_cclm_enabled_flag : " << ( sps->sps_cclm_enabled_flag ? "1" : "0");
           }
 
           if( sps->sps_chroma_format_idc == 1 ) {
@@ -3086,7 +3119,13 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   
   // This will replace any existing SPS instance.
   *sps_id = sps->sps_seq_parameter_set_id;
-  active_spses_[*sps_id] = std::move(sps);
+  DLOG(INFO) << "## Replace Old Sps Instance  by This Sps IP : " <<  sps->sps_seq_parameter_set_id;
+
+  //active_spses_[*sps_id] = std::move(sps);
+  active_spses_.emplace(*sps_id, std::move(sps));
+  if (!HasSps(*sps_id)){
+    DLOG(ERROR) << "# Back Up Sps Instance no Work";
+  }
 
   return kOk;
 }
@@ -3116,7 +3155,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
       
 
   //const 
-  H266Sps* sps = GetFirstSpsForVps(*vps_id);
+  H266Sps* sps = GetSps(*vps_id);
 
    if(!sps){
       sps =GetFirstSps();
@@ -3572,7 +3611,13 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
   //force to sigle layer
   vps->vps_max_layers_minus1 = 0;
   *vps_id = vps->vps_video_parameter_set_id;
-  active_vpses_[*vps_id] = std::move(vps);
+  //active_vpses_[*vps_id] = std::move(vps);
+  DLOG(INFO) << " We remplace Old Vps instance by the new witih ID :" <<  vps->vps_video_parameter_set_id;
+  
+  active_vpses_.emplace(*vps_id, std::move(vps));
+  if (!HasVps(*vps_id)){
+    DLOG(ERROR) << "# Back Up Vps Instance no Work";
+  }
 
   return kOk;
 }
@@ -3596,7 +3641,9 @@ H266Parser::Result H266Parser::ParseAps(const Nalu& nalu, int* aps_id, int* aps_
 
   *aps_id = aps->aps_id;
   *aps_type = aps->aps_type;
-  active_apses_[*aps_id] = std::move(aps);
+  //active_apses_[*aps_id] = std::move(aps);
+
+  active_apses_.emplace(*aps_id, std::move(aps));
 
   return kOk;
 }
@@ -3605,7 +3652,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
                                                   H266PictureHeaderStructure* phs) {
   //DCHECK_EQ(Nalu::H266_PH_NUT, nalu.type());
     LOG(INFO) << "Parsing H.266 Picture Header NALU : " << nalu.type(); 
-    LOG(INFO) << " Parsing Parsing PictureHeader Structure "
+    LOG(INFO) << " Parsing Parsing PictureHeader Structure ";
  // disable to check it
  /* DCHECK_EQ(true, nalu.type() == Nalu::H266_IDR_W_RADL || 
                 nalu.type() == Nalu::H266_IDR_N_LP ||
@@ -4027,7 +4074,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
         int tmp_ph_extension_data_byte = 0;
         TRUE_OR_RETURN(br->ReadUE(&tmp_ph_extension_data_byte));
         phs->ph_extension_data_byte.push_back(tmp_ph_extension_data_byte);
-        DLOG(INFO) << "## ph_extension_data_byte : " << ph_extension_data_byte;
+        DLOG(INFO) << "## ph_extension_data_byte : " << tmp_ph_extension_data_byte;
 
       }
     }
@@ -4338,6 +4385,23 @@ const H266Pps* H266Parser::GetFirstPps() {
   return active_ppses_.begin()->second.get();
 }
 #else
+
+bool H266Parser::HasVps(int vps_id) const {
+  return active_vpses_.find(vps_id) != active_vpses_.end();
+}
+    
+bool H266Parser::HasSps(int sps_id) const {
+    return active_spses_.find(sps_id) != active_spses_.end();
+}
+    
+bool H266Parser::HasPps(int pps_id) const {
+  return active_ppses_.find(pps_id) != active_ppses_.end();
+}
+    
+bool H266Parser::HasAps(int aps_id) const {
+  return active_apses_.find(aps_id) != active_apses_.end();
+}
+
 
 // ==================== GETTERS CONST ====================
 const H266Pps* H266Parser::GetPps(int pps_id) const {
@@ -4941,26 +5005,11 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
     // Initialize NumLtrpEntries and RplsIdx
     rpl->NumLtrpEntries.resize(2);
     rpl->RplsIdx.resize(2);
-    
+    /* 
     for(int listIdx = 0; listIdx < 2; listIdx++) {
         rpl->RplsIdx[listIdx] = rpl->rpl_idx.size() > static_cast<size_t>(listIdx) ? 
                                rpl->rpl_idx[listIdx] : 0;
         
-        // Calculate NumLtrpEntries
-        /* if(rpl->reference_pic_list.has_value()) {
-            const auto& rpl_struct = rpl->reference_pic_list.value();
-            int numLtrp = 0;
-            
-            // You need to access the actual entries from rpl_struct
-            // This depends on the structure of H266ReferencePicListStruct
-            // For now, using a placeholder:
-            numLtrp = 0; // Calculate based on actual entries
-            
-            rpl->NumLtrpEntries[listIdx].resize(sps.sps_num_ref_pic_lists[listIdx]);
-            if(static_cast<size_t>(rpl->RplsIdx[listIdx]) < rpl->NumLtrpEntries[listIdx].size()) {
-                rpl->NumLtrpEntries[listIdx][rpl->RplsIdx[listIdx]] = numLtrp;
-            }
-        } */
         // Calculate NumLtrpEntries from entries
         if(rpl->reference_pic_list.has_value()) {
             const auto& rpl_struct = rpl->reference_pic_list.value();
@@ -4978,12 +5027,45 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
                 rpl->NumLtrpEntries[listIdx][rpl->RplsIdx[listIdx]] = numLtrp;
             }
         }
+    } */
+    for (int listIdx = 0; listIdx < 2; listIdx++) {
+        rpl->RplsIdx[listIdx] = rpl->rpl_idx.size() > static_cast<size_t>(listIdx) ? 
+                                rpl->rpl_idx[listIdx] : 0;
+        
+        // Calculate NumLtrpEntries from entries
+        if (rpl->reference_pic_list.has_value()) {
+            const auto& rpl_struct = rpl->reference_pic_list.value();
+            
+            // Resize NumLtrpEntries for this list
+            rpl->NumLtrpEntries[listIdx].resize(sps.sps_num_ref_pic_lists[listIdx]);
+            
+            int rplsIdx = rpl->RplsIdx[listIdx];
+            
+            // Vérifier que les dimensions existent
+            if (rpl_struct.entries.size() > static_cast<size_t>(listIdx) &&
+                rpl_struct.entries[listIdx].size() > static_cast<size_t>(rplsIdx)) {
+                
+                int numLtrp = 0;
+                
+                // Count LTRP entries pour entries[listIdx][rplsIdx]
+                for (const auto& entry : rpl_struct.entries[listIdx][rplsIdx]) {
+                    if (!entry.inter_layer_ref_pic_flag && !entry.st_ref_pic_flag) {
+                        numLtrp++;
+                    }
+                }
+                
+                // Stocker le résultat
+                if (static_cast<size_t>(rplsIdx) < rpl->NumLtrpEntries[listIdx].size()) {
+                    rpl->NumLtrpEntries[listIdx][rplsIdx] = numLtrp;
+                }
+            }
+        }
     }
     
     // Parse additional LTRP information
     //bool check_delta_poc_msb_cycle_present_flag = false;
     
-    for(int i = 0; i < 2; i++) {
+    /* for(int i = 0; i < 2; i++) {
         if(!rpl->rpl_sps_flag[i] && rpl->reference_pic_list.has_value()) {
             const auto& rpl_struct = rpl->reference_pic_list.value();
             
@@ -5050,7 +5132,76 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
                 }
             }
         }
+    } */
+    for (int i = 0; i < 2; i++) {
+        if (!rpl->rpl_sps_flag[i] && rpl->reference_pic_list.has_value()) {
+            const auto& rpl_struct = rpl->reference_pic_list.value();
+            
+            // Resize vectors for this list (2D: [listIdx][entryIdx])
+            if (rpl->poc_lsb_lt.size() <= static_cast<size_t>(i)) {
+                rpl->poc_lsb_lt.resize(i + 1);
+            }
+            if (rpl->delta_poc_msb_cycle_present_flag.size() <= static_cast<size_t>(i)) {
+                rpl->delta_poc_msb_cycle_present_flag.resize(i + 1);
+            }
+            if (rpl->delta_poc_msb_cycle_lt.size() <= static_cast<size_t>(i)) {
+                rpl->delta_poc_msb_cycle_lt.resize(i + 1);
+            }
+            
+            // Get the number of LTRP entries for this list
+            int numLtrpEntries = 0;
+            if (static_cast<size_t>(i) < rpl->NumLtrpEntries.size() && 
+                static_cast<size_t>(rpl->RplsIdx[i]) < rpl->NumLtrpEntries[i].size()) {
+                numLtrpEntries = rpl->NumLtrpEntries[i][rpl->RplsIdx[i]];
+            }
+            
+            // Ensure the inner vectors are sized correctly
+            rpl->poc_lsb_lt[i].resize(numLtrpEntries);
+            rpl->delta_poc_msb_cycle_present_flag[i].resize(numLtrpEntries);
+            rpl->delta_poc_msb_cycle_lt[i].resize(numLtrpEntries);
+            
+            for (int j = 0; j < numLtrpEntries; j++) {
+                // Check if we need to parse LTRP in header
+                bool parseLtrp = false;
+                if (sps.sps_long_term_ref_pics_flag && 
+                    static_cast<size_t>(i) < rpl_struct.ltrp_in_header_flag.size() &&
+                    static_cast<size_t>(rpl->RplsIdx[i]) < rpl_struct.ltrp_in_header_flag[i].size()) {
+                    parseLtrp = rpl_struct.ltrp_in_header_flag[i][rpl->RplsIdx[i]];
+                }
+                
+                if (parseLtrp) {
+                    // Parse POC LSB for long-term reference picture
+                    uint32_t tmp_poc_lsb_lt = 0;
+                    int len_poc_lsb_lt = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
+                    TRUE_OR_RETURN(br->ReadBits(len_poc_lsb_lt, &tmp_poc_lsb_lt));
+                    
+                    // Store POC LSB (scalaire)
+                    if (rpl->poc_lsb_lt[i][j].empty()) {
+                       rpl->poc_lsb_lt[i][j].resize(1);
+                    }
+                    //rpl->poc_lsb_lt[i][j] = tmp_poc_lsb_lt;
+                    rpl->poc_lsb_lt[i][j].clear();
+                    rpl->poc_lsb_lt[i][j].push_back(static_cast<int>(tmp_poc_lsb_lt));
+                    
+                    // Parse delta POC MSB cycle present flag
+                    bool tmp_delta_poc_msb_cycle_present_flag = false;
+                    TRUE_OR_RETURN(br->ReadBool(&tmp_delta_poc_msb_cycle_present_flag));
+                    rpl->delta_poc_msb_cycle_present_flag[i][j] = tmp_delta_poc_msb_cycle_present_flag;
+                    
+                    // Parse delta POC MSB cycle if present
+                    if (tmp_delta_poc_msb_cycle_present_flag) {
+                        int tmp_delta_poc_msb_cycle_lt = 0;
+                        TRUE_OR_RETURN(br->ReadUE(&tmp_delta_poc_msb_cycle_lt));
+                        rpl->delta_poc_msb_cycle_lt[i][j] = tmp_delta_poc_msb_cycle_lt;
+                    } else {
+                        // Initialiser à 0 si pas présent
+                        rpl->delta_poc_msb_cycle_lt[i][j] = 0;
+                    }
+                }
+            }
+        }
     }
+
     
     return kOk;
 }
