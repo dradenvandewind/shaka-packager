@@ -436,7 +436,7 @@ struct H266RefPicListEntry {
   ~H266RefPicListEntry();
   
     bool inter_layer_ref_pic_flag = false;
-    bool st_ref_pic_flag = false;
+    bool st_ref_pic_flag = true;  //default 
     int abs_delta_poc_st = 0;
     bool strp_entry_sign_flag = false;
     uint32_t rpls_poc_lsb_lt = 0;
@@ -448,9 +448,17 @@ struct H266ReferencePicListStruct {
   ~H266ReferencePicListStruct();
 
     //int num_ref_entries = 0;
+      // [listIdx][rplsIdx]
     std::vector<std::vector<int>> num_ref_entries;
     std::vector<std::vector<bool>> ltrp_in_header_flag;
-    std::vector<H266RefPicListEntry> entries;
+      // [listIdx][rplsIdx][entryIdx]
+
+    //std::vector<H266RefPicListEntry> entries;
+      std::vector<std::vector<std::vector<H266RefPicListEntry>>> entries;
+
+
+
+
     std::vector<int> NumRefIdxActive;
 
     /*     test pour compile */
