@@ -2977,15 +2977,27 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_cclm_enabled_flag));
            DLOG(INFO) << "## sps_cclm_enabled_flag : " << ( sps->sps_cclm_enabled_flag ? "1" : "0");
           }
+         
+         // DLOG(INFO) << "##  : " << (  ? "1" : "0");
+
+
 
           if( sps->sps_chroma_format_idc == 1 ) {
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_chroma_horizontal_collocated_flag));
-            TRUE_OR_RETURN(br->ReadBool(&sps->sps_chroma_vertical_collocated_flag));      
+          DLOG(INFO) << "## sps_chroma_horizontal_collocated_flag  : " << ( sps->sps_chroma_horizontal_collocated_flag ? "1" : "0");
+
+            TRUE_OR_RETURN(br->ReadBool(&sps->sps_chroma_vertical_collocated_flag));
+           DLOG(INFO) << "## sps_chroma_vertical_collocated_flag : " << (sps->sps_chroma_vertical_collocated_flag ? "1" : "0");
+      
           }
 
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_palette_enabled_flag));
+          DLOG(INFO) << "##  sps_palette_enabled_flag: " << (sps->sps_palette_enabled_flag  ? "1" : "0");
+
           if( sps->sps_chroma_format_idc == 3 && !sps->sps_max_luma_transform_size_64_flag ){
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_act_enabled_flag));   
+            DLOG(INFO) << "## sps_act_enabled_flag : " << (sps->sps_act_enabled_flag  ? "1" : "0");
+
           }
           
           
@@ -2994,10 +3006,14 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           }
 
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_ibc_enabled_flag));
+          DLOG(INFO) << "## sps_ibc_enabled_flag : " << ( sps->sps_ibc_enabled_flag ? "1" : "0");
+
           if(sps->sps_ibc_enabled_flag){
               TRUE_OR_RETURN(br->ReadUE(&sps->sps_six_minus_max_num_ibc_merge_cand));
           }
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_ladf_enabled_flag));
+          DLOG(INFO) << "## sps_ladf_enabled_flag : " << ( sps->sps_ladf_enabled_flag ? "1" : "0");
+
           if(sps->sps_ladf_enabled_flag){
             TRUE_OR_RETURN(br->ReadBits(2,&sps->sps_num_ladf_intervals_minus2));
             TRUE_OR_RETURN(br->ReadSE(&sps->sps_ladf_lowest_interval_qp_offset));
@@ -3014,21 +3030,37 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           }
 
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_explicit_scaling_list_enabled_flag));
+          DLOG(INFO) << "## sps_explicit_scaling_list_enabled_flag : " << ( sps->sps_explicit_scaling_list_enabled_flag ? "1" : "0");
+
           if( sps->sps_lfnst_enabled_flag && sps->sps_explicit_scaling_list_enabled_flag ){
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_scaling_matrix_for_lfnst_disabled_flag));
+            DLOG(INFO) << "## sps_scaling_matrix_for_lfnst_disabled_flag : " << ( sps->sps_scaling_matrix_for_lfnst_disabled_flag ? "1" : "0");
+
           }
           if( sps->sps_act_enabled_flag && sps->sps_explicit_scaling_list_enabled_flag ){
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_scaling_matrix_for_alternative_colour_space_disabled_flag));   
+            DLOG(INFO) << "## sps_scaling_matrix_for_alternative_colour_space_disabled_flag : " << ( sps->sps_scaling_matrix_for_alternative_colour_space_disabled_flag ? "1" : "0");
+
           }
           if( sps->sps_scaling_matrix_for_alternative_colour_space_disabled_flag ){
             TRUE_OR_RETURN(br->ReadBool(&sps->sps_scaling_matrix_designated_colour_space_flag));
+            DLOG(INFO) << "## sps_scaling_matrix_designated_colour_space_flag : " << ( sps->sps_scaling_matrix_designated_colour_space_flag ? "1" : "0");
+
           }
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_dep_quant_enabled_flag));
+          DLOG(INFO) << "## sps_dep_quant_enabled_flag : " << ( sps->sps_dep_quant_enabled_flag ? "1" : "0");
+
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_sign_data_hiding_enabled_flag));
+          DLOG(INFO) << "## sps_sign_data_hiding_enabled_flag : " << ( sps->sps_sign_data_hiding_enabled_flag ? "1" : "0");
+
 
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_virtual_boundaries_enabled_flag));
+          DLOG(INFO) << "## sps_virtual_boundaries_enabled_flag : " << ( sps->sps_virtual_boundaries_enabled_flag ? "1" : "0");
+
           if(sps->sps_virtual_boundaries_enabled_flag){
               TRUE_OR_RETURN(br->ReadBool(&sps->sps_virtual_boundaries_present_flag));
+              DLOG(INFO) << "## sps_virtual_boundaries_enabled_flag : " << ( sps->sps_virtual_boundaries_enabled_flag ? "1" : "0");
+
               if(sps->sps_virtual_boundaries_present_flag){
                   TRUE_OR_RETURN(br->ReadUE(&sps->sps_num_ver_virtual_boundaries));
                   int tmp_sps_virtual_boundary_pos_x_minus1 = 0;
@@ -3047,6 +3079,8 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
             }
             if( sps->sps_ptl_dpb_hrd_params_present_flag ) {
               TRUE_OR_RETURN(br->ReadBool(&sps->sps_timing_hrd_params_present_flag));
+              DLOG(INFO) << "## sps_timing_hrd_params_present_flag : " << ( sps->sps_timing_hrd_params_present_flag ? "1" : "0");
+
               if(sps->sps_timing_hrd_params_present_flag){
                 if (!sps->general_timing_hrd_parameters) {
                     //sps->general_timing_hrd_parameters = std::make_unique<GeneralTimingHrdParameters>();
@@ -3060,6 +3094,8 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
                 }
                 if (sps->max_sublayers_minus1){
                     TRUE_OR_RETURN(br->ReadBool(&sps->sps_sublayer_cpb_params_present_flag));
+                    DLOG(INFO) << "## sps_sublayer_cpb_params_present_flag : " << ( sps->sps_sublayer_cpb_params_present_flag ? "1" : "0");
+
                 }
                 int firstSubLayer = sps->sps_sublayer_cpb_params_present_flag ? 0 : sps->max_sublayers_minus1;
 
@@ -3076,7 +3112,10 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
               }
               
               TRUE_OR_RETURN(br->ReadBool(&sps->sps_field_seq_flag));
+              DLOG(INFO) << "## sps_field_seq_flag : " << ( sps->sps_field_seq_flag ? "1" : "0");
+
               TRUE_OR_RETURN(br->ReadBool(&sps->sps_vui_parameters_present_flag));
+               DLOG(INFO) << "## sps_vui_parameters_present_flag : " << ( sps->sps_vui_parameters_present_flag ? "1" : "0");
 
               if(sps->sps_vui_parameters_present_flag){
                   TRUE_OR_RETURN(br->ReadUE(&sps->sps_vui_payload_size_minus1));
@@ -5618,98 +5657,6 @@ H266Parser::Result H266Parser::dpb_parameters( int MaxSubLayersMinus1, int subLa
   return kOk;                  
 }
 #if 0
-H266Parser::Result H266Parser::Ols_Timing_Hrd_parameters(int firstsublayer, int sps_max_sublayers_minus1,
-                            const H266Sps& sps,
-                            H26xBitReader* br,
-                            H266OlsTimingHrdParameters* olf){
-LOG(INFO) << "Parsing H.266 Ols Timing Hrd parameters";
-  //7.3.5.2 OLS timing and HRD parameters 
-  bool tmp_fixed_pic_rate_general_flag = false;
-  bool tmp_fixed_pic_rate_within_cvs_flag = false;
-  int tmp_elemental_duration_in_tc_minus1 = 0;
-  bool tmp_low_delay_hrd_flag = false;
-  for( int i = firstsublayer; i <= sps_max_sublayers_minus1; i++ ) {
-
-    TRUE_OR_RETURN(br->ReadBool(&tmp_fixed_pic_rate_general_flag));  
-    olf->fixed_pic_rate_general_flag.push_back(tmp_fixed_pic_rate_general_flag);
-    DLOG(INFO) << "## fixed_pic_rate_general_flag : " << (olf->fixed_pic_rate_general_flag ? "1" : "0");
-
-
-    if( !tmp_fixed_pic_rate_general_flag){
-      TRUE_OR_RETURN(br->ReadBool(&tmp_fixed_pic_rate_within_cvs_flag));
-      olf->fixed_pic_rate_within_cvs_flag.push_back(tmp_fixed_pic_rate_within_cvs_flag);
-      const auto& timing_hrd = sps.general_timing_hrd_parameters.value();
-
-      if(tmp_fixed_pic_rate_within_cvs_flag){
-        TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
-        olf->elemental_duration_in_tc_minus1.push_back(tmp_elemental_duration_in_tc_minus1);
-      //}else if (( sps.general_timing_hrd_parameters.has_value() && sps.general_timing_hrd_parameters.value().general_nal_hrd_params_present_flag || sps.general_timing_hrd_parameters.general_vcl_hrd_params_present_flag ) && sps.general_timing_hrd_parameters.hrd_cpb_cnt_minus1 == 0){
-      }else if ( sps.general_timing_hrd_parameters.has_value() && (timing_hrd.general_nal_hrd_params_present_flag || timing_hrd.general_vcl_hrd_params_present_flag) && 
-        timing_hrd.hrd_cpb_cnt_minus1 == 0){
-
-
-        TRUE_OR_RETURN(br->ReadBool(&tmp_low_delay_hrd_flag));
-        olf->low_delay_hrd_flag.push_back(tmp_low_delay_hrd_flag);
-
-        //int tmp_bit_rate_value_minus1 = 0;
-        int tmp_cpb_size_value_minus1 = 0;
-        int tmp_cpb_size_du_value_minus1 = 0;
-        int tmp_bit_rate_du_value_minus1 = 0;
-        int tmp_cbr_flag = 0;
-        const auto& timing_hrd = sps.general_timing_hrd_parameters.value();
-
-        if(timing_hrd.general_nal_hrd_params_present_flag ){
-          //todo make function for this 
-          for( int j = 0; j <= timing_hrd.hrd_cpb_cnt_minus1; j++ ) {
-            TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
-            olf->bit_rate_value_minus1[i][j].push_back(tmp_elemental_duration_in_tc_minus1);
-
-            TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_value_minus1));
-            olf->bit_rate_value_minus1[i][j].push_back(tmp_cpb_size_value_minus1);
-            if( timing_hrd.general_du_hrd_params_present_flag ) {
-              TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_du_value_minus1));
-              olf->cpb_size_du_value_minus1[i][j].push_back(tmp_cpb_size_du_value_minus1);
-              
-              TRUE_OR_RETURN(br->ReadUE(&tmp_bit_rate_du_value_minus1));
-              olf->bit_rate_du_value_minus1[i][j].push_back(tmp_bit_rate_du_value_minus1);
-            }
-            //TRUE_OR_RETURN(br->ReadBool(&tmp_cbr_flag));
-            bool cbr_flag;
-            TRUE_OR_RETURN(br->ReadBool(&cbr_flag));
-            tmp_cbr_flag = cbr_flag ? 1 : 0; 
-            olf->cbr_flag[i][j].push_back(tmp_cbr_flag);
-          }
-        }
-        if (sps.general_timing_hrd_parameters.has_value() && 
-                      sps.general_timing_hrd_parameters.value().general_vcl_hrd_params_present_flag){
-          for( int j = 0; j <= timing_hrd.hrd_cpb_cnt_minus1; j++ ) {
-            TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
-            olf->bit_rate_value_minus1[i][j].push_back(tmp_elemental_duration_in_tc_minus1);
-
-            TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_value_minus1));
-            olf->bit_rate_value_minus1[i][j].push_back(tmp_cpb_size_value_minus1);
-            if (sps.general_timing_hrd_parameters.has_value() && sps.general_timing_hrd_parameters.value().general_du_hrd_params_present_flag) {
-              TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_du_value_minus1));
-              olf->cpb_size_du_value_minus1[i][j].push_back(tmp_cpb_size_du_value_minus1);
-              
-              TRUE_OR_RETURN(br->ReadUE(&tmp_bit_rate_du_value_minus1));
-              olf->bit_rate_du_value_minus1[i][j].push_back(tmp_bit_rate_du_value_minus1);
-            }
-            bool cbr_flag_bool;
-            TRUE_OR_RETURN(br->ReadBool(&cbr_flag_bool));
-            tmp_cbr_flag = cbr_flag_bool ? 1 : 0;
-            olf->cbr_flag[i][j].push_back(tmp_cbr_flag);
-          }
-
-        }
-      }
-    }
- return kOk;
-
- }
-return kOk;
-}
-#else
 H266Parser::Result H266Parser::Ols_Timing_Hrd_parameters(
     int firstsublayer, int sps_max_sublayers_minus1,
     const H266Sps& sps,
@@ -5717,15 +5664,22 @@ H266Parser::Result H266Parser::Ols_Timing_Hrd_parameters(
     H266OlsTimingHrdParameters* olf) {
   
   LOG(INFO) << "Parsing H.266 Ols Timing Hrd parameters";
+  const GeneralTimingHrdParameters* timing_hrd = nullptr;
+  //const auto* timing_hrd = nullptr; a tester
+
   
   //  check it 
-  if (!sps.general_timing_hrd_parameters.has_value()) {
+  if (sps.general_timing_hrd_parameters.has_value()) {
+    DLOG(ERROR) << "general_timing_hrd_parameters present in SPS";
+    //return kInvalidStream;
+  } else {
     DLOG(ERROR) << "general_timing_hrd_parameters not present in SPS";
-    return kInvalidStream;
   }
-  
-  // get once ref
-  const auto& timing_hrd = sps.general_timing_hrd_parameters.value();
+
+  if (sps.general_timing_hrd_parameters.has_value()) {
+    // get once ref
+    timing_hrd = &sps.general_timing_hrd_parameters.value();    
+  }
   
   bool tmp_fixed_pic_rate_general_flag = false;
   bool tmp_fixed_pic_rate_within_cvs_flag = false;
@@ -5745,10 +5699,11 @@ H266Parser::Result H266Parser::Ols_Timing_Hrd_parameters(
       if (tmp_fixed_pic_rate_within_cvs_flag) {
         TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
         olf->elemental_duration_in_tc_minus1.push_back(tmp_elemental_duration_in_tc_minus1);
+         DLOG(INFO) << "## elemental_duration_in_tc_minus1 : "  << tmp_elemental_duration_in_tc_minus1;
         
-      } else if ((timing_hrd.general_nal_hrd_params_present_flag || 
-                  timing_hrd.general_vcl_hrd_params_present_flag) && 
-                 timing_hrd.hrd_cpb_cnt_minus1 == 0) {
+      } else if (( timing_hrd && timing_hrd->general_nal_hrd_params_present_flag || 
+                  timing_hrd->general_vcl_hrd_params_present_flag) && 
+                 timing_hrd>hrd_cpb_cnt_minus1 == 0) {
         
         TRUE_OR_RETURN(br->ReadBool(&tmp_low_delay_hrd_flag));
         olf->low_delay_hrd_flag.push_back(tmp_low_delay_hrd_flag);
@@ -5760,15 +5715,15 @@ H266Parser::Result H266Parser::Ols_Timing_Hrd_parameters(
         
         
         // NAL HRD parameters
-        if (timing_hrd.general_nal_hrd_params_present_flag) {
-          for (int j = 0; j <= timing_hrd.hrd_cpb_cnt_minus1; j++) {
+        if (timing_hrd->general_nal_hrd_params_present_flag) {
+          for (int j = 0; j <= timing_hrd->hrd_cpb_cnt_minus1; j++) {
             TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
             olf->bit_rate_value_minus1[i][j].push_back(tmp_elemental_duration_in_tc_minus1);
 
             TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_value_minus1));
             olf->cpb_size_value_minus1[i][j].push_back(tmp_cpb_size_value_minus1);
             
-            if (timing_hrd.general_du_hrd_params_present_flag) {
+            if (timing_hrd->general_du_hrd_params_present_flag) {
               TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_du_value_minus1));
               olf->cpb_size_du_value_minus1[i][j].push_back(tmp_cpb_size_du_value_minus1);
               
@@ -5784,15 +5739,118 @@ H266Parser::Result H266Parser::Ols_Timing_Hrd_parameters(
         }
         
         // VCL HRD parameters
-        if (timing_hrd.general_vcl_hrd_params_present_flag) {
-          for (int j = 0; j <= timing_hrd.hrd_cpb_cnt_minus1; j++) {
+        if (timing_hrd->general_vcl_hrd_params_present_flag) {
+          for (int j = 0; j <= timing_hrd->hrd_cpb_cnt_minus1; j++) {
             TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
             olf->bit_rate_value_minus1[i][j].push_back(tmp_elemental_duration_in_tc_minus1);
 
             TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_value_minus1));
             olf->cpb_size_value_minus1[i][j].push_back(tmp_cpb_size_value_minus1);
             
-            if (timing_hrd.general_du_hrd_params_present_flag) {
+            if (timing_hrd->general_du_hrd_params_present_flag) {
+              TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_du_value_minus1));
+              olf->cpb_size_du_value_minus1[i][j].push_back(tmp_cpb_size_du_value_minus1);
+              
+              TRUE_OR_RETURN(br->ReadUE(&tmp_bit_rate_du_value_minus1));
+              olf->bit_rate_du_value_minus1[i][j].push_back(tmp_bit_rate_du_value_minus1);
+            }
+            
+            bool cbr_flag_bool;
+            TRUE_OR_RETURN(br->ReadBool(&cbr_flag_bool));
+            tmp_cbr_flag = cbr_flag_bool ? 1 : 0;
+            olf->cbr_flag[i][j].push_back(tmp_cbr_flag);
+          }
+        }
+      }
+    }
+  }
+  
+  return kOk;
+}
+#else
+H266Parser::Result H266Parser::Ols_Timing_Hrd_parameters(
+    int firstsublayer, int sps_max_sublayers_minus1,
+    const H266Sps& sps,
+    H26xBitReader* br,
+    H266OlsTimingHrdParameters* olf) {
+  
+  LOG(INFO) << "Parsing H.266 Ols Timing Hrd parameters";
+  
+  const GeneralTimingHrdParameters* timing_hrd = nullptr;
+  
+  if (sps.general_timing_hrd_parameters.has_value()) {
+    timing_hrd = &sps.general_timing_hrd_parameters.value();
+  } else {
+    DLOG(ERROR) << "general_timing_hrd_parameters not present in SPS";
+  }
+  
+  bool tmp_fixed_pic_rate_general_flag = false;
+  bool tmp_fixed_pic_rate_within_cvs_flag = false;
+  int tmp_elemental_duration_in_tc_minus1 = 0;
+  bool tmp_low_delay_hrd_flag = false;
+  
+  for (int i = firstsublayer; i <= sps_max_sublayers_minus1; i++) {
+    TRUE_OR_RETURN(br->ReadBool(&tmp_fixed_pic_rate_general_flag));  
+    olf->fixed_pic_rate_general_flag.push_back(tmp_fixed_pic_rate_general_flag);
+    DLOG(INFO) << "## fixed_pic_rate_general_flag : " 
+               << (tmp_fixed_pic_rate_general_flag ? "1" : "0");
+
+    if (!tmp_fixed_pic_rate_general_flag) {
+      TRUE_OR_RETURN(br->ReadBool(&tmp_fixed_pic_rate_within_cvs_flag));
+      olf->fixed_pic_rate_within_cvs_flag.push_back(tmp_fixed_pic_rate_within_cvs_flag);
+
+      if (tmp_fixed_pic_rate_within_cvs_flag) {
+        TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
+        olf->elemental_duration_in_tc_minus1.push_back(tmp_elemental_duration_in_tc_minus1);
+        DLOG(INFO) << "## elemental_duration_in_tc_minus1 : "  << tmp_elemental_duration_in_tc_minus1;
+        
+      } else if (timing_hrd &&  
+                 (timing_hrd->general_nal_hrd_params_present_flag || 
+                  timing_hrd->general_vcl_hrd_params_present_flag) && 
+                 timing_hrd->hrd_cpb_cnt_minus1 == 0) {  
+        
+        TRUE_OR_RETURN(br->ReadBool(&tmp_low_delay_hrd_flag));
+        olf->low_delay_hrd_flag.push_back(tmp_low_delay_hrd_flag);
+
+        int tmp_cpb_size_value_minus1 = 0;
+        int tmp_cpb_size_du_value_minus1 = 0;
+        int tmp_bit_rate_du_value_minus1 = 0;
+        int tmp_cbr_flag = 0;
+        
+        // NAL HRD parameters
+        if (timing_hrd->general_nal_hrd_params_present_flag) {
+          for (int j = 0; j <= timing_hrd->hrd_cpb_cnt_minus1; j++) {
+            TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
+            olf->bit_rate_value_minus1[i][j].push_back(tmp_elemental_duration_in_tc_minus1);
+
+            TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_value_minus1));
+            olf->cpb_size_value_minus1[i][j].push_back(tmp_cpb_size_value_minus1);
+            
+            if (timing_hrd->general_du_hrd_params_present_flag) {
+              TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_du_value_minus1));
+              olf->cpb_size_du_value_minus1[i][j].push_back(tmp_cpb_size_du_value_minus1);
+              
+              TRUE_OR_RETURN(br->ReadUE(&tmp_bit_rate_du_value_minus1));
+              olf->bit_rate_du_value_minus1[i][j].push_back(tmp_bit_rate_du_value_minus1);
+            }
+            
+            bool cbr_flag;
+            TRUE_OR_RETURN(br->ReadBool(&cbr_flag));
+            tmp_cbr_flag = cbr_flag ? 1 : 0; 
+            olf->cbr_flag[i][j].push_back(tmp_cbr_flag);
+          }
+        }
+        
+        // VCL HRD parameters
+        if (timing_hrd->general_vcl_hrd_params_present_flag) {
+          for (int j = 0; j <= timing_hrd->hrd_cpb_cnt_minus1; j++) {
+            TRUE_OR_RETURN(br->ReadUE(&tmp_elemental_duration_in_tc_minus1));
+            olf->bit_rate_value_minus1[i][j].push_back(tmp_elemental_duration_in_tc_minus1);
+
+            TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_value_minus1));
+            olf->cpb_size_value_minus1[i][j].push_back(tmp_cpb_size_value_minus1);
+            
+            if (timing_hrd->general_du_hrd_params_present_flag) {
               TRUE_OR_RETURN(br->ReadUE(&tmp_cpb_size_du_value_minus1));
               olf->cpb_size_du_value_minus1[i][j].push_back(tmp_cpb_size_du_value_minus1);
               
@@ -5813,8 +5871,10 @@ H266Parser::Result H266Parser::Ols_Timing_Hrd_parameters(
   return kOk;
 }
 
+#endif
 
-#endif 
+
+
 
 H266Parser::Result H266Parser::ParseGeneralConstraintsInfo(H266GeneralConstraintsInfo *gci,
                                                      H26xBitReader* br) {
