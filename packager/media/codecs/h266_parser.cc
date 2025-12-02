@@ -35,6 +35,11 @@ struct H266PictureHeaderStructure;
 struct H266SpsRangeExtension;
 struct H266AccessUnitDelimiter;
 
+struct H266AdaptationParameterSetRbsp;
+struct H266AlfData;
+struct H266LmcsData;
+struct H266Scalinglistdata;
+
 
 
 
@@ -224,6 +229,18 @@ H266OlsTimingHrdParameters::~H266OlsTimingHrdParameters() {}
 
 H266AccessUnitDelimiter::H266AccessUnitDelimiter() {}
 H266AccessUnitDelimiter::~H266AccessUnitDelimiter() {}
+
+H266AdaptationParameterSetRbsp::H266AdaptationParameterSetRbsp() {}
+H266AdaptationParameterSetRbsp::~H266AdaptationParameterSetRbsp() {}
+
+H266AlfData::H266AlfData() {};
+H266AlfData::~H266AlfData() {};
+
+H266LmcsData::H266LmcsData() {};
+H266LmcsData::H266LmcsData() {};
+
+H266Scalinglistdata::H266Scalinglistdata() {};
+H266Scalinglistdata::~H266Scalinglistdata() {};
 
 
 
@@ -966,6 +983,8 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
     int tmp_sh_slice_type = 0;
     TRUE_OR_RETURN(br->ReadUE(&tmp_sh_slice_type));
     slice_header->sh_slice_type = tmp_sh_slice_type;
+    DLOG(INFO) << "## sh_slice_type : " << tmp_sh_slice_type;
+
   }
 
   if( nalu.type() == Nalu::H266_IDR_W_RADL || nalu.type() == Nalu::H266_IDR_N_LP || nalu.type() == Nalu::H266_CRA_NUT || nalu.type() == Nalu::H266_GDR_NUT ){
@@ -3160,13 +3179,13 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   if(phs->ph_gdr_or_irap_pic_flag){
     bool tmp_ph_gdr_pic_flag = false;
     TRUE_OR_RETURN(br->ReadBool(&phs->ph_gdr_pic_flag));
+    DLOG(INFO) << "## ph_gdr_pic_flag : " << ( phs->ph_gdr_pic_flag ? "1" : "0");
+
     phs->ph_gdr_pic_flag = tmp_ph_gdr_pic_flag;
-      DLOG(INFO) << "## ph_gdr_or_irap_pic_flag : " << (phs->ph_gdr_pic_flag ? "1" : "0");
   }
   bool tmp_ph_inter_slice_allowed_flag = false;
   TRUE_OR_RETURN(br->ReadBool(&tmp_ph_inter_slice_allowed_flag));
   phs->ph_inter_slice_allowed_flag = tmp_ph_inter_slice_allowed_flag;
-
   DLOG(INFO) << "## ph_inter_slice_allowed_flag : " << (phs->ph_inter_slice_allowed_flag ? "1" : "0");
 
 
@@ -3181,7 +3200,6 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   phs->ph_pic_parameter_set_id = tmp_ph_pic_parameter_set_id;
   DLOG(INFO) << "## phs->ph_pic_parameter_set_id : " << phs->ph_pic_parameter_set_id;
 
-  std::unique_ptr<H266Pps> pps_holder;
   //const 
   H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id);
   if (!pps) {
@@ -3193,17 +3211,13 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
  
   LOG(INFO) << "Parsing H.266 Picture Header NALU" << "pps" << pps << "ph_pic_parameter_set_id " << phs->ph_pic_parameter_set_id; 
 
-   std::unique_ptr<H266Sps> sps_holder;
    //const 
    H266Sps* sps = GetSps(pps->pps_seq_parameter_set_id);
-
   LOG(INFO) << "Parsing H.266 Picture Header NALU" << "sps  " << sps << "pps_seq_parameter_set_id " << pps->pps_seq_parameter_set_id; 
-
-
   if (!sps) {
     LOG(ERROR) << "SPS " << pps->pps_seq_parameter_set_id 
                << " referenced by PPS " << phs->ph_pic_parameter_set_id << " not found";
-    //return kInvalidStream;
+    return kInvalidStream;
   }
 
   TRUE_OR_RETURN(sps);
@@ -3211,6 +3225,8 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
 
   int len_ph_pic_order_cnt_lsb = sps->sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
   TRUE_OR_RETURN(br->ReadBits(len_ph_pic_order_cnt_lsb,&phs->ph_pic_order_cnt_lsb));
+  DLOG(INFO) << "## ph_pic_order_cnt_lsb : " << phs->ph_pic_order_cnt_lsb;
+
   if(phs->ph_gdr_pic_flag){
     TRUE_OR_RETURN(br->ReadUE(&phs->ph_recovery_poc_cnt));
     DLOG(INFO) << "## ph_recovery_poc_cnt : " << phs->ph_recovery_poc_cnt;
@@ -3358,8 +3374,6 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     if( pps->pps_output_flag_present_flag && !phs->ph_non_ref_pic_flag ){
       TRUE_OR_RETURN(br->ReadBool(&phs->ph_pic_output_flag));
       DLOG(INFO) << "## ph_pic_output_flag : " << ( phs->ph_pic_output_flag ? "1" : "0");
-
-
     }
     if( !pps->pps_rpl_info_in_ph_flag ){
       phs->rpl.emplace();

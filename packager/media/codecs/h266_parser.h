@@ -54,6 +54,71 @@ struct H266AccessUnitDelimiter{
   int TemporalId = 0;
 };
 
+struct H266Scalinglistdata{
+  H266Scalinglistdata();
+  ~H266Scalinglistdata();
+  std::vector<bool> scaling_list_copy_mode_flag;
+  std::vector<bool> scaling_list_pred_mode_flag;
+  std::vector<int> scaling_list_pred_id_delta;
+  std::vector<int> scaling_list_dc_coef:
+  std::vector<std::vector<int>> scaling_list_delta_coef;
+
+};
+
+struct H266LmcsData{
+  H266LmcsData();
+  ~H266LmcsData();
+   int lmcs_min_bin_idx = 0;
+   int lmcs_delta_max_bin_idx = 0;
+   int lmcs_delta_cw_prec_minus1 = 0;
+   std::vector<int> lmcs_delta_abs_cw;
+   std::vector<bool> lmcs_delta_sign_cw_flag;
+   int lmcs_delta_abs_crs = 0;
+   bool lmcs_delta_sign_crs_flag = false;
+}:
+
+struct H266AlfData{
+  H266AlfData();
+  ~H266AlfData();
+  bool alf_luma_filter_signal_flag = false;
+  bool alf_chroma_filter_signal_flag = false;
+  bool alf_cc_cb_filter_signal_flag = false;
+  bool alf_cc_cr_filter_signal_flag = false;
+  bool alf_luma_clip_flag = false;
+  int alf_luma_num_filters_signalled_minus1 = 0;
+  std::vector<int> alf_luma_coeff_delta_idx;
+  std::vector<int> alf_luma_coeff_abs;
+  std::vector<int> alf_luma_coeff_sign;
+  std::vector<int> alf_luma_clip_idx;
+  bool alf_chroma_clip_flag = false;
+  int alf_chroma_num_alt_filters_minus1 = 0;
+  std::vector<std::vector<int>> alf_chroma_coeff_abs;
+  std::vector<std::vector<int>> alf_chroma_coeff_sign;
+  std::vector<std::vector<int>> alf_chroma_clip_idx;
+  int alf_cc_cb_filters_signalled_minus1 = 0;
+  std::vector<std::vector<int>> alf_cc_cb_mapped_coeff_abs;
+  std::vector<std::vector<int>> alf_cc_cb_coeff_sign;
+  int alf_cc_cr_filters_signalled_minus1 = 0;
+  std::vector<std::vector<int>> alf_cc_cr_mapped_coeff_abs;
+  std::vector<std::vector<int>> alf_cc_cr_coeff_sign; 
+};
+
+struct H266AdaptationParameterSetRbsp{
+  //7.3.2.6 Adaptation parameter set RBSP syntax
+  H266AdaptationParameterSetRbsp();
+  ~H266AdaptationParameterSetRbsp();
+  uint8_t aps_params_type = 0;
+  uint8_t aps_adaptation_parameter_set_id = 0;
+  bool aps_chroma_present_flag = false;  
+  std::optional<H266AlfData> alfd;
+  std::optional<H266LmcsData> lmcsd;
+  std::optional<H266Scalinglistdata> sld;
+  bool aps_extension_flag = false;
+  bool aps_extension_data_flag = false;
+
+};
+
+
 struct H266ReferencePictureSet {
   int delta_poc_s0[kVvcMaxRefPicSetCount];
   int delta_poc_s1[kVvcMaxRefPicSetCount];
