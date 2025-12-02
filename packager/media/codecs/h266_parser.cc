@@ -198,8 +198,8 @@ H266ProfileTierLevel::~H266ProfileTierLevel() {}
 GeneralTimingHrdParameters::GeneralTimingHrdParameters() {}
 GeneralTimingHrdParameters::~GeneralTimingHrdParameters() {}
 
-//H266RefPicListEntry::H266RefPicListEntry() {}
-//H266RefPicListEntry::~H266RefPicListEntry() {}
+H266RefPicListEntry::H266RefPicListEntry() {}
+H266RefPicListEntry::~H266RefPicListEntry() {}
 
 H266ReferencePicListStruct::H266ReferencePicListStruct() {}
 H266ReferencePicListStruct::~H266ReferencePicListStruct() {}
@@ -4503,6 +4503,37 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
     rpl->poc_lsb_lt.clear();
     rpl->delta_poc_msb_cycle_present_flag.clear();
     rpl->delta_poc_msb_cycle_lt.clear();
+
+
+    //H266ReferencePicListStruct rpl_struct;
+    //sps_num_ref_pic_lists[i]  o or 1
+    // rpls_idx[i] : list index 
+    H266ReferencePicListStruct rpl_struct;
+
+    for (int i = 0; i < 2; i++) {
+        int num_lists = sps.sps_num_ref_pic_lists[i];
+        rpl_struct.num_ref_entries.resize(2);
+        rpl_struct.ltrp_in_header_flag.resize(2);
+        rpl_struct.entries.resize(2);
+        rpl_struct.NumRefIdxActive.resize(2, 0);
+        rpl_struct.inter_layer_ref_pic_flag.resize(2);
+        rpl_struct.st_ref_pic_flag.resize(2);
+        rpl_struct.abs_delta_poc_st.resize(2);
+        rpl_struct.strp_entry_sign_flag.resize(2);
+        rpl_struct.rpls_poc_lsb_lt.resize(2);
+        rpl_struct.ilrp_idx.resize(2);
+        // Resize for each RPL index
+        rpl_struct.num_ref_entries[i].resize(num_lists);
+        rpl_struct.ltrp_in_header_flag[i].resize(num_lists);
+        rpl_struct.entries[i].resize(num_lists);
+        rpl_struct.inter_layer_ref_pic_flag[i].resize(num_lists);
+        rpl_struct.st_ref_pic_flag[i].resize(num_lists);
+        rpl_struct.abs_delta_poc_st[i].resize(num_lists);
+        rpl_struct.strp_entry_sign_flag[i].resize(num_lists);
+        rpl_struct.rpls_poc_lsb_lt[i].resize(num_lists);
+        rpl_struct.ilrp_idx[i].resize(num_lists);
+
+    }
     
     for(int i = 0; i < 2; i++) {
         if(sps.sps_num_ref_pic_lists[i] > 0 && (i == 0 || (i == 1 && pps.pps_rpl1_idx_present_flag))) {
@@ -4510,29 +4541,89 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
             TRUE_OR_RETURN(br->ReadBool(&tmp_rpl_sps_flag));
             rpl->rpl_sps_flag.push_back(tmp_rpl_sps_flag);
         } else {
+
             rpl->rpl_sps_flag.push_back(false);
         }
         
         if(rpl->rpl_sps_flag[i]) {
             if(sps.sps_num_ref_pic_lists[i] > 1 && (i == 0 || (i == 1 && pps.pps_rpl1_idx_present_flag))) {
                 int len_rpl_idx = ceil_log2(sps.sps_num_ref_pic_lists[i]);
+
                 int tmp_rpl_idx = 0;
                 TRUE_OR_RETURN(br->ReadBits(len_rpl_idx, &tmp_rpl_idx));
                 rpl->rpl_idx.push_back(tmp_rpl_idx);
-            } else {
+            } else if (i == 1 && !pps.pps_rpl1_idx_present_flag) {
+              if (rpl->rpl_idx.size() > 0) {
+                //rpl->rpl_idx[1] = rpl->rpl_idx[0];
+                rpl->rpl_idx.push_back(rpl->rpl_idx[0]);
+
+              } else {
+                  rpl->rpl_idx.push_back(0);
+              }
+            } else{
+              DLOG(ERROR) << " CAN NOT POPULATE the rpl_idx[i]";
+              rpl->rpl_idx.push_back(0); // Add default
+            }   
+            //memcpy(&rpl[i],&rpl_struct[i][rpl->rpl_idx[i]],i,sizeof(rpl[i]));     
+
+            /*  else {
                 rpl->rpl_idx.push_back(0);
-            }
+            } */
+
+
         } else {
             // Parse reference picture list structure
-            H266ReferencePicListStruct rpl_struct;
-            TRUE_OR_RETURN(Ref_Pic_List_Struct(i, sps.sps_num_ref_pic_lists[i], sps, br, &rpl_struct));
+            //H266ReferencePicListStruct rpl_struct;
+
+            // We need to parse the RPL structure into the appropriate position
+            // Create a temporary struct for parsing
+            /* H266ReferencePicListStruct tmp_rpl_struct;
+
+            DLOG(INFO) <<  "Ref_Pic_List_Struct i:" << i << "sps_num_ref_pic_lists :" << sps.sps_num_ref_pic_lists[i] << " rpl_struct :" << rpl_struct[i];
+            TRUE_OR_RETURN(Ref_Pic_List_Struct(i, sps.sps_num_ref_pic_lists[i], sps, br, &rpl_struct[i]));
             
             // Store the parsed structure
             if(!rpl->reference_pic_list.has_value()) {
                 rpl->reference_pic_list = rpl_struct;
             }
-            // You need to properly store rpl_struct in reference_pic_list
-            // This depends on how reference_pic_list is structured
+             */
+             // Parse reference picture list structure
+            DLOG(INFO) << "Ref_Pic_List_Struct i:" << i 
+                       << " sps_num_ref_pic_lists:" << sps.sps_num_ref_pic_lists[i];
+            
+            // Parse each RPL for this list index
+            for (int rplsIdx = 0; rplsIdx < sps.sps_num_ref_pic_lists[i]; rplsIdx++) {
+                // We need to parse the RPL structure into the appropriate position
+                // Create a temporary struct for parsing
+                H266ReferencePicListStruct tmp_rpl_struct;
+                
+                // Parse this specific RPL
+                // Note: We need to know which RPL index we're parsing
+                // Ref_Pic_List_Struct might need to be modified to handle 3D structure
+                TRUE_OR_RETURN(Ref_Pic_List_Struct(i, rplsIdx, sps, br, &tmp_rpl_struct));
+                
+                // Copy the parsed data into the appropriate position
+                // This assumes Ref_Pic_List_Struct fills the first element of each vector
+                if (rplsIdx < rpl_struct.num_ref_entries[i].size()) {
+                    if (!tmp_rpl_struct.num_ref_entries.empty() && 
+                        !tmp_rpl_struct.num_ref_entries[0].empty()) {
+                        rpl_struct.num_ref_entries[i][rplsIdx] = tmp_rpl_struct.num_ref_entries[0][0];
+                    }
+                    
+                    // Copy entries if available
+                    if (!tmp_rpl_struct.entries.empty() && 
+                        !tmp_rpl_struct.entries[0].empty()) {
+                        rpl_struct.entries[i][rplsIdx] = tmp_rpl_struct.entries[0][0];
+                    }
+                    
+                    // Copy other fields similarly...
+                }
+            }
+            // Store the parsed structure
+            if(!rpl->reference_pic_list.has_value()) {
+                rpl->reference_pic_list = rpl_struct;
+            }      
+
         }
     }
     
@@ -4575,7 +4666,7 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
             
             int rplsIdx = rpl->RplsIdx[listIdx];
             
-            // Vérifier que les dimensions existent
+            // Check bounds
             if (rpl_struct.entries.size() > static_cast<size_t>(listIdx) &&
                 rpl_struct.entries[listIdx].size() > static_cast<size_t>(rplsIdx)) {
                 
@@ -4748,6 +4839,30 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
                             H266ReferencePicListStruct* rpls) {
     LOG(INFO) << "Parsing H.266 Reference picture list structure parameters";
 
+    H266Vps *vps = GetVps(sps->sps_video_parameter_set_id);
+    TRUE_OR_RETURN(vps);
+    //for this moment i don t have stram with vps...
+    
+    //7.4.3.3 (eq 29  PAGE 97)
+    // I DON T SAU HOW GET nuh_layer_id FROM NAL HERE FOR THIS MOMENT
+    // for (int i = 0; i<= vps->vps_max_layers_minus1; i++){
+    //   if(nuh_layer_id == vps->vps_layer_id[i]) {
+    //     general_layer_idx = i;
+    //     break;
+    //   }
+    // }
+    // if (general_layer_idx < 0) {
+    //   DLOG(INFO) << "vps_layer_id " << nuh_layer_id << " not available.\n";
+    // }
+
+    // //7.4.3.3 (28)
+    // // for (int j = 0; j <= vps->vps_max_layers_minus1; j++) {
+    //     if (vps->vps_direct_ref_layer_flag[general_layer_idx][j])
+    //         num_direct_ref_layers++;
+    // }
+
+
+
     LOG(INFO) << "## listIdx = " << listIdx << "rplsIdx = " << rplsIdx;
 
     int tmp_num_ref_entries = 0;
@@ -4769,19 +4884,19 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
        tmp_num_ref_entries > 0) {
         TRUE_OR_RETURN(br->ReadBool(&ltrp_in_header));
         DLOG(INFO) << "##  ltrp_in_header : " << ( ltrp_in_header ? "1" : "0");
+    }     
 
-        
-        
-        if(rpls->ltrp_in_header_flag.size() <= static_cast<size_t>(listIdx)) {
+    if(rpls->ltrp_in_header_flag.size() <= static_cast<size_t>(listIdx)) {
             rpls->ltrp_in_header_flag.resize(listIdx + 1);
-        }
-        if(rpls->ltrp_in_header_flag[listIdx].size() <= static_cast<size_t>(rplsIdx)) {
-            rpls->ltrp_in_header_flag[listIdx].resize(rplsIdx + 1);
-        }
-        rpls->ltrp_in_header_flag[listIdx][rplsIdx] = ltrp_in_header;
     }
+    if(rpls->ltrp_in_header_flag[listIdx].size() <= static_cast<size_t>(rplsIdx)) {
+            rpls->ltrp_in_header_flag[listIdx].resize(rplsIdx + 1);
+    }
+    rpls->ltrp_in_header_flag[listIdx][rplsIdx] = ltrp_in_header;
+    
     
     rpls->entries.clear();
+
     for(int i = 0; i < tmp_num_ref_entries; i++) {
         H266RefPicListEntry entry;
         entry.inter_layer_ref_pic_flag = false;
@@ -4820,7 +4935,7 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
                     DLOG(INFO) << "## strp_entry_sign_flag : " << ( tmp_strp_entry_sign_flag ? "1" : "0");
 
                 }
-            } else if(!ltrp_in_header) {
+            } else if(!ltrp_in_header) { // go 4816 line
                 uint32_t tmp_rpls_poc_lsb_lt = 0;
                 int bit_length = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
                 TRUE_OR_RETURN(br->ReadBits(bit_length, &tmp_rpls_poc_lsb_lt));
@@ -4875,6 +4990,8 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
             bool tmp_inter_layer_ref_pic_flag = false;
             TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
             entry.inter_layer_ref_pic_flag = tmp_inter_layer_ref_pic_flag;
+        }else {
+            entry.inter_layer_ref_pic_flag = false;
         }
         
         if(!entry.inter_layer_ref_pic_flag) {
@@ -4882,18 +4999,33 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
                 bool tmp_st_ref_pic_flag = false;
                 TRUE_OR_RETURN(br->ReadBool(&tmp_st_ref_pic_flag));
                 entry.st_ref_pic_flag = tmp_st_ref_pic_flag;
+            } else {
+              entry.st_ref_pic_flag = false;
             }
+
             
             if(entry.st_ref_pic_flag) {
                 int tmp_abs_delta_poc_st = 0;
                 TRUE_OR_RETURN(br->ReadUE(&tmp_abs_delta_poc_st));
                 entry.abs_delta_poc_st = tmp_abs_delta_poc_st;
+                // eq 150 page 163
+                if ((sps->sps_weighted_pred_flag ||
+                     sps->sps_weighted_bipred_flag) && i != 0){
+                    entry.abs_delta_poc_st = entry.abs_delta_poc_st;
+                }
+                else
+                {
+                    entry.abs_delta_poc_st = entry.abs_delta_poc_st + 1;
+                }
+
                 
                 if(entry.abs_delta_poc_st > 0) {
                     bool tmp_strp_entry_sign_flag = false;
                     TRUE_OR_RETURN(br->ReadBool(&tmp_strp_entry_sign_flag));
                     entry.strp_entry_sign_flag = tmp_strp_entry_sign_flag;
                 }
+
+
             } else if(rpls->ltrp_in_header_flag.size() > 0 && !rpls->ltrp_in_header_flag[0]) {
                 uint32_t tmp_rpls_poc_lsb_lt = 0;
                 int bit_length = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;

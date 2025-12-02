@@ -447,7 +447,7 @@ struct H266ReferencePicListStruct{
 struct H266RefPicListEntry {
   H266RefPicListEntry();
   ~H266RefPicListEntry();
-  
+    ///warning Pge 64 this value aren t simple vectore but vecor 2 d ou 3 d
     bool inter_layer_ref_pic_flag = false;
     bool st_ref_pic_flag = true;  //default 
     int abs_delta_poc_st = 0;
