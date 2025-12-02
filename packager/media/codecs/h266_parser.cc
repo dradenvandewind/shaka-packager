@@ -588,6 +588,11 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
   *slice_header = H266SliceHeader{};//();
   #pragma GCC diagnostic pop
 
+
+  if (!slice_header) {
+      LOG(ERROR) << "slice_header is null";
+  }
+
   // Parses whole element.
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
@@ -598,6 +603,7 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
   
   DLOG(INFO) << "## sh_picture_header_in_slice_header_flag : " << ( tmp_sh_picture_header_in_slice_header_flag ? "1" : "0");
 
+   
 
   slice_header->sh_picture_header_in_slice_header_flag = tmp_sh_picture_header_in_slice_header_flag;
   if(slice_header->sh_picture_header_in_slice_header_flag){
@@ -1105,9 +1111,9 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
       }
 
       if( slice_header->phs->ph_temporal_mvp_enabled_flag && !pps->pps_rpl_info_in_ph_flag ) {
-        bool tmp_sh_collocated_from_l0_flag = false;
 
         if( slice_header->sh_slice_type == kVvcBSlice ){
+          bool tmp_sh_collocated_from_l0_flag = false;
           TRUE_OR_RETURN(br->ReadBool( &tmp_sh_collocated_from_l0_flag));
           slice_header->sh_collocated_from_l0_flag = tmp_sh_collocated_from_l0_flag;
         }
@@ -3134,11 +3140,8 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     LOG(INFO) << "Parsing H.266 Picture Header NALU : " << nalu.type(); 
     LOG(INFO) << " Parsing Parsing PictureHeader Structure ";
  // disable to check it
- /* DCHECK_EQ(true, nalu.type() == Nalu::H266_IDR_W_RADL || 
-                nalu.type() == Nalu::H266_IDR_N_LP ||
-                nalu.type() == Nalu::H266_PH_NUT);
+ 
 
-  */ // This function is call in slice_header  and picture_header_rbsp
   LOG(INFO) << "Parsing H.266 Picture Header NALU"; 
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
@@ -3160,9 +3163,10 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     phs->ph_gdr_pic_flag = tmp_ph_gdr_pic_flag;
       DLOG(INFO) << "## ph_gdr_or_irap_pic_flag : " << (phs->ph_gdr_pic_flag ? "1" : "0");
   }
-  int tmp_ph_inter_slice_allowed_flag = false;
-  TRUE_OR_RETURN(br->ReadBool(&phs->ph_inter_slice_allowed_flag));
+  bool tmp_ph_inter_slice_allowed_flag = false;
+  TRUE_OR_RETURN(br->ReadBool(&tmp_ph_inter_slice_allowed_flag));
   phs->ph_inter_slice_allowed_flag = tmp_ph_inter_slice_allowed_flag;
+
   DLOG(INFO) << "## ph_inter_slice_allowed_flag : " << (phs->ph_inter_slice_allowed_flag ? "1" : "0");
 
 
@@ -3180,26 +3184,13 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   std::unique_ptr<H266Pps> pps_holder;
   //const 
   H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id);
+  if (!pps) {
+    LOG(ERROR) << "PPS " << phs->ph_pic_parameter_set_id << " not found";
+    return kInvalidStream;
+  }
   TRUE_OR_RETURN(pps);
 
-/* 
-  if (!pps){
-    pps = GetFirstPps();
-    if(!pps){
-      DLOG(INFO) << "error need to investigate why i can t get pps";
-    }
-  } */
-  
-
-
-  /*  if (!pps) {
-      pps_holder = std::make_unique<H266Pps>();
-     pps = pps_holder.get();
-     LOG(WARNING) << "Using default PPS (no active PPS found)   NEED investigate";
-    }
-  TRUE_OR_RETURN(pps); */
-
-
+ 
   LOG(INFO) << "Parsing H.266 Picture Header NALU" << "pps" << pps << "ph_pic_parameter_set_id " << phs->ph_pic_parameter_set_id; 
 
    std::unique_ptr<H266Sps> sps_holder;
@@ -3208,19 +3199,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
 
   LOG(INFO) << "Parsing H.266 Picture Header NALU" << "sps  " << sps << "pps_seq_parameter_set_id " << pps->pps_seq_parameter_set_id; 
 
-   
-   /* if(!sps){
-    sps = GetFirstSps();
-    if(!sps){
-            DLOG(INFO) << "error need to investigate why i can t get sps";
-    }
-   } */
 
-   /* if (!sps) {
-     sps_holder = std::make_unique<H266Sps>();
-    sps = sps_holder.get();
-    LOG(WARNING) << "Using default SPS (no active SPS found)";
-  } */
   if (!sps) {
     LOG(ERROR) << "SPS " << pps->pps_seq_parameter_set_id 
                << " referenced by PPS " << phs->ph_pic_parameter_set_id << " not found";
@@ -3228,10 +3207,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   }
 
   TRUE_OR_RETURN(sps);
-
   LOG(INFO) << "Parsing H.266 Picture Header NALU" << "sps : " << sps << "ph_pic_parameter_set_id :" << pps->seq_parameter_set_id; 
-
-
 
   int len_ph_pic_order_cnt_lsb = sps->sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
   TRUE_OR_RETURN(br->ReadBits(len_ph_pic_order_cnt_lsb,&phs->ph_pic_order_cnt_lsb));
@@ -3250,8 +3226,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   }
 
   DLOG(INFO) << " ## max_extra_bytes :" << max_extra_bytes;
-   
-
+ 
 
   ///  add to try fix it  to realign bitstream
   for( int i = 0; i < max_extra_bytes; i++ ){
@@ -3338,9 +3313,10 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     }  
   }
   if( sps->sps_explicit_scaling_list_enabled_flag ) {
-       bool ph_explicit_scaling_list_enabled_flag = false;
-      TRUE_OR_RETURN(br->ReadBool(&ph_explicit_scaling_list_enabled_flag));
-      DLOG(INFO) << "## ph_explicit_scaling_list_enabled_flag : " << ( ph_explicit_scaling_list_enabled_flag ? "1" : "0");
+       bool tmp_ph_explicit_scaling_list_enabled_flag = false;
+      TRUE_OR_RETURN(br->ReadBool(&tmp_ph_explicit_scaling_list_enabled_flag));
+      phs->ph_explicit_scaling_list_enabled_flag = tmp_ph_explicit_scaling_list_enabled_flag;
+      DLOG(INFO) << "## ph_explicit_scaling_list_enabled_flag : " << ( tmp_ph_explicit_scaling_list_enabled_flag ? "1" : "0");
 
       
       if(phs->ph_explicit_scaling_list_enabled_flag){
@@ -3478,16 +3454,28 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
           DLOG(INFO) << "## ph_temporal_mvp_enabled_flag : " << ( phs->ph_temporal_mvp_enabled_flag ? "1" : "0");
 
 
-          if( phs->ph_temporal_mvp_enabled_flag && pps->pps_rpl_info_in_ph_flag ) {
+          if( phs->ph_temporal_mvp_enabled_flag && pps->pps_rpl_info_in_ph_flag && phs->rpl.has_value() ) {
 
-            if( phs->rpl->num_ref_entries[ 1 ][ phs->rpl->RplsIdx[ 1 ] ] > 0 ){/// evaluate this value
-              TRUE_OR_RETURN(br->ReadBool(&phs->ph_collocated_from_l0_flag));
-              DLOG(INFO) << "## ph_collocated_from_l0_flag : " << ( phs->ph_collocated_from_l0_flag ? "1" : "0");
+            if( phs->rpl.has_value() && phs->rpl->RplsIdx[1] >= 0 && 
+               phs->rpl->num_ref_entries[ 1 ][ phs->rpl->RplsIdx[ 1 ] ] > 0 ){/// evaluate this value
+
+                  TRUE_OR_RETURN(br->ReadBool(&phs->ph_collocated_from_l0_flag));
+                  DLOG(INFO) << "## ph_collocated_from_l0_flag : " << ( phs->ph_collocated_from_l0_flag ? "1" : "0");
 
             }
-            if( ( phs->ph_collocated_from_l0_flag && phs->rpl->num_ref_entries[0][phs->rpl->RplsIdx[0] ] > 1 ) || ( !phs->ph_collocated_from_l0_flag && phs->rpl->num_ref_entries[ 1 ][ phs->rpl->RplsIdx[ 1 ] ] > 1 ) ){
-                TRUE_OR_RETURN(br->ReadUE(&phs->ph_collocated_ref_idx));
-                DLOG(INFO) << "## ph_collocated_ref_idx  : " << phs->ph_collocated_ref_idx;
+            if( ( phs->ph_collocated_from_l0_flag &&
+                  phs->rpl.has_value() && 
+                  phs->rpl.has_value() && 
+                  phs->rpl->RplsIdx[0] >= 0 && 
+                  phs->rpl->RplsIdx[0] >= 0 && 
+                  phs->rpl->num_ref_entries[0][phs->rpl->RplsIdx[0] ] > 1 ) || 
+                  ( !phs->ph_collocated_from_l0_flag && 
+                    phs->rpl.has_value() && 
+                    phs->rpl->RplsIdx[1] >= 0 &&
+                    phs->rpl->num_ref_entries[ 1 ][ phs->rpl->RplsIdx[ 1 ] ] > 1 ) ){
+
+                   TRUE_OR_RETURN(br->ReadUE(&phs->ph_collocated_ref_idx));
+                   DLOG(INFO) << "## ph_collocated_ref_idx  : " << phs->ph_collocated_ref_idx;
 
             }
           }
