@@ -4604,7 +4604,7 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
                 
                 // Copy the parsed data into the appropriate position
                 // This assumes Ref_Pic_List_Struct fills the first element of each vector
-                if (rplsIdx < rpl_struct.num_ref_entries[i].size()) {
+                if (rplsIdx < static_cast<int>(rpl_struct.num_ref_entries[i].size())) {
                     if (!tmp_rpl_struct.num_ref_entries.empty() && 
                         !tmp_rpl_struct.num_ref_entries[0].empty()) {
                         rpl_struct.num_ref_entries[i][rplsIdx] = tmp_rpl_struct.num_ref_entries[0][0];
@@ -4672,7 +4672,7 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
                 
                 int numLtrp = 0;
                 
-                // Count LTRP entries pour entries[listIdx][rplsIdx]
+                // Count LTRP entries FOR THIS entries[listIdx][rplsIdx]
                 for (const auto& entry : rpl_struct.entries[listIdx][rplsIdx]) {
                     if (!entry.inter_layer_ref_pic_flag && !entry.st_ref_pic_flag) {
                         numLtrp++;
