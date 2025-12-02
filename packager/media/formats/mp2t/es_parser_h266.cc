@@ -387,10 +387,23 @@ bool EsParserH266::ProcessOtherNonVclNalu(const Nalu& nalu) {
       }
       break;
     }
-    case Nalu::H266_AUD_NUT:
+    case Nalu::H266_AUD_NUT: {
       //decoding AUD information
-      LOG(INFO) << "Processing AUD need to add processing";
-      break; 
+      LOG(INFO) << "Processing AUD ";
+      int aud_id;
+      auto status = parser_->ParseAccessUnitDelimeter_Rbsp(nalu,&aud_id);
+      if (status == H266Parser::kOk){
+        //aud parsed successfully
+        decoder_config_check_pending_= true;
+      } else if (status == H266Parser::kUnsupportedStream){
+            new_stream_info_cb_(nullptr);
+      } else {
+         if (last_video_decoder_config_){
+          return false;
+         }        
+      }
+      break;
+    }
     case Nalu::H266_PH_NUT: {
       //decodgin picture header information
       LOG(INFO) << "Processing PH";
@@ -463,7 +476,7 @@ bool EsParserH266::UpdateVideoDecoderConfig(int pps_id) {
     // Check if the configuration has changed
     if (last_video_decoder_config_->codec_config() != decoder_config_record){
 
-      LOG(WARNING) << "H.265 decoder configuration has changed.";
+      LOG(WARNING) << "H.266 decoder configuration has changed.";
       last_video_decoder_config_->set_codec_config(decoder_config_record);
       
     }
@@ -478,6 +491,7 @@ bool EsParserH266::UpdateVideoDecoderConfig(int pps_id) {
     DVLOG(1) << "Failed to extract video resolution from SPS.";
     return false;
   }
+  DLOG(INFO) << " ## ExtractResolutionFromSps coded_Size " << coded_width  << "x " << coded_height << " ## pixel_size" << pixel_width << "x " << pixel_height;
 
   const uint8_t nalu_length_size =
       H26xByteToUnitStreamConverter::kUnitStreamNaluLengthSize;

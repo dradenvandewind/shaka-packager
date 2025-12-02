@@ -46,6 +46,14 @@ bool ExtractResolutionFromSps(const H266Sps& sps,
                               uint32_t* pixel_width,
                               uint32_t* pixel_height);
 
+struct H266AccessUnitDelimiter{
+  H266AccessUnitDelimiter();
+  ~H266AccessUnitDelimiter();
+  bool aud_irap_or_gdr_flag = false;
+  int aud_pic_type = 0;
+  int TemporalId = 0;
+};
+
 struct H266ReferencePictureSet {
   int delta_poc_s0[kVvcMaxRefPicSetCount];
   int delta_poc_s1[kVvcMaxRefPicSetCount];
@@ -57,6 +65,9 @@ struct H266ReferencePictureSet {
   int num_delta_pocs = 0;
 };
 struct H266OlsTimingHrdParameters{
+  H266OlsTimingHrdParameters();
+  ~H266OlsTimingHrdParameters();
+
     std::vector<bool> fixed_pic_rate_general_flag;
     std::vector<bool> fixed_pic_rate_within_cvs_flag;
     std::vector<int> elemental_duration_in_tc_minus1;
@@ -69,12 +80,14 @@ struct H266OlsTimingHrdParameters{
 
 };
 struct H266DPB_Parameters{
+  H266DPB_Parameters();
+  ~H266DPB_Parameters();
   std::vector<int> dpb_max_dec_pic_buffering_minus1;
   std::vector<int> dpb_max_num_reorder_pics;
   std::vector<int> dpb_max_latency_increase_plus1;
 
 };
-
+//
 struct H266VuiParameters {
   H266VuiParameters();
   ~H266VuiParameters();
@@ -450,6 +463,7 @@ struct H266ReferencePicListStruct {
     //int num_ref_entries = 0;
       // [listIdx][rplsIdx]
     std::vector<std::vector<int>> num_ref_entries;
+        // ltrp_in_header_flag[listIdx][rplsIdx]
     std::vector<std::vector<bool>> ltrp_in_header_flag;
       // [listIdx][rplsIdx][entryIdx]
 
@@ -1318,7 +1332,7 @@ class H266Parser {
   Result ParseSliceHeader(const Nalu& nalu, H266SliceHeader* slice_header);
   // Parse picture header rbsp
   Result ParsePictureHeaderRbsp(const Nalu& nalu,H266PictureHeaderRbsp *pictureheaderrbsp);
-
+  Result ParseAccessUnitDelimeter_Rbsp(const Nalu& nalu, int *aud_id);
 
   /// Parses a slice header with picture header context
   

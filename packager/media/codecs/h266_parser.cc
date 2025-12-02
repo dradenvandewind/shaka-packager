@@ -33,6 +33,7 @@ struct H266ReferencePicListStruct;
 struct H266PredWeightTable;
 struct H266PictureHeaderStructure;
 struct H266SpsRangeExtension;
+struct H266AccessUnitDelimiter;
 
 
 
@@ -167,624 +168,6 @@ bool ExtractResolutionFromSps(const H266Sps& sps,
   GetAspectRatioInfo(sps, pixel_width, pixel_height);
   return true;
 }
-/* ####################################################################################################################################*/
-void DisplayH266SPS(const H266Sps& sps) {
-    DLOG(INFO) << "=== H.266 SPS Parameters ===";
-    
-    // Basic parameters
-    DLOG(INFO) << "## sps_seq_parameter_set_id : " << sps.sps_seq_parameter_set_id;
-    DLOG(INFO) << "## vps_id : " << sps.vps_id;
-    DLOG(INFO) << "## sps_video_parameter_set_id : " << sps.sps_video_parameter_set_id;
-    DLOG(INFO) << "## max_sublayers_minus1 : " << sps.max_sublayers_minus1;
-    DLOG(INFO) << "## sps_chroma_format_idc : " << sps.sps_chroma_format_idc;
-    DLOG(INFO) << "## sps_log2_ctu_size_minus5 : " << sps.sps_log2_ctu_size_minus5;
-    DLOG(INFO) << "## sps_ptl_dpb_hrd_params_present_flag : " << (sps.sps_ptl_dpb_hrd_params_present_flag ? "1" : "0");
-    
-    // GDR and resolution parameters
-    DLOG(INFO) << "## sps_gdr_enabled_flag : " << (sps.sps_gdr_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_ref_pic_resampling_enabled_flag : " << (sps.sps_ref_pic_resampling_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_res_change_in_clvs_allowed_flag : " << (sps.sps_res_change_in_clvs_allowed_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_pic_width_in_luma_samples : " << sps.sps_pic_width_in_luma_samples;
-    DLOG(INFO) << "## sps_pic_width_max_in_luma_samples : " << sps.sps_pic_width_max_in_luma_samples;
-    DLOG(INFO) << "## sps_pic_height_max_in_luma_samples : " << sps.sps_pic_height_max_in_luma_samples;
-    DLOG(INFO) << "## sps_pic_height_in_luma_samples : " << sps.sps_pic_height_in_luma_samples;
-    
-    // Conformance window
-    DLOG(INFO) << "## sps_conformance_window_flag : " << (sps.sps_conformance_window_flag ? "1" : "0");
-    if (sps.sps_conformance_window_flag) {
-        DLOG(INFO) << "## sps_conf_win_left_offset : " << sps.sps_conf_win_left_offset;
-        DLOG(INFO) << "## sps_conf_win_right_offset : " << sps.sps_conf_win_right_offset;
-        DLOG(INFO) << "## sps_conf_win_top_offset : " << sps.sps_conf_win_top_offset;
-        DLOG(INFO) << "## sps_conf_win_bottom_offset : " << sps.sps_conf_win_bottom_offset;
-    }
-    
-    // Subpicture parameters
-    DLOG(INFO) << "## sps_subpic_info_present_flag : " << (sps.sps_subpic_info_present_flag ? "1" : "0");
-    if (sps.sps_subpic_info_present_flag) {
-        DLOG(INFO) << "## sps_num_subpics_minus1 : " << sps.sps_num_subpics_minus1;
-        DLOG(INFO) << "## sps_independent_subpics_flag : " << (sps.sps_independent_subpics_flag ? "1" : "0");
-        DLOG(INFO) << "## sps_subpic_same_size_flag : " << (sps.sps_subpic_same_size_flag ? "1" : "0");
-        DLOG(INFO) << "## sps_subpic_id_mapping_explicitly_signalled_flag : " << (sps.sps_subpic_id_mapping_explicitly_signalled_flag ? "1" : "0");
-        DLOG(INFO) << "## sps_subpic_id_mapping_present_flag : " << (sps.sps_subpic_id_mapping_present_flag ? "1" : "0");
-        
-        for (size_t i = 0; i < sps.sps_subpic_id.size(); ++i) {
-            DLOG(INFO) << "## sps_subpic_id[" << i << "] : " << sps.sps_subpic_id[i];
-        }
-    }
-    
-    
-    // Bit depth and coding parameters
-    DLOG(INFO) << "## sps_bitdepth_minus8 : " << sps.sps_bitdepth_minus8;
-    DLOG(INFO) << "## sps_entropy_coding_sync_enabled_flag : " << (sps.sps_entropy_coding_sync_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_entry_point_offsets_present_flag : " << (sps.sps_entry_point_offsets_present_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_log2_max_pic_order_cnt_lsb_minus4 : " << sps.sps_log2_max_pic_order_cnt_lsb_minus4;
-    DLOG(INFO) << "## sps_poc_msb_cycle_flag : " << (sps.sps_poc_msb_cycle_flag ? "1" : "0");
-    if (sps.sps_poc_msb_cycle_flag) {
-        DLOG(INFO) << "## sps_poc_msb_cycle_len_minus1 : " << sps.sps_poc_msb_cycle_len_minus1;
-    }
-    
-    DLOG(INFO) << "## sps_num_extra_ph_bytes : " << sps.sps_num_extra_ph_bytes;
-    DLOG(INFO) << "## sps_num_extra_sh_bytes : " << sps.sps_num_extra_sh_bytes;
-    DLOG(INFO) << "## sps_sublayer_dpb_params_flag : " << (sps.sps_sublayer_dpb_params_flag ? "1" : "0");
-    
-    // Coding block parameters
-    DLOG(INFO) << "## sps_log2_min_luma_coding_block_size_minus2 : " << sps.sps_log2_min_luma_coding_block_size_minus2;
-    DLOG(INFO) << "## sps_partition_constraints_override_enabled_flag : " << (sps.sps_partition_constraints_override_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_log2_diff_min_qt_min_cb_intra_slice_luma : " << sps.sps_log2_diff_min_qt_min_cb_intra_slice_luma;
-    DLOG(INFO) << "## sps_max_mtt_hierarchy_depth_intra_slice_luma : " << sps.sps_max_mtt_hierarchy_depth_intra_slice_luma;
-    DLOG(INFO) << "## sps_log2_diff_max_bt_min_qt_intra_slice_luma : " << sps.sps_log2_diff_max_bt_min_qt_intra_slice_luma;
-    DLOG(INFO) << "## sps_log2_diff_max_tt_min_qt_intra_slice_luma : " << sps.sps_log2_diff_max_tt_min_qt_intra_slice_luma;
-    
-    // Chroma parameters
-    DLOG(INFO) << "## sps_qtbtt_dual_tree_intra_flag : " << (sps.sps_qtbtt_dual_tree_intra_flag ? "1" : "0");
-    if (sps.sps_qtbtt_dual_tree_intra_flag) {
-        DLOG(INFO) << "## sps_log2_diff_min_qt_min_cb_intra_slice_chroma : " << sps.sps_log2_diff_min_qt_min_cb_intra_slice_chroma;
-        DLOG(INFO) << "## sps_log2_diff_max_tt_min_qt_intra_slice_chroma : " << sps.sps_log2_diff_max_tt_min_qt_intra_slice_chroma;
-        DLOG(INFO) << "## sps_max_mtt_hierarchy_depth_intra_slice_chroma : " << sps.sps_max_mtt_hierarchy_depth_intra_slice_chroma;
-        DLOG(INFO) << "## sps_log2_diff_max_bt_min_qt_intra_slice_chroma : " << sps.sps_log2_diff_max_bt_min_qt_intra_slice_chroma;
-    }
-    
-    // Inter slice parameters
-    DLOG(INFO) << "## sps_log2_diff_min_qt_min_cb_inter_slice : " << sps.sps_log2_diff_min_qt_min_cb_inter_slice;
-    DLOG(INFO) << "## sps_max_mtt_hierarchy_depth_inter_slice : " << sps.sps_max_mtt_hierarchy_depth_inter_slice;
-    DLOG(INFO) << "## sps_log2_diff_max_bt_min_qt_inter_slice : " << sps.sps_log2_diff_max_bt_min_qt_inter_slice;
-    DLOG(INFO) << "## sps_log2_diff_max_tt_min_qt_inter_slice : " << sps.sps_log2_diff_max_tt_min_qt_inter_slice;
-    
-    // Transform parameters
-    DLOG(INFO) << "## sps_max_luma_transform_size_64_flag : " << (sps.sps_max_luma_transform_size_64_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_transform_skip_enabled_flag : " << (sps.sps_transform_skip_enabled_flag ? "1" : "0");
-    if (sps.sps_transform_skip_enabled_flag) {
-        DLOG(INFO) << "## sps_log2_transform_skip_max_size_minus2 : " << sps.sps_log2_transform_skip_max_size_minus2;
-    }
-    
-    DLOG(INFO) << "## sps_bdpcm_enabled_flag : " << (sps.sps_bdpcm_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_mts_enabled_flag : " << (sps.sps_mts_enabled_flag ? "1" : "0");
-    if (sps.sps_mts_enabled_flag) {
-        DLOG(INFO) << "## sps_explicit_mts_intra_enabled_flag : " << (sps.sps_explicit_mts_intra_enabled_flag ? "1" : "0");
-        DLOG(INFO) << "## sps_explicit_mts_inter_enabled_flag : " << (sps.sps_explicit_mts_inter_enabled_flag ? "1" : "0");
-    }
-    
-    DLOG(INFO) << "## sps_lfnst_enabled_flag : " << (sps.sps_lfnst_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_joint_cbcr_enabled_flag : " << (sps.sps_joint_cbcr_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_same_qp_table_for_chroma_flag : " << (sps.sps_same_qp_table_for_chroma_flag ? "1" : "0");
-    
-    // Filter parameters
-    DLOG(INFO) << "## sps_sao_enabled_flag : " << (sps.sps_sao_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_ccalf_enabled_flag : " << (sps.sps_ccalf_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_alf_enabled_flag : " << (sps.sps_alf_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_lmcs_enabled_flag : " << (sps.sps_lmcs_enabled_flag ? "1" : "0");
-    
-    // Prediction parameters
-    DLOG(INFO) << "## sps_weighted_pred_flag : " << (sps.sps_weighted_pred_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_weighted_bipred_flag : " << (sps.sps_weighted_bipred_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_long_term_ref_pics_flag : " << (sps.sps_long_term_ref_pics_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_inter_layer_prediction_enabled_flag : " << (sps.sps_inter_layer_prediction_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_idr_rpl_present_flag : " << (sps.sps_idr_rpl_present_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_rpl1_same_as_rpl0_flag : " << (sps.sps_rpl1_same_as_rpl0_flag ? "1" : "0");
-    
-    // Motion parameters
-    DLOG(INFO) << "## sps_ref_wraparound_enabled_flag : " << (sps.sps_ref_wraparound_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_temporal_mvp_enabled_flag : " << (sps.sps_temporal_mvp_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_sbtmvp_enabled_flag : " << (sps.sps_sbtmvp_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_amvr_enabled_flag : " << (sps.sps_amvr_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_bdof_enabled_flag : " << (sps.sps_bdof_enabled_flag ? "1" : "0");
-    if (sps.sps_bdof_enabled_flag) {
-        DLOG(INFO) << "## sps_bdof_control_present_in_ph_flag : " << (sps.sps_bdof_control_present_in_ph_flag ? "1" : "0");
-    }
-    
-    DLOG(INFO) << "## sps_smvd_enabled_flag : " << (sps.sps_smvd_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_dmvr_enabled_flag : " << (sps.sps_dmvr_enabled_flag ? "1" : "0");
-    if (sps.sps_dmvr_enabled_flag) {
-        DLOG(INFO) << "## sps_dmvr_control_present_in_ph_flag : " << (sps.sps_dmvr_control_present_in_ph_flag ? "1" : "0");
-    }
-    
-    DLOG(INFO) << "## sps_mmvd_enabled_flag : " << (sps.sps_mmvd_enabled_flag ? "1" : "0");
-    if (sps.sps_mmvd_enabled_flag) {
-        DLOG(INFO) << "## sps_mmvd_fullpel_only_enabled_flag : " << (sps.sps_mmvd_fullpel_only_enabled_flag ? "1" : "0");
-    }
-    
-    DLOG(INFO) << "## sps_six_minus_max_num_merge_cand : " << sps.sps_six_minus_max_num_merge_cand;
-    DLOG(INFO) << "## sps_sbt_enabled_flag : " << (sps.sps_sbt_enabled_flag ? "1" : "0");
-    
-    // Affine parameters
-    DLOG(INFO) << "## sps_affine_enabled_flag : " << (sps.sps_affine_enabled_flag ? "1" : "0");
-    if (sps.sps_affine_enabled_flag) {
-        DLOG(INFO) << "## sps_five_minus_max_num_subblock_merge_cand : " << sps.sps_five_minus_max_num_subblock_merge_cand;
-        DLOG(INFO) << "## sps_6param_affine_enabled_flag : " << (sps.sps_6param_affine_enabled_flag ? "1" : "0");
-        DLOG(INFO) << "## sps_affine_amvr_enabled_flag : " << (sps.sps_affine_amvr_enabled_flag ? "1" : "0");
-        DLOG(INFO) << "## sps_affine_prof_enabled_flag : " << (sps.sps_affine_prof_enabled_flag ? "1" : "0");
-        if (sps.sps_affine_prof_enabled_flag) {
-            DLOG(INFO) << "## sps_prof_control_present_in_ph_flag : " << (sps.sps_prof_control_present_in_ph_flag ? "1" : "0");
-        }
-    }
-    
-    DLOG(INFO) << "## sps_bcw_enabled_flag : " << (sps.sps_bcw_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_ciip_enabled_flag : " << (sps.sps_ciip_enabled_flag ? "1" : "0");
-    
-    // GPM parameters
-    DLOG(INFO) << "## sps_gpm_enabled_flag : " << (sps.sps_gpm_enabled_flag ? "1" : "0");
-    if (sps.sps_gpm_enabled_flag) {
-        DLOG(INFO) << "## sps_max_num_merge_cand_minus_max_num_gpm_cand : " << sps.sps_max_num_merge_cand_minus_max_num_gpm_cand;
-    }
-    
-    DLOG(INFO) << "## sps_log2_parallel_merge_level_minus2 : " << sps.sps_log2_parallel_merge_level_minus2;
-    
-    // Intra prediction parameters
-    DLOG(INFO) << "## sps_isp_enabled_flag : " << (sps.sps_isp_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_mrl_enabled_flag : " << (sps.sps_mrl_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_mip_enabled_flag : " << (sps.sps_mip_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_cclm_enabled_flag : " << (sps.sps_cclm_enabled_flag ? "1" : "0");
-    if (sps.sps_cclm_enabled_flag) {
-        DLOG(INFO) << "## sps_chroma_horizontal_collocated_flag : " << (sps.sps_chroma_horizontal_collocated_flag ? "1" : "0");
-        DLOG(INFO) << "## sps_chroma_vertical_collocated_flag : " << (sps.sps_chroma_vertical_collocated_flag ? "1" : "0");
-    }
-    
-    // Palette and other parameters
-    DLOG(INFO) << "## sps_palette_enabled_flag : " << (sps.sps_palette_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_act_enabled_flag : " << (sps.sps_act_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_min_qp_prime_ts : " << sps.sps_min_qp_prime_ts;
-    
-    // IBC parameters
-    DLOG(INFO) << "## sps_ibc_enabled_flag : " << (sps.sps_ibc_enabled_flag ? "1" : "0");
-    if (sps.sps_ibc_enabled_flag) {
-        DLOG(INFO) << "## sps_six_minus_max_num_ibc_merge_cand : " << sps.sps_six_minus_max_num_ibc_merge_cand;
-    }
-    
-    // LADF parameters
-    DLOG(INFO) << "## sps_ladf_enabled_flag : " << (sps.sps_ladf_enabled_flag ? "1" : "0");
-    if (sps.sps_ladf_enabled_flag) {
-        DLOG(INFO) << "## sps_num_ladf_intervals_minus2 : " << sps.sps_num_ladf_intervals_minus2;
-        DLOG(INFO) << "## sps_ladf_lowest_interval_qp_offset : " << sps.sps_ladf_lowest_interval_qp_offset;
-        for (size_t i = 0; i < sps.sps_ladf_qp_offset.size(); ++i) {
-            DLOG(INFO) << "## sps_ladf_qp_offset[" << i << "] : " << sps.sps_ladf_qp_offset[i];
-            DLOG(INFO) << "## sps_ladf_delta_threshold_minus1[" << i << "] : " << sps.sps_ladf_delta_threshold_minus1[i];
-        }
-    }
-    
-    // Scaling list parameters
-    DLOG(INFO) << "## sps_explicit_scaling_list_enabled_flag : " << (sps.sps_explicit_scaling_list_enabled_flag ? "1" : "0");
-    if (sps.sps_explicit_scaling_list_enabled_flag) {
-        DLOG(INFO) << "## sps_scaling_matrix_for_lfnst_disabled_flag : " << (sps.sps_scaling_matrix_for_lfnst_disabled_flag ? "1" : "0");
-        DLOG(INFO) << "## sps_scaling_matrix_for_alternative_colour_space_disabled_flag : " << (sps.sps_scaling_matrix_for_alternative_colour_space_disabled_flag ? "1" : "0");
-        DLOG(INFO) << "## sps_scaling_matrix_designated_colour_space_flag : " << (sps.sps_scaling_matrix_designated_colour_space_flag ? "1" : "0");
-    }
-    
-    // Quantization parameters
-    DLOG(INFO) << "## sps_dep_quant_enabled_flag : " << (sps.sps_dep_quant_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## sps_sign_data_hiding_enabled_flag : " << (sps.sps_sign_data_hiding_enabled_flag ? "1" : "0");
-    
-    // Virtual boundaries
-    DLOG(INFO) << "## sps_virtual_boundaries_enabled_flag : " << (sps.sps_virtual_boundaries_enabled_flag ? "1" : "0");
-    if (sps.sps_virtual_boundaries_enabled_flag) {
-        DLOG(INFO) << "## sps_virtual_boundaries_present_flag : " << (sps.sps_virtual_boundaries_present_flag ? "1" : "0");
-        if (sps.sps_virtual_boundaries_present_flag) {
-            DLOG(INFO) << "## sps_num_ver_virtual_boundaries : " << sps.sps_num_ver_virtual_boundaries;
-            for (int i = 0; i < sps.sps_num_ver_virtual_boundaries; ++i) {
-                DLOG(INFO) << "## sps_virtual_boundary_pos_x_minus1[" << i << "] : " << sps.sps_virtual_boundary_pos_x_minus1[i];
-            }
-            DLOG(INFO) << "## sps_num_hor_virtual_boundaries : " << sps.sps_num_hor_virtual_boundaries;
-            for (int i = 0; i < sps.sps_num_hor_virtual_boundaries; ++i) {
-                DLOG(INFO) << "## sps_virtual_boundary_pos_y_minus1[" << i << "] : " << sps.sps_virtual_boundary_pos_y_minus1[i];
-            }
-        }
-    }
-    
-    // Timing and HRD
-    DLOG(INFO) << "## sps_timing_hrd_params_present_flag : " << (sps.sps_timing_hrd_params_present_flag ? "1" : "0");
-    
-    DLOG(INFO) << "=== End of H.266 SPS Parameters ===";
-}
-/* ####################################################################################################################################*/
-void DisplayH266PPS(const H266Pps& pps) {
-    DLOG(INFO) << "=== H.266 PPS Parameters ===";
-    
-    // Basic parameters
-    DLOG(INFO) << "## pic_parameter_set_id : " << pps.pic_parameter_set_id;
-    DLOG(INFO) << "## seq_parameter_set_id : " << pps.seq_parameter_set_id;
-    DLOG(INFO) << "## pps_pic_parameter_set_id : " << pps.pps_pic_parameter_set_id;
-    DLOG(INFO) << "## pps_seq_parameter_set_id : " << pps.pps_seq_parameter_set_id;
-    
-    // Picture type and size
-    DLOG(INFO) << "## pps_mixed_nalu_types_in_pic_flag : " << (pps.pps_mixed_nalu_types_in_pic_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_pic_width_in_luma_samples : " << pps.pps_pic_width_in_luma_samples;
-    DLOG(INFO) << "## pps_pic_height_in_luma_samples : " << pps.pps_pic_height_in_luma_samples;
-    
-    // Conformance window
-    DLOG(INFO) << "## pps_conformance_window_flag : " << (pps.pps_conformance_window_flag ? "1" : "0");
-    if (pps.pps_conformance_window_flag) {
-        DLOG(INFO) << "## pps_conf_win_left_offset : " << pps.pps_conf_win_left_offset;
-        DLOG(INFO) << "## pps_conf_win_right_offset : " << pps.pps_conf_win_right_offset;
-        DLOG(INFO) << "## pps_conf_win_top_offset : " << pps.pps_conf_win_top_offset;
-        DLOG(INFO) << "## pps_conf_win_bottom_offset : " << pps.pps_conf_win_bottom_offset;
-    }
-    
-    // Scaling window
-    DLOG(INFO) << "## pps_scaling_window_explicit_signalling_flag : " << (pps.pps_scaling_window_explicit_signalling_flag ? "1" : "0");
-    if (pps.pps_scaling_window_explicit_signalling_flag) {
-        DLOG(INFO) << "## pps_scaling_win_left_offset : " << pps.pps_scaling_win_left_offset;
-        DLOG(INFO) << "## pps_scaling_win_right_offset : " << pps.pps_scaling_win_right_offset;
-        DLOG(INFO) << "## pps_scaling_win_top_offset : " << pps.pps_scaling_win_top_offset;
-        DLOG(INFO) << "## pps_scaling_win_bottom_offset : " << pps.pps_scaling_win_bottom_offset;
-    }
-    
-    // Output and partition flags
-    DLOG(INFO) << "## pps_output_flag_present_flag : " << (pps.pps_output_flag_present_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_no_pic_partition_flag : " << (pps.pps_no_pic_partition_flag ? "1" : "0");
-    
-    // Subpicture parameters
-    DLOG(INFO) << "## pps_subpic_id_mapping_present_flag : " << (pps.pps_subpic_id_mapping_present_flag ? "1" : "0");
-    if (pps.pps_subpic_id_mapping_present_flag) {
-        DLOG(INFO) << "## pps_num_subpics_minus1 : " << pps.pps_num_subpics_minus1;
-        DLOG(INFO) << "## pps_subpic_id_len_minus1 : " << pps.pps_subpic_id_len_minus1;
-        for (size_t i = 0; i < pps.pps_subpic_id.size(); ++i) {
-            DLOG(INFO) << "## pps_subpic_id[" << i << "] : " << pps.pps_subpic_id[i];
-        }
-    }
-    
-    // CTU and tile parameters
-    DLOG(INFO) << "## pps_log2_ctu_size_minus5 : " << pps.pps_log2_ctu_size_minus5;
-    DLOG(INFO) << "## CtbSizeY : " << pps.CtbSizeY;
-    
-    if (!pps.pps_no_pic_partition_flag) {
-        DLOG(INFO) << "## pps_num_exp_tile_columns_minus1 : " << pps.pps_num_exp_tile_columns_minus1;
-        DLOG(INFO) << "## pps_num_exp_tile_rows_minus1 : " << pps.pps_num_exp_tile_rows_minus1;
-        
-        for (size_t i = 0; i < pps.pps_tile_column_width_minus1.size(); ++i) {
-            DLOG(INFO) << "## pps_tile_column_width_minus1[" << i << "] : " << pps.pps_tile_column_width_minus1[i];
-        }
-        
-        for (size_t i = 0; i < pps.pps_tile_row_height_minus1.size(); ++i) {
-            DLOG(INFO) << "## pps_tile_row_height_minus1[" << i << "] : " << pps.pps_tile_row_height_minus1[i];
-        }
-        
-        DLOG(INFO) << "## pps_loop_filter_across_tiles_enabled_flag : " << (pps.pps_loop_filter_across_tiles_enabled_flag ? "1" : "0");
-        
-        // Slice parameters
-        DLOG(INFO) << "## pps_rect_slice_flag : " << (pps.pps_rect_slice_flag ? "1" : "0");
-        if (pps.pps_rect_slice_flag) {
-            DLOG(INFO) << "## pps_single_slice_per_subpic_flag : " << (pps.pps_single_slice_per_subpic_flag ? "1" : "0");
-            if (!pps.pps_single_slice_per_subpic_flag) {
-                DLOG(INFO) << "## pps_num_slices_in_pic_minus1 : " << pps.pps_num_slices_in_pic_minus1;
-                DLOG(INFO) << "## pps_tile_idx_delta_present_flag : " << (pps.pps_tile_idx_delta_present_flag ? "1" : "0");
-                
-                for (size_t i = 0; i < pps.pps_slice_width_in_tiles_minus1.size(); ++i) {
-                    DLOG(INFO) << "## pps_slice_width_in_tiles_minus1[" << i << "] : " << pps.pps_slice_width_in_tiles_minus1[i];
-                }
-                
-                for (size_t i = 0; i < pps.pps_slice_height_in_tiles_minus1.size(); ++i) {
-                    DLOG(INFO) << "## pps_slice_height_in_tiles_minus1[" << i << "] : " << pps.pps_slice_height_in_tiles_minus1[i];
-                }
-                
-                for (size_t i = 0; i < pps.pps_num_exp_slices_in_tile.size(); ++i) {
-                    DLOG(INFO) << "## pps_num_exp_slices_in_tile[" << i << "] : " << pps.pps_num_exp_slices_in_tile[i];
-                }
-                
-                for (size_t i = 0; i < pps.pps_exp_slice_height_in_ctus_minus1.size(); ++i) {
-                    for (size_t j = 0; j < pps.pps_exp_slice_height_in_ctus_minus1[i].size(); ++j) {
-                        DLOG(INFO) << "## pps_exp_slice_height_in_ctus_minus1[" << i << "][" << j << "] : " << pps.pps_exp_slice_height_in_ctus_minus1[i][j];
-                    }
-                }
-                
-                for (size_t i = 0; i < pps.pps_tile_idx_delta_val.size(); ++i) {
-                    DLOG(INFO) << "## pps_tile_idx_delta_val[" << i << "] : " << pps.pps_tile_idx_delta_val[i];
-                }
-            }
-        }
-        
-        DLOG(INFO) << "## pps_loop_filter_across_slices_enabled_flag : " << (pps.pps_loop_filter_across_slices_enabled_flag ? "1" : "0");
-    }
-    
-    // CABAC and reference picture parameters
-    DLOG(INFO) << "## pps_cabac_init_present_flag : " << (pps.pps_cabac_init_present_flag ? "1" : "0");
-    for (size_t i = 0; i < pps.pps_num_ref_idx_default_active_minus1.size(); ++i) {
-        DLOG(INFO) << "## pps_num_ref_idx_default_active_minus1[" << i << "] : " << pps.pps_num_ref_idx_default_active_minus1[i];
-    }
-    
-    DLOG(INFO) << "## pps_rpl1_idx_present_flag : " << (pps.pps_rpl1_idx_present_flag ? "1" : "0");
-    
-    // Weighted prediction
-    DLOG(INFO) << "## weighted_pred_flag : " << (pps.weighted_pred_flag ? "1" : "0");
-    DLOG(INFO) << "## weighted_bipred_flag : " << (pps.weighted_bipred_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_weighted_pred_flag : " << (pps.pps_weighted_pred_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_weighted_bipred_flag : " << (pps.pps_weighted_bipred_flag ? "1" : "0");
-    
-    // Reference wraparound
-    DLOG(INFO) << "## pps_ref_wraparound_enabled_flag : " << (pps.pps_ref_wraparound_enabled_flag ? "1" : "0");
-    if (pps.pps_ref_wraparound_enabled_flag) {
-        DLOG(INFO) << "## pps_pic_width_minus_wraparound_offset : " << pps.pps_pic_width_minus_wraparound_offset;
-    }
-    
-    // QP parameters
-    DLOG(INFO) << "## no_qp_delta_flag : " << (pps.no_qp_delta_flag ? "1" : "0");
-    DLOG(INFO) << "## init_qp_minus26 : " << pps.init_qp_minus26;
-    DLOG(INFO) << "## pps_init_qp_minus26 : " << pps.pps_init_qp_minus26;
-    DLOG(INFO) << "## cu_qp_delta_enabled_flag : " << (pps.cu_qp_delta_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_cu_qp_delta_enabled_flag : " << (pps.pps_cu_qp_delta_enabled_flag ? "1" : "0");
-    
-    // Chroma QP offsets
-    DLOG(INFO) << "## pps_chroma_tool_offsets_present_flag : " << (pps.pps_chroma_tool_offsets_present_flag ? "1" : "0");
-    if (pps.pps_chroma_tool_offsets_present_flag) {
-        DLOG(INFO) << "## pps_cb_qp_offset : " << pps.pps_cb_qp_offset;
-        DLOG(INFO) << "## pps_cr_qp_offset : " << pps.pps_cr_qp_offset;
-        DLOG(INFO) << "## pps_joint_cbcr_qp_offset_present_flag : " << (pps.pps_joint_cbcr_qp_offset_present_flag ? "1" : "0");
-        if (pps.pps_joint_cbcr_qp_offset_present_flag) {
-            DLOG(INFO) << "## pps_joint_cbcr_qp_offset_value : " << pps.pps_joint_cbcr_qp_offset_value;
-        }
-        DLOG(INFO) << "## pps_slice_chroma_qp_offsets_present_flag : " << (pps.pps_slice_chroma_qp_offsets_present_flag ? "1" : "0");
-        DLOG(INFO) << "## pps_cu_chroma_qp_offset_list_enabled_flag : " << (pps.pps_cu_chroma_qp_offset_list_enabled_flag ? "1" : "0");
-    }
-    
-    DLOG(INFO) << "## cu_chroma_qp_offset_list_len_minus1 : " << pps.cu_chroma_qp_offset_list_len_minus1;
-    DLOG(INFO) << "## pps_cu_chroma_qp_offset_list_len_minus1 : " << pps.pps_cu_chroma_qp_offset_list_len_minus1;
-    DLOG(INFO) << "## pps_chroma_qp_offset_list_len_minus1 : " << pps.pps_chroma_qp_offset_list_len_minus1;
-    
-    // QP offset lists
-    for (size_t i = 0; i < pps.pps_cb_qp_offset_list.size(); ++i) {
-        DLOG(INFO) << "## pps_cb_qp_offset_list[" << i << "] : " << pps.pps_cb_qp_offset_list[i];
-    }
-    
-    for (size_t i = 0; i < pps.pps_cr_qp_offset_list.size(); ++i) {
-        DLOG(INFO) << "## pps_cr_qp_offset_list[" << i << "] : " << pps.pps_cr_qp_offset_list[i];
-    }
-    
-    for (size_t i = 0; i < pps.pps_joint_cbcr_qp_offset_list.size(); ++i) {
-        DLOG(INFO) << "## pps_joint_cbcr_qp_offset_list[" << i << "] : " << pps.pps_joint_cbcr_qp_offset_list[i];
-    }
-    
-    for (size_t i = 0; i < pps.pps_qp_offset_list.size(); ++i) {
-        DLOG(INFO) << "## pps_qp_offset_list[" << i << "] : " << pps.pps_qp_offset_list[i];
-    }
-    
-    // Deblocking filter parameters
-    DLOG(INFO) << "## deblocking_filter_override_enabled_flag : " << (pps.deblocking_filter_override_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## deblocking_filter_disabled_flag : " << (pps.deblocking_filter_disabled_flag ? "1" : "0");
-    DLOG(INFO) << "## deblocking_filter_beta_offset_div2 : " << pps.deblocking_filter_beta_offset_div2;
-    DLOG(INFO) << "## deblocking_filter_tc_offset_div2 : " << pps.deblocking_filter_tc_offset_div2;
-    
-    DLOG(INFO) << "## pps_deblocking_filter_control_present_flag : " << (pps.pps_deblocking_filter_control_present_flag ? "1" : "0");
-    if (pps.pps_deblocking_filter_control_present_flag) {
-        DLOG(INFO) << "## pps_deblocking_filter_override_enabled_flag : " << (pps.pps_deblocking_filter_override_enabled_flag ? "1" : "0");
-        DLOG(INFO) << "## pps_deblocking_filter_disabled_flag : " << (pps.pps_deblocking_filter_disabled_flag ? "1" : "0");
-        if (!pps.pps_deblocking_filter_disabled_flag) {
-            DLOG(INFO) << "## pps_luma_beta_offset_div2 : " << pps.pps_luma_beta_offset_div2;
-            DLOG(INFO) << "## pps_luma_tc_offset_div2 : " << pps.pps_luma_tc_offset_div2;
-            DLOG(INFO) << "## pps_cb_beta_offset_div2 : " << pps.pps_cb_beta_offset_div2;
-            DLOG(INFO) << "## pps_cb_tc_offset_div2 : " << pps.pps_cb_tc_offset_div2;
-            DLOG(INFO) << "## pps_cr_beta_offset_div2 : " << pps.pps_cr_beta_offset_div2;
-            DLOG(INFO) << "## pps_cr_tc_offset_div2 : " << pps.pps_cr_tc_offset_div2;
-        }
-    }
-    
-    // Picture header info flags
-    DLOG(INFO) << "## rpl_info_in_ph_flag : " << (pps.rpl_info_in_ph_flag ? "1" : "0");
-    DLOG(INFO) << "## dbf_info_in_ph_flag : " << (pps.dbf_info_in_ph_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_rpl_info_in_ph_flag : " << (pps.pps_rpl_info_in_ph_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_sao_info_in_ph_flag : " << (pps.pps_sao_info_in_ph_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_alf_info_in_ph_flag : " << (pps.pps_alf_info_in_ph_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_wp_info_in_ph_flag : " << (pps.pps_wp_info_in_ph_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_qp_delta_info_in_ph_flag : " << (pps.pps_qp_delta_info_in_ph_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_dbf_info_in_ph_flag : " << (pps.pps_dbf_info_in_ph_flag ? "1" : "0");
-    
-    // Other flags
-    DLOG(INFO) << "## cross_component_prediction_enabled_flag : " << (pps.cross_component_prediction_enabled_flag ? "1" : "0");
-    DLOG(INFO) << "## chroma_tool_offsets_present_flag : " << (pps.chroma_tool_offsets_present_flag ? "1" : "0");
-    DLOG(INFO) << "## log2_sao_offset_scale_luma : " << pps.log2_sao_offset_scale_luma;
-    DLOG(INFO) << "## log2_sao_offset_scale_chroma : " << pps.log2_sao_offset_scale_chroma;
-    
-    // Tiles (legacy fields)
-    DLOG(INFO) << "## tiles_enabled_flag : " << (pps.tiles_enabled_flag ? "1" : "0");
-    if (pps.tiles_enabled_flag) {
-        DLOG(INFO) << "## uniform_tile_spacing_flag : " << (pps.uniform_tile_spacing_flag ? "1" : "0");
-        DLOG(INFO) << "## num_tile_columns_minus1 : " << pps.num_tile_columns_minus1;
-        DLOG(INFO) << "## num_tile_rows_minus1 : " << pps.num_tile_rows_minus1;
-        
-        for (size_t i = 0; i < pps.tile_column_width_minus1.size(); ++i) {
-            DLOG(INFO) << "## tile_column_width_minus1[" << i << "] : " << pps.tile_column_width_minus1[i];
-        }
-        
-        for (size_t i = 0; i < pps.tile_row_height_minus1.size(); ++i) {
-            DLOG(INFO) << "## tile_row_height_minus1[" << i << "] : " << pps.tile_row_height_minus1[i];
-        }
-        
-        DLOG(INFO) << "## loop_filter_across_tiles_enabled_flag : " << (pps.loop_filter_across_tiles_enabled_flag ? "1" : "0");
-    }
-    
-    // Extension flags
-    DLOG(INFO) << "## slice_header_extension_present_flag : " << (pps.slice_header_extension_present_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_picture_header_extension_present_flag : " << (pps.pps_picture_header_extension_present_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_slice_header_extension_present_flag : " << (pps.pps_slice_header_extension_present_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_extension_flag : " << (pps.pps_extension_flag ? "1" : "0");
-    DLOG(INFO) << "## pps_extension_data_flags : " << (pps.pps_extension_data_flags ? "1" : "0");
-    DLOG(INFO) << "## pps_extension_data_flag : " << (pps.pps_extension_data_flag ? "1" : "0");
-    
-    DLOG(INFO) << "=== End of H.266 PPS Parameters ===";
-}
-
-/* ####################################################################################################################################*/
-void DisplayGeneralTimingHrdParameters(const GeneralTimingHrdParameters& hrd) {
-    DLOG(INFO) << "=== H.266 General Timing HRD Parameters ===";
-    
-    // Timing parameters
-    DLOG(INFO) << "## num_units_in_tick : " << hrd.num_units_in_tick;
-    DLOG(INFO) << "## time_scale : " << hrd.time_scale;
-    
-    // HRD presence flags
-    DLOG(INFO) << "## general_nal_hrd_params_present_flag : " << (hrd.general_nal_hrd_params_present_flag ? "1" : "0");
-    DLOG(INFO) << "## general_vcl_hrd_params_present_flag : " << (hrd.general_vcl_hrd_params_present_flag ? "1" : "0");
-    
-    // Timing flags
-    DLOG(INFO) << "## general_same_pic_timing_in_all_ols_flag : " << (hrd.general_same_pic_timing_in_all_ols_flag ? "1" : "0");
-    DLOG(INFO) << "## general_du_hrd_params_present_flag : " << (hrd.general_du_hrd_params_present_flag ? "1" : "0");
-    
-    // DU parameters (only if decoding unit HRD params are present)
-    if (hrd.general_du_hrd_params_present_flag) {
-        DLOG(INFO) << "## tick_divisor_minus2 : " << static_cast<int>(hrd.tick_divisor_minus2);
-    }
-    
-    // Scale parameters
-    DLOG(INFO) << "## bit_rate_scale : " << static_cast<int>(hrd.bit_rate_scale);
-    DLOG(INFO) << "## cpb_size_scale : " << static_cast<int>(hrd.cpb_size_scale);
-    
-    if (hrd.general_du_hrd_params_present_flag) {
-        DLOG(INFO) << "## cpb_size_du_scale : " << static_cast<int>(hrd.cpb_size_du_scale);
-    }
-    
-    // CPB count
-    DLOG(INFO) << "## hrd_cpb_cnt_minus1 : " << hrd.hrd_cpb_cnt_minus1;
-    
-    DLOG(INFO) << "=== End of H.266 General Timing HRD Parameters ===";
-}
-/* ####################################################################################################################################*/
-void DisplayH266VPS(const H266Vps& vps) {
-    DLOG(INFO) << "=== H.266 VPS Parameters ===";
-    
-    // Basic parameters
-    DLOG(INFO) << "## vps_video_parameter_set_id : " << vps.vps_video_parameter_set_id;
-    DLOG(INFO) << "## vps_max_layers_minus1 : " << vps.vps_max_layers_minus1;
-    DLOG(INFO) << "## vps_max_sublayers_minus1 : " << vps.vps_max_sublayers_minus1;
-    
-    // Default flags
-    DLOG(INFO) << "## vps_default_ptl_dpb_hrd_max_tid_flag : " << (vps.vps_default_ptl_dpb_hrd_max_tid_flag ? "1" : "0");
-    DLOG(INFO) << "## vps_all_independent_layers_flag : " << (vps.vps_all_independent_layers_flag ? "1" : "0");
-    
-    // Layer IDs
-    for (size_t i = 0; i < vps.vps_layer_id.size(); ++i) {
-        DLOG(INFO) << "## vps_layer_id[" << i << "] : " << static_cast<int>(vps.vps_layer_id[i]);
-    }
-    
-    // Independent layer flags
-    for (size_t i = 0; i < vps.vps_independent_layer_flag.size(); ++i) {
-        DLOG(INFO) << "## vps_independent_layer_flag[" << i << "] : " << (vps.vps_independent_layer_flag[i] ? "1" : "0");
-    }
-    
-    // Max TID ref present flags
-    for (size_t i = 0; i < vps.vps_max_tid_ref_present_flag.size(); ++i) {
-        DLOG(INFO) << "## vps_max_tid_ref_present_flag[" << i << "] : " << (vps.vps_max_tid_ref_present_flag[i] ? "1" : "0");
-    }
-    
-    // Direct reference layer flags (2D)
-    for (size_t i = 0; i < vps.vps_direct_ref_layer_flag.size(); ++i) {
-        for (size_t j = 0; j < vps.vps_direct_ref_layer_flag[i].size(); ++j) {
-            DLOG(INFO) << "## vps_direct_ref_layer_flag[" << i << "][" << j << "] : " << (vps.vps_direct_ref_layer_flag[i][j] ? "1" : "0");
-        }
-    }
-    
-    // Max TID inter-layer reference pictures (2D)
-    for (size_t i = 0; i < vps.vps_max_tid_il_ref_pics_plus1.size(); ++i) {
-        for (size_t j = 0; j < vps.vps_max_tid_il_ref_pics_plus1[i].size(); ++j) {
-            DLOG(INFO) << "## vps_max_tid_il_ref_pics_plus1[" << i << "][" << j << "] : " << vps.vps_max_tid_il_ref_pics_plus1[i][j];
-        }
-    }
-    
-    // OLS (Output Layer Set) parameters
-    DLOG(INFO) << "## vps_each_layer_is_an_ols_flag : " << (vps.vps_each_layer_is_an_ols_flag ? "1" : "0");
-    
-    if (!vps.vps_each_layer_is_an_ols_flag) {
-        DLOG(INFO) << "## vps_ols_mode_idc : " << vps.vps_ols_mode_idc;
-        
-        if (vps.vps_ols_mode_idc == 2) {
-            DLOG(INFO) << "## vps_num_output_layer_sets_minus2 : " << vps.vps_num_output_layer_sets_minus2;
-            
-            // OLS output layer flags (2D)
-            for (size_t i = 0; i < vps.vps_ols_output_layer_flag.size(); ++i) {
-                for (size_t j = 0; j < vps.vps_ols_output_layer_flag[i].size(); ++j) {
-                    DLOG(INFO) << "## vps_ols_output_layer_flag[" << i << "][" << j << "] : " << (vps.vps_ols_output_layer_flag[i][j] ? "1" : "0");
-                }
-            }
-        }
-    }
-    
-    // PTL (Profile Tier Level) parameters
-    DLOG(INFO) << "## vps_num_ptls_minus1 : " << vps.vps_num_ptls_minus1;
-    
-    for (size_t i = 0; i < vps.vps_pt_present_flag.size(); ++i) {
-        DLOG(INFO) << "## vps_pt_present_flag[" << i << "] : " << (vps.vps_pt_present_flag[i] ? "1" : "0");
-    }
-    
-    for (size_t i = 0; i < vps.vps_ptl_max_tid.size(); ++i) {
-        DLOG(INFO) << "## vps_ptl_max_tid[" << i << "] : " << vps.vps_ptl_max_tid[i];
-    }
-    
-    DLOG(INFO) << "## vps_ptl_alignment_zero_bit : " << (vps.vps_ptl_alignment_zero_bit ? "1" : "0");
-    
-    for (size_t i = 0; i < vps.vps_ols_ptl_idx.size(); ++i) {
-        DLOG(INFO) << "## vps_ols_ptl_idx[" << i << "] : " << vps.vps_ols_ptl_idx[i];
-    }
-    
-    // DPB (Decoded Picture Buffer) parameters
-    DLOG(INFO) << "## vps_num_dpb_params_minus1 : " << vps.vps_num_dpb_params_minus1;
-    DLOG(INFO) << "## vps_sublayer_dpb_params_present_flag : " << (vps.vps_sublayer_dpb_params_present_flag ? "1" : "0");
-    
-    for (size_t i = 0; i < vps.vps_dpb_max_tid.size(); ++i) {
-        DLOG(INFO) << "## vps_dpb_max_tid[" << i << "] : " << vps.vps_dpb_max_tid[i];
-    }
-    
-    for (size_t i = 0; i < vps.vps_ols_dpb_pic_width.size(); ++i) {
-        DLOG(INFO) << "## vps_ols_dpb_pic_width[" << i << "] : " << vps.vps_ols_dpb_pic_width[i];
-    }
-    
-    for (size_t i = 0; i < vps.vps_ols_dpb_pic_height.size(); ++i) {
-        DLOG(INFO) << "## vps_ols_dpb_pic_height[" << i << "] : " << vps.vps_ols_dpb_pic_height[i];
-    }
-    
-    for (size_t i = 0; i < vps.vps_ols_dpb_chroma_format.size(); ++i) {
-        DLOG(INFO) << "## vps_ols_dpb_chroma_format[" << i << "] : " << vps.vps_ols_dpb_chroma_format[i];
-    }
-    
-    for (size_t i = 0; i < vps.vps_ols_dpb_bitdepth_minus8.size(); ++i) {
-        DLOG(INFO) << "## vps_ols_dpb_bitdepth_minus8[" << i << "] : " << vps.vps_ols_dpb_bitdepth_minus8[i];
-    }
-    
-    for (size_t i = 0; i < vps.vps_ols_dpb_params_idx.size(); ++i) {
-        DLOG(INFO) << "## vps_ols_dpb_params_idx[" << i << "] : " << vps.vps_ols_dpb_params_idx[i];
-    }
-    
-    // Timing and HRD parameters
-    DLOG(INFO) << "## vps_timing_hrd_params_present_flag : " << (vps.vps_timing_hrd_params_present_flag ? "1" : "0");
-    
-    if (vps.vps_timing_hrd_params_present_flag) {
-        // general_timing_hrd_parameters() would be called here
-        DLOG(INFO) << "## vps_sublayer_cpb_params_present_flag : " << (vps.vps_sublayer_cpb_params_present_flag ? "1" : "0");
-        DLOG(INFO) << "## vps_num_ols_timing_hrd_params_minus1 : " << vps.vps_num_ols_timing_hrd_params_minus1;
-        
-        for (size_t i = 0; i < vps.vps_hrd_max_tid.size(); ++i) {
-            DLOG(INFO) << "## vps_hrd_max_tid[" << i << "] : " << vps.vps_hrd_max_tid[i];
-        }
-        
-        for (size_t i = 0; i < vps.vps_ols_timing_hrd_idx.size(); ++i) {
-            DLOG(INFO) << "## vps_ols_timing_hrd_idx[" << i << "] : " << vps.vps_ols_timing_hrd_idx[i];
-        }
-    }
-    
-    // Extension flags
-    DLOG(INFO) << "## vps_extension_flag : " << (vps.vps_extension_flag ? "1" : "0");
-    DLOG(INFO) << "## vps_extension_data_flag : " << (vps.vps_extension_data_flag ? "1" : "0");
-    
-    DLOG(INFO) << "=== End of H.266 VPS Parameters ===";
-}
-/* ####################################################################################################################################*/
-
-/* ####################################################################################################################################*/
 
 /* ####################################################################################################################################*/
 
@@ -815,8 +198,8 @@ H266ProfileTierLevel::~H266ProfileTierLevel() {}
 GeneralTimingHrdParameters::GeneralTimingHrdParameters() {}
 GeneralTimingHrdParameters::~GeneralTimingHrdParameters() {}
 
-H266RefPicListEntry::H266RefPicListEntry() {}
-H266RefPicListEntry::~H266RefPicListEntry() {}
+//H266RefPicListEntry::H266RefPicListEntry() {}
+//H266RefPicListEntry::~H266RefPicListEntry() {}
 
 H266ReferencePicListStruct::H266ReferencePicListStruct() {}
 H266ReferencePicListStruct::~H266ReferencePicListStruct() {}
@@ -832,6 +215,15 @@ H266PictureHeaderRbsp::~H266PictureHeaderRbsp() {}
 
 H266SpsRangeExtension::H266SpsRangeExtension() {}
 H266SpsRangeExtension::~H266SpsRangeExtension() {}
+
+H266DPB_Parameters::H266DPB_Parameters() {}
+H266DPB_Parameters::~H266DPB_Parameters() {}
+
+H266OlsTimingHrdParameters::H266OlsTimingHrdParameters() {}
+H266OlsTimingHrdParameters::~H266OlsTimingHrdParameters() {}
+
+H266AccessUnitDelimiter::H266AccessUnitDelimiter() {}
+H266AccessUnitDelimiter::~H266AccessUnitDelimiter() {}
 
 
 
@@ -875,10 +267,58 @@ uint32_t H266Sps::GetBitDepthLuma() const {
 
 H266Parser::H266Parser() {}
 H266Parser::~H266Parser() {}
+
+H266Parser::Result H266Parser::ParseAccessUnitDelimeter_Rbsp(const Nalu& nalu, int *aud_id) {
+  LOG(INFO) << "Parsing H.266 AUD Header NALU";
+
+  //7.4.3.10 AU delimiter RBSP semantics
+  *aud_id = -1;
+  std::unique_ptr<H266Vps> vps(new H266Vps);
+
+  H26xBitReader reader;
+  reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
+  H26xBitReader* br = &reader;
+
+  int temporal_id = nalu.nuh_temporal_id();
+
+  bool tmp_aud_irap_or_gdr_flag = false;
+  TRUE_OR_RETURN(br->ReadBool(&tmp_aud_irap_or_gdr_flag));
+  DLOG(INFO) << "## aud_irap_or_gdr_flag : " << ( tmp_aud_irap_or_gdr_flag ? "1" : "0");
+  int aud_pic_type = 0;
+  TRUE_OR_RETURN(br->ReadBits(3,&aud_pic_type));
+  DLOG(INFO) << "## aud_pic_type : " << ( aud_pic_type ? "1" : "0");
+  int aud_type = aud_pic_type;
+  switch (aud_type)
+  {
+  case 0:
+    DLOG(INFO) << "aud_type for Intra: " << aud_type;
+    break;
+  case 1:
+    DLOG(INFO) << "aud_type for I or P slice : " << aud_type;
+    break;
+  case 2:
+    DLOG(INFO) << "aud_type for B, P or I slice : " << aud_type;
+    break;
+  default:
+    DLOG(INFO) << " incorrect aud_type ";
+    break;
+  }
+
+  OK_OR_RETURN(rbsp_trailing_bits(br));
+
+  if(temporal_id == 0){
+    DLOG(INFO) << " We create a vps instance to stock TemporalId From aud"  << temporal_id;
+    *aud_id = temporal_id;
+    active_vpses_.emplace(*aud_id, std::move(vps));   
+  }
+  return kOk;
+};
+
 #if 0
 H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
                                                 H266SliceHeader* slice_header) {
   LOG(INFO) << "Parsing H.266 Slice Header NALU";
+  
 
 
   
@@ -2072,11 +1512,13 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   pps->pps_subpic_id_mapping_present_flag = tmp_pps_subpic_id_mapping_present_flag;
 
   DLOG(INFO) << "## pps_subpic_id_mapping_present_flag : " << (tmp_pps_subpic_id_mapping_present_flag ? "1" : "0");
-    DLOG(INFO) << "##  WE NEED ACESS TO PPS to get : " << pps->seq_parameter_set_id;
+    DLOG(INFO) << "##  WE NEED ACCESS TO PPS to get : " << pps->seq_parameter_set_id;
 
+
+  //sps->sps_seq_parameter_set_id
   H266Sps* sps = GetSps(pps->seq_parameter_set_id);
     if(!sps){
-      sps = GetFirstSps();
+      DLOG(INFO) << "## We don t found sps instance from seq_parameter_set_id :" << pps->seq_parameter_set_id;
     }
     TRUE_OR_RETURN(sps);
 
@@ -3152,7 +2594,6 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
                 }
 
                 OK_OR_RETURN(rbsp_trailing_bits(br));
-                ///DisplayH266SPS(*sps);  
       
         
   
@@ -3702,6 +3143,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
   H26xBitReader* br = &reader;
+
   bool tmp_ph_gdr_or_irap_pic_flag = false;
   TRUE_OR_RETURN(br->ReadBool(&tmp_ph_gdr_or_irap_pic_flag));
   phs->ph_gdr_or_irap_pic_flag = tmp_ph_gdr_or_irap_pic_flag;
@@ -3736,7 +3178,10 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   DLOG(INFO) << "## phs->ph_pic_parameter_set_id : " << phs->ph_pic_parameter_set_id;
 
   std::unique_ptr<H266Pps> pps_holder;
-  const H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id);
+  //const 
+  H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id);
+  TRUE_OR_RETURN(pps);
+
 /* 
   if (!pps){
     pps = GetFirstPps();
@@ -3747,12 +3192,12 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   
 
 
-   if (!pps) {
+  /*  if (!pps) {
       pps_holder = std::make_unique<H266Pps>();
      pps = pps_holder.get();
      LOG(WARNING) << "Using default PPS (no active PPS found)   NEED investigate";
     }
-  TRUE_OR_RETURN(pps);
+  TRUE_OR_RETURN(pps); */
 
 
   LOG(INFO) << "Parsing H.266 Picture Header NALU" << "pps" << pps << "ph_pic_parameter_set_id " << phs->ph_pic_parameter_set_id; 
@@ -3760,6 +3205,9 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
    std::unique_ptr<H266Sps> sps_holder;
    //const 
    H266Sps* sps = GetSps(pps->pps_seq_parameter_set_id);
+
+  LOG(INFO) << "Parsing H.266 Picture Header NALU" << "sps  " << sps << "pps_seq_parameter_set_id " << pps->pps_seq_parameter_set_id; 
+
    
    /* if(!sps){
     sps = GetFirstSps();
@@ -3768,11 +3216,11 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     }
    } */
 
-   if (!sps) {
+   /* if (!sps) {
      sps_holder = std::make_unique<H266Sps>();
     sps = sps_holder.get();
     LOG(WARNING) << "Using default SPS (no active SPS found)";
-  }
+  } */
   if (!sps) {
     LOG(ERROR) << "SPS " << pps->pps_seq_parameter_set_id 
                << " referenced by PPS " << phs->ph_pic_parameter_set_id << " not found";
@@ -3800,6 +3248,8 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     LOG(ERROR) << "Invalid sps_num_extra_ph_bytes: " << max_extra_bytes;
     return kInvalidStream;
   }
+
+  DLOG(INFO) << " ## max_extra_bytes :" << max_extra_bytes;
    
 
 
@@ -3890,6 +3340,9 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   if( sps->sps_explicit_scaling_list_enabled_flag ) {
        bool ph_explicit_scaling_list_enabled_flag = false;
       TRUE_OR_RETURN(br->ReadBool(&ph_explicit_scaling_list_enabled_flag));
+      DLOG(INFO) << "## ph_explicit_scaling_list_enabled_flag : " << ( ph_explicit_scaling_list_enabled_flag ? "1" : "0");
+
+      
       if(phs->ph_explicit_scaling_list_enabled_flag){
         TRUE_OR_RETURN(br->ReadBits(3,&phs->ph_scaling_list_aps_id));
         DLOG(INFO) << "## ph_scaling_list_aps_id  : " << phs->ph_scaling_list_aps_id;
@@ -3898,6 +3351,8 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   }
   if( sps->sps_virtual_boundaries_enabled_flag && !sps->sps_virtual_boundaries_present_flag ) {
     TRUE_OR_RETURN(br->ReadBool(&phs->ph_virtual_boundaries_present_flag));
+    DLOG(INFO) << "## ph_virtual_boundaries_present_flag : " << ( phs->ph_virtual_boundaries_present_flag ? "1" : "0");
+
     if(phs->ph_virtual_boundaries_present_flag){
       TRUE_OR_RETURN(br->ReadUE(&phs->ph_num_ver_virtual_boundaries));
       DLOG(INFO) << "## ph_num_ver_virtual_boundaries : " << phs->ph_num_ver_virtual_boundaries;
@@ -3911,6 +3366,9 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
         phs->ph_virtual_boundary_pos_x_minus1.push_back(tmp_ph_virtual_boundary_pos_x_minus1);
       }
       TRUE_OR_RETURN(br->ReadUE(&phs->ph_num_hor_virtual_boundaries));
+      DLOG(INFO) << "## ph_num_hor_virtual_boundaries : " << phs->ph_num_hor_virtual_boundaries;
+
+
       int max_ph_num_hor_virtual_boundaries = phs->ph_num_hor_virtual_boundaries;
       int tmp_ph_virtual_boundary_pos_y_minus1 = 0;
       for( int i = 0; i < max_ph_num_hor_virtual_boundaries; i++ ){
@@ -3923,6 +3381,9 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   }
     if( pps->pps_output_flag_present_flag && !phs->ph_non_ref_pic_flag ){
       TRUE_OR_RETURN(br->ReadBool(&phs->ph_pic_output_flag));
+      DLOG(INFO) << "## ph_pic_output_flag : " << ( phs->ph_pic_output_flag ? "1" : "0");
+
+
     }
     if( !pps->pps_rpl_info_in_ph_flag ){
       phs->rpl.emplace();
@@ -3935,6 +3396,9 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     }
     if( sps->sps_partition_constraints_override_enabled_flag ){
         TRUE_OR_RETURN(br->ReadBool(&phs->ph_partition_constraints_override_flag));
+        DLOG(INFO) << "## ph_partition_constraints_override_flag : " << ( phs->ph_partition_constraints_override_flag  ? "1" : "0");
+
+
     }
     if( phs->ph_intra_slice_allowed_flag ) {
         if( phs->ph_partition_constraints_override_flag ) {
@@ -4011,10 +3475,15 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
 
       if(sps->sps_temporal_mvp_enabled_flag){
           TRUE_OR_RETURN(br->ReadBool(&phs->ph_temporal_mvp_enabled_flag));
+          DLOG(INFO) << "## ph_temporal_mvp_enabled_flag : " << ( phs->ph_temporal_mvp_enabled_flag ? "1" : "0");
+
+
           if( phs->ph_temporal_mvp_enabled_flag && pps->pps_rpl_info_in_ph_flag ) {
 
             if( phs->rpl->num_ref_entries[ 1 ][ phs->rpl->RplsIdx[ 1 ] ] > 0 ){/// evaluate this value
               TRUE_OR_RETURN(br->ReadBool(&phs->ph_collocated_from_l0_flag));
+              DLOG(INFO) << "## ph_collocated_from_l0_flag : " << ( phs->ph_collocated_from_l0_flag ? "1" : "0");
+
             }
             if( ( phs->ph_collocated_from_l0_flag && phs->rpl->num_ref_entries[0][phs->rpl->RplsIdx[0] ] > 1 ) || ( !phs->ph_collocated_from_l0_flag && phs->rpl->num_ref_entries[ 1 ][ phs->rpl->RplsIdx[ 1 ] ] > 1 ) ){
                 TRUE_OR_RETURN(br->ReadUE(&phs->ph_collocated_ref_idx));
@@ -4025,6 +3494,8 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
       }
       if(sps->sps_mmvd_fullpel_only_enabled_flag){
         TRUE_OR_RETURN(br->ReadBool(&phs->ph_mmvd_fullpel_only_flag));
+        DLOG(INFO) << "## ph_mmvd_fullpel_only_flag : " << ( phs->ph_mmvd_fullpel_only_flag ? "1" : "0");
+
       }
       bool presenceFlag = false;
       if( !pps->pps_rpl_info_in_ph_flag ){
@@ -4035,15 +3506,22 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
       }
       if( presenceFlag ) {
         TRUE_OR_RETURN(br->ReadBool(&phs->ph_mvd_l1_zero_flag));
+        DLOG(INFO) << "## ph_mvd_l1_zero_flag : " << ( phs->ph_mvd_l1_zero_flag ? "1" : "0");
+
         if(sps->sps_bdof_control_present_in_ph_flag){
           TRUE_OR_RETURN(br->ReadBool(&phs->ph_bdof_disabled_flag));
+          DLOG(INFO) << "## ph_bdof_disabled_flag : " << ( phs->ph_bdof_disabled_flag ? "1" : "0");
+
         }
         if(sps->sps_dmvr_control_present_in_ph_flag){
           TRUE_OR_RETURN(br->ReadBool(&phs->ph_dmvr_disabled_flag));
+          DLOG(INFO) << "## ph_dmvr_disabled_flag : " << ( phs->ph_dmvr_disabled_flag ? "1" : "0");
         }
       }
       if(sps->sps_prof_control_present_in_ph_flag){
         TRUE_OR_RETURN(br->ReadBool(&phs->ph_prof_disabled_flag));
+        DLOG(INFO) << "## ph_prof_disabled_flag : " << ( phs->ph_prof_disabled_flag ? "1" : "0");
+
       }
       if( ( pps->pps_weighted_pred_flag || pps->pps_weighted_bipred_flag ) && pps->pps_wp_info_in_ph_flag ){
         phs->p_pwt.emplace();
@@ -4060,21 +3538,33 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
     }
     if( pps->pps_qp_delta_info_in_ph_flag ){
       TRUE_OR_RETURN(br->ReadSE(&phs->ph_qp_delta));
+      DLOG(INFO) << "## >ph_qp_delta : " << phs->ph_qp_delta;
+
     }
     if(sps->sps_joint_cbcr_enabled_flag){
       TRUE_OR_RETURN(br->ReadBool(&phs->ph_joint_cbcr_sign_flag));
+      DLOG(INFO) << "## ph_joint_cbcr_sign_flag : " << ( phs->ph_joint_cbcr_sign_flag ? "1" : "0");
+
     }
     if( sps->sps_sao_enabled_flag && pps->pps_sao_info_in_ph_flag){
       TRUE_OR_RETURN(br->ReadBool(&phs->ph_sao_luma_enabled_flag));
+      DLOG(INFO) << "## ph_sao_luma_enabled_flag : " << ( phs->ph_sao_luma_enabled_flag ? "1" : "0");
+
       if(sps->sps_chroma_format_idc != 0){
         TRUE_OR_RETURN(br->ReadBool(&phs->ph_sao_chroma_enabled_flag));
+        DLOG(INFO) << "## ph_sao_chroma_enabled_flag : " << ( phs->ph_sao_chroma_enabled_flag ? "1" : "0");
+
       }
     }
     if(pps->pps_dbf_info_in_ph_flag){
         TRUE_OR_RETURN(br->ReadBool(&phs->ph_deblocking_params_present_flag));
+        DLOG(INFO) << "## ph_deblocking_params_present_flag : " << ( phs->ph_deblocking_params_present_flag ? "1" : "0");
+
       if(phs->ph_deblocking_params_present_flag && pps){
         if(!pps->pps_deblocking_filter_disabled_flag){
             TRUE_OR_RETURN(br->ReadBool(&phs->ph_deblocking_filter_disabled_flag));
+            DLOG(INFO) << "## ph_deblocking_filter_disabled_flag : " << ( phs->ph_deblocking_filter_disabled_flag ? "1" : "0");
+
           if(!phs->ph_deblocking_filter_disabled_flag){
               TRUE_OR_RETURN(br->ReadSE(&phs->ph_luma_beta_offset_div2));
               DLOG(INFO) << "## ph_luma_beta_offset_div2 : " << phs->ph_luma_beta_offset_div2;
@@ -4465,18 +3955,23 @@ const H266Aps* H266Parser::GetAps(int aps_id) const {
 
 // ==================== GETTERS NON-CONST ====================
 H266Pps* H266Parser::GetPps(int pps_id) {
-  auto it = active_ppses_.find(pps_id);
-  return it != active_ppses_.end() ? it->second.get() : nullptr;
+  return active_ppses_[pps_id].get();
+
+  //auto it = active_ppses_.find(pps_id);
+  //return it != active_ppses_.end() ? it->second.get() : nullptr;
 }
 
 H266Sps* H266Parser::GetSps(int sps_id) {
-  auto it = active_spses_.find(sps_id);
-  return it != active_spses_.end() ? it->second.get() : nullptr;
+  //auto it = active_spses_.find(sps_id);
+  //return it != active_spses_.end() ? it->second.get() : nullptr;
+  return active_spses_[sps_id].get();
+
 }
 
 H266Vps* H266Parser::GetVps(int vps_id) {
-  auto it = active_vpses_.find(vps_id);
-  return it != active_vpses_.end() ? it->second.get() : nullptr;
+  //auto it = active_vpses_.find(vps_id);
+  //return it != active_vpses_.end() ? it->second.get() : nullptr;
+  return active_vpses_[vps_id].get();
 }
 
 // ==================== FIRST GETTERS ====================
@@ -5252,9 +4747,12 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
                             H26xBitReader* br,
                             H266ReferencePicListStruct* rpls) {
     LOG(INFO) << "Parsing H.266 Reference picture list structure parameters";
-    
+
+    LOG(INFO) << "## listIdx = " << listIdx << "rplsIdx = " << rplsIdx;
+
     int tmp_num_ref_entries = 0;
     TRUE_OR_RETURN(br->ReadUE(&tmp_num_ref_entries));
+    DLOG(INFO) << "## num_ref_entries " << tmp_num_ref_entries;
     
     // Initialize num_ref_entries as 2D vector
     if(rpls->num_ref_entries.size() <= static_cast<size_t>(listIdx)) {
@@ -5270,6 +4768,9 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
     if(sps.sps_long_term_ref_pics_flag && rplsIdx < sps.sps_num_ref_pic_lists[listIdx] && 
        tmp_num_ref_entries > 0) {
         TRUE_OR_RETURN(br->ReadBool(&ltrp_in_header));
+        DLOG(INFO) << "##  ltrp_in_header : " << ( ltrp_in_header ? "1" : "0");
+
+        
         
         if(rpls->ltrp_in_header_flag.size() <= static_cast<size_t>(listIdx)) {
             rpls->ltrp_in_header_flag.resize(listIdx + 1);
@@ -5283,11 +4784,17 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
     rpls->entries.clear();
     for(int i = 0; i < tmp_num_ref_entries; i++) {
         H266RefPicListEntry entry;
+        entry.inter_layer_ref_pic_flag = false;
+        entry.st_ref_pic_flag = true;  
+        entry.abs_delta_poc_st = 0;
+        entry.strp_entry_sign_flag = false;
         
         if(sps.sps_inter_layer_prediction_enabled_flag) {
             bool tmp_inter_layer_ref_pic_flag = false;
             TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
             entry.inter_layer_ref_pic_flag = tmp_inter_layer_ref_pic_flag;
+            DLOG(INFO) << "## inter_layer_ref_pic_flag  : " << ( tmp_inter_layer_ref_pic_flag ? "1" : "0");
+
         }
         
         if(!entry.inter_layer_ref_pic_flag) {
@@ -5295,28 +4802,38 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
                 bool tmp_st_ref_pic_flag = false;
                 TRUE_OR_RETURN(br->ReadBool(&tmp_st_ref_pic_flag));
                 entry.st_ref_pic_flag = tmp_st_ref_pic_flag;
+                DLOG(INFO) << "## st_ref_pic_flag : " << ( tmp_st_ref_pic_flag ? "1" : "0");
+
             }
             
             if(entry.st_ref_pic_flag) {
                 int tmp_abs_delta_poc_st = 0;
                 TRUE_OR_RETURN(br->ReadUE(&tmp_abs_delta_poc_st));
                 entry.abs_delta_poc_st = tmp_abs_delta_poc_st;
+                DLOG(INFO) << "## abs_delta_poc_st : " << tmp_abs_delta_poc_st;
+
                 
                 if(entry.abs_delta_poc_st > 0) {
                     bool tmp_strp_entry_sign_flag = false;
                     TRUE_OR_RETURN(br->ReadBool(&tmp_strp_entry_sign_flag));
                     entry.strp_entry_sign_flag = tmp_strp_entry_sign_flag;
+                    DLOG(INFO) << "## strp_entry_sign_flag : " << ( tmp_strp_entry_sign_flag ? "1" : "0");
+
                 }
             } else if(!ltrp_in_header) {
                 uint32_t tmp_rpls_poc_lsb_lt = 0;
                 int bit_length = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
                 TRUE_OR_RETURN(br->ReadBits(bit_length, &tmp_rpls_poc_lsb_lt));
                 entry.rpls_poc_lsb_lt = tmp_rpls_poc_lsb_lt;
+                DLOG(INFO) << "## rpls_poc_lsb_lt : " << tmp_rpls_poc_lsb_lt;
+
             }
         } else {
             int tmp_ilrp_idx = 0;
             TRUE_OR_RETURN(br->ReadUE(&tmp_ilrp_idx));
             entry.ilrp_idx = tmp_ilrp_idx;
+            DLOG(INFO) << "## ilrp_idx : " << tmp_ilrp_idx;
+
         }
         
         rpls->entries.push_back(entry);
@@ -5326,12 +4843,14 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
 }
 
 #else 
+
+#if 0
 H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
                             const H266Sps& sps,
                             H26xBitReader* br,
                             H266ReferencePicListStruct* rpls) {
     LOG(INFO) << "Parsing H.266 Reference picture list structure parameters";
-    //in use
+    //in use   crash
     int tmp_num_ref_entries = 0;
    
     TRUE_OR_RETURN(br->ReadUE(&tmp_num_ref_entries));
@@ -5392,6 +4911,120 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
     
     return kOk;
 }
+#else
+// test
+
+H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
+                            const H266Sps& sps,
+                            H26xBitReader* br,
+                            H266ReferencePicListStruct* rpls) {
+    LOG(INFO) << "Parsing H.266 Reference picture list structure parameters";
+    LOG(INFO) << "## listIdx = " << listIdx << " rplsIdx = " << rplsIdx;
+
+    int tmp_num_ref_entries = 0;
+    TRUE_OR_RETURN(br->ReadUE(&tmp_num_ref_entries));
+    DLOG(INFO) << "## num_ref_entries " << tmp_num_ref_entries;
+    
+    // Initialize num_ref_entries as 2D vector
+    if (rpls->num_ref_entries.size() <= static_cast<size_t>(listIdx)) {
+        rpls->num_ref_entries.resize(listIdx + 1);
+    }
+    if (rpls->num_ref_entries[listIdx].size() <= static_cast<size_t>(rplsIdx)) {
+        rpls->num_ref_entries[listIdx].resize(rplsIdx + 1);
+    }
+    rpls->num_ref_entries[listIdx][rplsIdx] = tmp_num_ref_entries;
+    
+    // Initialize ltrp_in_header_flag
+    bool ltrp_in_header = false;
+    if (sps.sps_long_term_ref_pics_flag && 
+        listIdx < static_cast<int>(sps.sps_num_ref_pic_lists.size()) &&
+        rplsIdx < sps.sps_num_ref_pic_lists[listIdx] && 
+        tmp_num_ref_entries > 0) {
+        TRUE_OR_RETURN(br->ReadBool(&ltrp_in_header));
+        DLOG(INFO) << "## ltrp_in_header : " << (ltrp_in_header ? "1" : "0");
+        
+        if (rpls->ltrp_in_header_flag.size() <= static_cast<size_t>(listIdx)) {
+            rpls->ltrp_in_header_flag.resize(listIdx + 1);
+        }
+        if (rpls->ltrp_in_header_flag[listIdx].size() <= static_cast<size_t>(rplsIdx)) {
+            rpls->ltrp_in_header_flag[listIdx].resize(rplsIdx + 1);
+        }
+        rpls->ltrp_in_header_flag[listIdx][rplsIdx] = ltrp_in_header;
+    }
+    
+    // Clear entries for this specific listIdx and rplsIdx
+    // We need a 3D structure: listIdx -> rplsIdx -> vector of entries
+    if (rpls->entries.size() <= static_cast<size_t>(listIdx)) {
+        rpls->entries.resize(listIdx + 1);
+    }
+    if (rpls->entries[listIdx].size() <= static_cast<size_t>(rplsIdx)) {
+        rpls->entries[listIdx].resize(rplsIdx + 1);
+    }
+    rpls->entries[listIdx][rplsIdx].clear();
+    
+    for (int i = 0; i < tmp_num_ref_entries; i++) {
+        H266RefPicListEntry entry;
+        
+        if (sps.sps_inter_layer_prediction_enabled_flag) {
+            bool tmp_inter_layer_ref_pic_flag = false;
+            TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
+            entry.inter_layer_ref_pic_flag = tmp_inter_layer_ref_pic_flag;
+            DLOG(INFO) << "## inter_layer_ref_pic_flag : " << 
+                       (tmp_inter_layer_ref_pic_flag ? "1" : "0");
+        }
+        
+        if (!entry.inter_layer_ref_pic_flag) {
+            if (sps.sps_long_term_ref_pics_flag) {
+                bool tmp_st_ref_pic_flag = false;
+                TRUE_OR_RETURN(br->ReadBool(&tmp_st_ref_pic_flag));
+                entry.st_ref_pic_flag = tmp_st_ref_pic_flag;
+                DLOG(INFO) << "## st_ref_pic_flag : " << 
+                           (tmp_st_ref_pic_flag ? "1" : "0");
+            }
+            
+            if (entry.st_ref_pic_flag) {
+                int tmp_abs_delta_poc_st = 0;
+                TRUE_OR_RETURN(br->ReadUE(&tmp_abs_delta_poc_st));
+                entry.abs_delta_poc_st = tmp_abs_delta_poc_st;
+                DLOG(INFO) << "## abs_delta_poc_st : " << tmp_abs_delta_poc_st;
+                
+                if (tmp_abs_delta_poc_st > 0) {
+                    bool tmp_strp_entry_sign_flag = false;
+                    TRUE_OR_RETURN(br->ReadBool(&tmp_strp_entry_sign_flag));
+                    entry.strp_entry_sign_flag = tmp_strp_entry_sign_flag;
+                    DLOG(INFO) << "## strp_entry_sign_flag : " << 
+                               (tmp_strp_entry_sign_flag ? "1" : "0");
+                }
+            } else if (!ltrp_in_header) {
+                uint32_t tmp_rpls_poc_lsb_lt = 0;
+                int bit_length = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
+                TRUE_OR_RETURN(br->ReadBits(bit_length, &tmp_rpls_poc_lsb_lt));
+                entry.rpls_poc_lsb_lt = tmp_rpls_poc_lsb_lt;
+                DLOG(INFO) << "## rpls_poc_lsb_lt : " << tmp_rpls_poc_lsb_lt;
+            }
+        } else {
+            int tmp_ilrp_idx = 0;
+            TRUE_OR_RETURN(br->ReadUE(&tmp_ilrp_idx));
+            entry.ilrp_idx = tmp_ilrp_idx;
+            DLOG(INFO) << "## ilrp_idx : " << tmp_ilrp_idx;
+        }
+        
+        rpls->entries[listIdx][rplsIdx].push_back(entry);
+    }
+    
+    return kOk;
+}
+
+
+
+
+
+#endif 
+
+
+
+
+
 #endif
 #endif
 
@@ -5412,6 +5045,9 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(
   // Read num_ref_entries
   int tmp_num_ref_entries = 0;
   TRUE_OR_RETURN(br->ReadUE(&tmp_num_ref_entries));
+  DLOG(INFO) << "## num_ref_entries : " << tmp_num_ref_entries;
+
+  
   
   // Resize num_ref_entries to accommodate [listIdx][rplsIdx]
   if (rpls->num_ref_entries.size() <= static_cast<size_t>(listIdx)) {
@@ -5429,6 +5065,8 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(
       tmp_num_ref_entries > 0) {
     
     TRUE_OR_RETURN(br->ReadBool(&ltrp_in_header));
+    DLOG(INFO) << "## ltrp_in_header : " << ( ltrp_in_header ? "1" : "0");
+
     
     // Resize ltrp_in_header_flag
     if (rpls->ltrp_in_header_flag.size() <= static_cast<size_t>(listIdx)) {
@@ -5462,6 +5100,8 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(
       bool tmp_inter_layer_ref_pic_flag = false;
       TRUE_OR_RETURN(br->ReadBool(&tmp_inter_layer_ref_pic_flag));
       entry.inter_layer_ref_pic_flag = tmp_inter_layer_ref_pic_flag;
+      DLOG(INFO) << "## inter_layer_ref_pic_flag : " << ( tmp_inter_layer_ref_pic_flag ? "1" : "0");
+
     }
     
     if (!entry.inter_layer_ref_pic_flag) {
@@ -5473,6 +5113,8 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(
         bool tmp_st_ref_pic_flag = false;
         TRUE_OR_RETURN(br->ReadBool(&tmp_st_ref_pic_flag));
         entry.st_ref_pic_flag = tmp_st_ref_pic_flag;
+        DLOG(INFO) << "## st_ref_pic_flag : " << ( tmp_st_ref_pic_flag ? "1" : "0");
+
       }
       
       if (entry.st_ref_pic_flag) {
@@ -5480,11 +5122,15 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(
         int tmp_abs_delta_poc_st = 0;
         TRUE_OR_RETURN(br->ReadUE(&tmp_abs_delta_poc_st));
         entry.abs_delta_poc_st = tmp_abs_delta_poc_st;
+        DLOG(INFO) << "## abs_delta_poc_st : " << tmp_abs_delta_poc_st;
+
         
         if (entry.abs_delta_poc_st > 0) {
           bool tmp_strp_entry_sign_flag = false;
           TRUE_OR_RETURN(br->ReadBool(&tmp_strp_entry_sign_flag));
           entry.strp_entry_sign_flag = tmp_strp_entry_sign_flag;
+          DLOG(INFO) << "## strp_entry_sign_flag : " << ( tmp_strp_entry_sign_flag ? "1" : "0");
+
         }
       } else if (!ltrp_in_header) {
         // Long-term reference picture with POC in structure
@@ -5492,18 +5138,22 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(
         int bit_length = sps.sps_log2_max_pic_order_cnt_lsb_minus4 + 4;
         TRUE_OR_RETURN(br->ReadBits(bit_length, &tmp_rpls_poc_lsb_lt));
         entry.rpls_poc_lsb_lt = tmp_rpls_poc_lsb_lt;
+        DLOG(INFO) << "## rpls_poc_lsb_lt : " << tmp_rpls_poc_lsb_lt;
+
       }
     } else {
       // Inter-layer reference picture
       int tmp_ilrp_idx = 0;
       TRUE_OR_RETURN(br->ReadUE(&tmp_ilrp_idx));
       entry.ilrp_idx = tmp_ilrp_idx;
+      DLOG(INFO) << "## tmp_ilrp_idx : " << tmp_ilrp_idx;
+
     }
     
     rpls->entries[listIdx][rplsIdx].push_back(entry);
   }
   
-  DLOG(INFO) << "Parsed " << tmp_num_ref_entries << " ref entries for list " 
+  DLOG(INFO) << "Parsed " << tmp_num_ref_entries << " ref entries for list L" 
              << listIdx << ", index " << rplsIdx;
   
   return kOk;
