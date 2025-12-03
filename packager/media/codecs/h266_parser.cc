@@ -3190,15 +3190,18 @@ H266Parser::Result H266Parser::ParseLmcsData(H26xBitReader* br, H266LmcsData* lm
   TRUE_OR_RETURN(br->ReadUE(&lmcs_data->lmcs_delta_cw_prec_minus1));
   DLOG(INFO) << "## lmcs_delta_cw_prec_minus1: " << lmcs_data->lmcs_delta_cw_prec_minus1;
   
-  int max_bin_idx = 15;  // Selon spécification H.266
+  int max_bin_idx = 15;  // from spec
   int min_bin_idx = lmcs_data->lmcs_min_bin_idx;
   int max_bin = max_bin_idx - lmcs_data->lmcs_delta_max_bin_idx;
   
   // Parser les delta CW values
   for (int i = min_bin_idx; i <= max_bin; i++) {
     int delta_abs_cw;
-    TRUE_OR_RETURN(br->ReadBits(lmcs_data->lmcs_delta_cw_prec_minus1 + 1, &delta_abs_cw));
+    int len_lmcs_delta_cw_prec_minus1  = lmcs_data->lmcs_delta_cw_prec_minus1 + 1;
+    TRUE_OR_RETURN(br->ReadBits(len_lmcs_delta_cw_prec_minus1, &delta_abs_cw));
     lmcs_data->lmcs_delta_abs_cw.push_back(delta_abs_cw);
+    DLOG(INFO) << "## lmcs_delta_abs_cw: " << lmcs_data->lmcs_delta_abs_cw;
+
     
     bool delta_sign_flag = false;
     if (delta_abs_cw > 0) {
@@ -3206,7 +3209,7 @@ H266Parser::Result H266Parser::ParseLmcsData(H26xBitReader* br, H266LmcsData* lm
     }
     lmcs_data->lmcs_delta_sign_cw_flag.push_back(delta_sign_flag);
   }
-  
+  //aps_chroma_present_flag
   if (chroma_present) {
     TRUE_OR_RETURN(br->ReadBits(3, &lmcs_data->lmcs_delta_abs_crs));
     DLOG(INFO) << "## lmcs_delta_abs_crs: " << lmcs_data->lmcs_delta_abs_crs;
