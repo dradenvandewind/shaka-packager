@@ -3476,12 +3476,12 @@ H266Parser::Result H266Parser::ParseAps(const Nalu& nalu, int* aps_id, int* aps_
   if(aps->aps_params_type == NALU::KvvcALFAPS){
     DLOG(INFO) << " Processing ALF APS";
     aps->alfd = H266AlfData();
-        TRUE_OR_RETURN(ParseAlfData(br, &aps->alfd.value(), aps->aps_chroma_present_flag));
+    TRUE_OR_RETURN(ParseAlfData(br, &aps->alfd.value(), aps->aps_chroma_present_flag));
 
   } else if(aps->aps_params_type == NALU::KvvcLMCSAPS){
     DLOG(INFO) << " Processing LMCS APS";
     aps->lmcsd = H266LmcsData();
-        TRUE_OR_RETURN(ParseLmcsData(br, &aps->lmcsd.value(), aps->aps_chroma_present_flag));    
+    TRUE_OR_RETURN(ParseLmcsData(br, &aps->lmcsd.value(), aps->aps_chroma_present_flag));    
     
 
   } else if(aps->aps_params_type == NALU::KvvcSCALINGAPS){

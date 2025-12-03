@@ -83,7 +83,6 @@ bool EsParserH266::ProcessNalu(const Nalu& nalu,
       // VCL NALUs
       ProcessVclNalu(nalu, video_slice_info);
       break;
-
     case Nalu::H266_VPS_NUT:
     case Nalu::H266_SPS_NUT:
     case Nalu::H266_PPS_NUT:
@@ -427,9 +426,22 @@ bool EsParserH266::ProcessOtherNonVclNalu(const Nalu& nalu) {
       // Decoding Capability Information
       break;
     case Nalu::H266_PREFIX_APS_NUT:
-    case Nalu::H266_SUFFIX_APS_NUT:
+    case Nalu::H266_SUFFIX_APS_NUT: {
       LOG(INFO) << "Processing APS need add processing";
+      int aps_type;
+      int aps_id;
+      auto status = parser_->ParseAps(nalu, &aps_id, &aps_type);
+      if ( status == H266Parser::kOk)
+      {
+          LOG(INFO) << "Success Processing APS";
+      } else if (status == H266Parser::kUnsupportedStream) {
+          LOG(INFO) << "Unsupported feature in H.266 Adaptation parameter set header rbsp.";
+          new_stream_info_cb_(nullptr);  // Signal an error.
+      } else {
+          return false;                 
+      }
       break;
+    }
     case Nalu::H266_OPI_NUT:
       // Operating Point Information
       break;
