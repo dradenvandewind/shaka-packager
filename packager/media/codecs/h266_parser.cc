@@ -3128,56 +3128,89 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 }
 #endif
 
-H266Parser::Result H266Parser::ParseScalingListData(H26xBitReader* br, H266Scalinglistdata* scaling_data) {
+H266Parser::Result H266Parser::ParseScalingListData(H26xBitReader* br, H266Scalinglistdata* scaling_data, bool chroma_present) {
   // H.266 supporte plusieurs matrices de scaling list
   // Ici, un exemple simplifié
+// H.266 has 28 scaling lists (0-27)
+  int num_lists = 28;  
+  // 7.4.3.4, deriving DiagScanOrder
+    static const uint8_t DiagScanOrder[64][2] = {
+        { 0,  0, }, { 0,  1, }, { 1,  0, }, { 0,  2, }, { 1,  1, }, { 2,  0, }, { 0,  3, }, { 1,  2, },
+        { 2,  1, }, { 3,  0, }, { 0,  4, }, { 1,  3, }, { 2,  2, }, { 3,  1, }, { 4,  0, }, { 0,  5, },
+        { 1,  4, }, { 2,  3, }, { 3,  2, }, { 4,  1, }, { 5,  0, }, { 0,  6, }, { 1,  5, }, { 2,  4, },
+        { 3,  3, }, { 4,  2, }, { 5,  1, }, { 6,  0, }, { 0,  7, }, { 1,  6, }, { 2,  5, }, { 3,  4, },
+        { 4,  3, }, { 5,  2, }, { 6,  1, }, { 7,  0, }, { 1,  7, }, { 2,  6, }, { 3,  5, }, { 4,  4, },
+        { 5,  3, }, { 6,  2, }, { 7,  1, }, { 2,  7, }, { 3,  6, }, { 4,  5, }, { 5,  4, }, { 6,  3, },
+        { 7,  2, }, { 3,  7, }, { 4,  6, }, { 5,  5, }, { 6,  4, }, { 7,  3, }, { 4,  7, }, { 5,  6, },
+        { 6,  5, }, { 7,  4, }, { 5,  7, }, { 6,  6, }, { 7,  5, }, { 6,  7, }, { 7,  6, }, { 7,  7, }, };
   
-  int num_lists = 28;  // Nombre de matrices dans H.266 (exemple)
-  
-  for (int list_id = 0; list_id < num_lists; list_id++) {
-    bool copy_mode_flag;
-    TRUE_OR_RETURN(br->ReadBool(&copy_mode_flag));
-    scaling_data->scaling_list_copy_mode_flag.push_back(copy_mode_flag);
-    
-    if (!copy_mode_flag) {
-      bool pred_mode_flag;
-      TRUE_OR_RETURN(br->ReadBool(&pred_mode_flag));
-      scaling_data->scaling_list_pred_mode_flag.push_back(pred_mode_flag);
-      
-      if (pred_mode_flag) {
+  for (int id = 0; id < num_lists; id++) {
+    int matrixSize = id < 2 ? 2 : ( id < 8 ? 4 : 8 );
+    //aps_chroma_present_flag
+    if( chroma_present || id % 3 == 2 || id == 27 ) {
+
+      bool copy_mode_flag;
+      TRUE_OR_RETURN(br->ReadBool(&copy_mode_flag));
+      scaling_data->scaling_list_copy_mode_flag.push_back(copy_mode_flag);
+
+      if (!copy_mode_flag) {
+        bool pred_mode_flag;
+        TRUE_OR_RETURN(br->ReadBool(&pred_mode_flag));
+        scaling_data->scaling_list_pred_mode_flag.push_back(pred_mode_flag);
+      }
+      if( ( scaling_list_copy_mode_flag[id] || scaling_list_pred_mode_flag[id] ) && id != 0 && id != 2 && id != 8 ){
         int pred_id_delta;
         TRUE_OR_RETURN(br->ReadUE(&pred_id_delta));
         scaling_data->scaling_list_pred_id_delta.push_back(pred_id_delta);
+        if (pred_id_delta == 0){
+          int nextCoef = 0;
+          if( id > 13 ) {
+            int idx = id - 14;
+            if (idx >= scaling_data->scaling_list_dc_coef.size()) {
+              scaling_data->scaling_list_dc_coef.resize(idx + 1);
+            }
+
+            int tmp_scaling_list_dc_coef = 0;
+            TRUE_OR_RETURN(br->ReadSE(&tmp_scaling_list_dc_coef));
+            // check im not sure
+            scaling_data->scaling_list_dc_coef[idx].push_back(tmp_scaling_list_dc_coef);
+          }
+          for( int i = 0; i < matrixSize * matrixSize; i++ ) {
+            int x = DiagScanOrder[i][0];
+            int y = DiagScanOrder[i][1];
+            if( !( id > 25 && x >= 4 && y >= 4 ) ) {
+              tmp_scaling_list_delta_coef = 0;
+
+              if(id > alf_data->scaling_list_delta_coef.size()){
+                scaling_data->scaling_list_delta_coef.resize(id + 1);
+              }
+              TRUE_OR_RETURN(br->ReadSE(&tmp_scaling_list_delta_coef));
+              scaling_data->scaling_list_delta_coef.push_back(tmp_scaling_list_delta_coef);
+              nextCoef += scaling_data->scaling_list_delta_coef[ id ][ i ];
+            }
+            if (scaling_data->ScalingList.size() <= static_cast<size_t>(id)) {
+                scaling_data->ScalingList.resize(id + 1);
+                scaling_data->ScalingList[id].resize(matrixSize * matrixSize);
+            }
+            scaling_data->ScalingList[id][i] = nextCoef;
+          }
+        }
       } else {
-        // Parser les coefficients explicitement
-        int size_id = list_id % 4;  // Détermine la taille: 0=4x4, 1=8x8, 2=16x16, 3=32x32
-        int matrix_size = (1 << (size_id + 2)) * (1 << (size_id + 2));
-        
-        // Parser le coefficient DC pour les matrices 16x16 et 32x32
-        if (size_id >= 2) {
-          int dc_coef;
-          TRUE_OR_RETURN(br->ReadSE(&dc_coef));
-          scaling_data->scaling_list_dc_coef.push_back(dc_coef);
+        scaling_data->scaling_list_pred_id_delta.push_back(0);
+        if (scaling_data->scaling_list_delta_coef.size() <= static_cast<size_t>(id)) {
+          scaling_data->scaling_list_delta_coef.resize(id + 1);
         }
-        
-        // Parser les delta coefficients
-        std::vector<int> delta_coeffs;
-        int next_coeff = 8;  // Valeur initiale
-        
-        for (int i = 0; i < matrix_size; i++) {
-          int delta_coef;
-          TRUE_OR_RETURN(br->ReadSE(&delta_coef));
-          delta_coeffs.push_back(delta_coef);
-          next_coeff = (next_coeff + delta_coef + 256) % 256;
-        }
-        
-        scaling_data->scaling_list_delta_coef.push_back(delta_coeffs);
       }
+    } else {
+      scaling_data->scaling_list_copy_mode_flag.push_back(false);
+      scaling_data->scaling_list_pred_mode_flag.push_back(false);
+      scaling_data->scaling_list_pred_id_delta.push_back(0);
     }
   }
-  
   return kOk;
 }
+     
+
 
 
 H266Parser::Result H266Parser::ParseLmcsData(H26xBitReader* br, H266LmcsData* lmcs_data, bool chroma_present) {
@@ -3217,8 +3250,14 @@ H266Parser::Result H266Parser::ParseLmcsData(H26xBitReader* br, H266LmcsData* lm
     if (lmcs_data->lmcs_delta_abs_crs > 0) {
       TRUE_OR_RETURN(br->ReadBool(&lmcs_data->lmcs_delta_sign_crs_flag));
       DLOG(INFO) << "## lmcs_delta_sign_crs_flag: " << lmcs_data->lmcs_delta_sign_crs_flag;
+    } else {
+      lmcs_data->lmcs_delta_sign_crs_flag = false; 
     }
+  } else {
+    lmcs_data->lmcs_delta_abs_crs = 0;
+    lmcs_data->lmcs_delta_sign_crs_flag = false;
   }
+  lmcs_data->lmcs_max_bin_idx = max_bin;
   
   return kOk;
 }
