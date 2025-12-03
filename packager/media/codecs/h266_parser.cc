@@ -35,7 +35,7 @@ struct H266PictureHeaderStructure;
 struct H266SpsRangeExtension;
 struct H266AccessUnitDelimiter;
 
-struct H266AdaptationParameterSetRbsp;
+struct H266Aps;
 struct H266AlfData;
 struct H266LmcsData;
 struct H266Scalinglistdata;
@@ -230,8 +230,8 @@ H266OlsTimingHrdParameters::~H266OlsTimingHrdParameters() {}
 H266AccessUnitDelimiter::H266AccessUnitDelimiter() {}
 H266AccessUnitDelimiter::~H266AccessUnitDelimiter() {}
 
-H266AdaptationParameterSetRbsp::H266AdaptationParameterSetRbsp() {}
-H266AdaptationParameterSetRbsp::~H266AdaptationParameterSetRbsp() {}
+H266Aps::H266Aps() {}
+H266Aps::~H266Aps() {}
 
 H266AlfData::H266AlfData() {};
 H266AlfData::~H266AlfData() {};
@@ -3128,10 +3128,291 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 }
 #endif
 
+H266Parser::Result H266Parser::ParseScalingListData(H26xBitReader* br, H266Scalinglistdata* scaling_data) {
+  // H.266 supporte plusieurs matrices de scaling list
+  // Ici, un exemple simplifié
+  
+  int num_lists = 28;  // Nombre de matrices dans H.266 (exemple)
+  
+  for (int list_id = 0; list_id < num_lists; list_id++) {
+    bool copy_mode_flag;
+    TRUE_OR_RETURN(br->ReadBool(&copy_mode_flag));
+    scaling_data->scaling_list_copy_mode_flag.push_back(copy_mode_flag);
+    
+    if (!copy_mode_flag) {
+      bool pred_mode_flag;
+      TRUE_OR_RETURN(br->ReadBool(&pred_mode_flag));
+      scaling_data->scaling_list_pred_mode_flag.push_back(pred_mode_flag);
+      
+      if (pred_mode_flag) {
+        int pred_id_delta;
+        TRUE_OR_RETURN(br->ReadUE(&pred_id_delta));
+        scaling_data->scaling_list_pred_id_delta.push_back(pred_id_delta);
+      } else {
+        // Parser les coefficients explicitement
+        int size_id = list_id % 4;  // Détermine la taille: 0=4x4, 1=8x8, 2=16x16, 3=32x32
+        int matrix_size = (1 << (size_id + 2)) * (1 << (size_id + 2));
+        
+        // Parser le coefficient DC pour les matrices 16x16 et 32x32
+        if (size_id >= 2) {
+          int dc_coef;
+          TRUE_OR_RETURN(br->ReadSE(&dc_coef));
+          scaling_data->scaling_list_dc_coef.push_back(dc_coef);
+        }
+        
+        // Parser les delta coefficients
+        std::vector<int> delta_coeffs;
+        int next_coeff = 8;  // Valeur initiale
+        
+        for (int i = 0; i < matrix_size; i++) {
+          int delta_coef;
+          TRUE_OR_RETURN(br->ReadSE(&delta_coef));
+          delta_coeffs.push_back(delta_coef);
+          next_coeff = (next_coeff + delta_coef + 256) % 256;
+        }
+        
+        scaling_data->scaling_list_delta_coef.push_back(delta_coeffs);
+      }
+    }
+  }
+  
+  return kOk;
+}
+
+
+H266Parser::Result H266Parser::ParseLmcsData(H26xBitReader* br, H266LmcsData* lmcs_data, bool chroma_present) {
+  TRUE_OR_RETURN(br->ReadUE(&lmcs_data->lmcs_min_bin_idx));
+  DLOG(INFO) << "## lmcs_min_bin_idx: " << lmcs_data->lmcs_min_bin_idx;
+  
+  TRUE_OR_RETURN(br->ReadUE(&lmcs_data->lmcs_delta_max_bin_idx));
+  DLOG(INFO) << "## lmcs_delta_max_bin_idx: " << lmcs_data->lmcs_delta_max_bin_idx;
+  
+  TRUE_OR_RETURN(br->ReadUE(&lmcs_data->lmcs_delta_cw_prec_minus1));
+  DLOG(INFO) << "## lmcs_delta_cw_prec_minus1: " << lmcs_data->lmcs_delta_cw_prec_minus1;
+  
+  int max_bin_idx = 15;  // Selon spécification H.266
+  int min_bin_idx = lmcs_data->lmcs_min_bin_idx;
+  int max_bin = max_bin_idx - lmcs_data->lmcs_delta_max_bin_idx;
+  
+  // Parser les delta CW values
+  for (int i = min_bin_idx; i <= max_bin; i++) {
+    int delta_abs_cw;
+    TRUE_OR_RETURN(br->ReadBits(lmcs_data->lmcs_delta_cw_prec_minus1 + 1, &delta_abs_cw));
+    lmcs_data->lmcs_delta_abs_cw.push_back(delta_abs_cw);
+    
+    bool delta_sign_flag = false;
+    if (delta_abs_cw > 0) {
+      TRUE_OR_RETURN(br->ReadBool(&delta_sign_flag));
+    }
+    lmcs_data->lmcs_delta_sign_cw_flag.push_back(delta_sign_flag);
+  }
+  
+  if (chroma_present) {
+    TRUE_OR_RETURN(br->ReadBits(3, &lmcs_data->lmcs_delta_abs_crs));
+    DLOG(INFO) << "## lmcs_delta_abs_crs: " << lmcs_data->lmcs_delta_abs_crs;
+    
+    if (lmcs_data->lmcs_delta_abs_crs > 0) {
+      TRUE_OR_RETURN(br->ReadBool(&lmcs_data->lmcs_delta_sign_crs_flag));
+      DLOG(INFO) << "## lmcs_delta_sign_crs_flag: " << lmcs_data->lmcs_delta_sign_crs_flag;
+    }
+  }
+  
+  return kOk;
+}
+
+
+H266Parser::Result H266Parser::ParseAlfData(H26xBitReader* br, H266AlfData* alf_data, bool chroma_present) {
+  // Parse flags de base
+  TRUE_OR_RETURN(br->ReadBool(&alf_data->alf_luma_filter_signal_flag));
+  DLOG(INFO) << "## alf_luma_filter_signal_flag: " << alf_data->alf_luma_filter_signal_flag;
+  
+  if (chroma_present) {
+    TRUE_OR_RETURN(br->ReadBool(&alf_data->alf_chroma_filter_signal_flag));
+    DLOG(INFO) << "## alf_chroma_filter_signal_flag: " << alf_data->alf_chroma_filter_signal_flag;
+    
+    if (alf_data->alf_chroma_filter_signal_flag) {
+      TRUE_OR_RETURN(br->ReadBool(&alf_data->alf_cc_cb_filter_signal_flag));
+      DLOG(INFO) << "## alf_cc_cb_filter_signal_flag: " << alf_data->alf_cc_cb_filter_signal_flag;
+      
+      TRUE_OR_RETURN(br->ReadBool(&alf_data->alf_cc_cr_filter_signal_flag));
+      DLOG(INFO) << "## alf_cc_cr_filter_signal_flag: " << alf_data->alf_cc_cr_filter_signal_flag;
+    }
+  }
+  
+  if (alf_data->alf_luma_filter_signal_flag) {
+    // Parse données Luma
+    TRUE_OR_RETURN(br->ReadBool(&alf_data->alf_luma_clip_flag));
+    DLOG(INFO) << "## alf_luma_clip_flag: " << alf_data->alf_luma_clip_flag;
+    
+    TRUE_OR_RETURN(br->ReadUE(&alf_data->alf_luma_num_filters_signalled_minus1));
+    DLOG(INFO) << "## alf_luma_num_filters_signalled_minus1: " << alf_data->alf_luma_num_filters_signalled_minus1;
+    
+    int num_luma_filters = alf_data->alf_luma_num_filters_signalled_minus1 + 1;
+    if( ald_data->alf_luma_num_filters_signalled_minus1 > 0 ) {
+        // Parser les indices delta pour chaque filtre
+        for (int i = 0; i < num_luma_filters; i++) {
+          int delta_idx;
+          int len_alf_luma_coeff_delta_idx = 0;
+          while ((1 << len_alf_luma_coeff_delta_idx) < num_luma_filters) {
+            len_alf_luma_coeff_delta_idx++;
+          }
+          TRUE_OR_RETURN(br->ReadBits(len_alf_luma_coeff_delta_idx,&delta_idx));
+          alf_data->alf_luma_coeff_delta_idx.push_back(delta_idx);
+        }
+        DLOG(INFO) << "## Parsed " << num_luma_filters << " luma delta indices";
+    }
+    for( int sfIdx = 0; sfIdx <= alf_data->alf_luma_num_filters_signalled_minus1; sfIdx++ ){
+         /************ set conf after reading vvc std   ************************ */
+        // Nombre total de coefficients (dépend de la spécification)
+        int total_coeffs = 12;  //from  spec/
+        int total_filters = 25; // from spec 
+    
+        // Parser les coefficients absolus
+        for (int i = 0; i < total_coeffs * total_filters; i++) {
+          int coeff_abs;
+          TRUE_OR_RETURN(br->ReadBits(8, &coeff_abs));  // 8 bits par coefficient
+          //alf_luma_coeff_abs[ sfIdx ][ j ]
+          alf_data->alf_luma_coeff_abs.push_back(coeff_abs);
+          if(coeff_abs){
+             int coeff_sign;
+            TRUE_OR_RETURN(br->ReadBits(1, &coeff_sign));  // 1 bit par signe
+            alf_luma_coeff_sign[ sfIdx ][ j ]
+            alf_data->alf_luma_coeff_sign.push_back(coeff_sign);
+            DLOG(INFO) << "## alf_data->alf_luma_coeff_sign : " << alf_data->alf_luma_coeff_sign;
+          }
+        }
+    }
+    
+    
+    if (alf_data->alf_luma_clip_flag) {
+      // Parser les indices de clip
+     for (int i = 0; i < alf_data->alf_luma_num_filters_signalled_minus1; i++) {
+        for( j = 0; j < 12; j++ ){
+            int clip_idx;
+            TRUE_OR_RETURN(br->ReadBits(2, &clip_idx));  // 2 bits par index de clip
+            alf_data->alf_luma_clip_idx.push_back(clip_idx);
+            DLOG(INFO) << "## alf_data->alf_luma_clip_idx : " << alf_data->alf_luma_clip_idx;
+
+        }
+      }
+    }
+  }
+
+  
+  if (alf_data->alf_chroma_filter_signal_flag && chroma_present) {
+    // Parse données Chroma
+    TRUE_OR_RETURN(br->ReadBool(&alf_data->alf_chroma_clip_flag));
+    DLOG(INFO) << "## alf_chroma_clip_flag : " << ( alf_data->alf_chroma_clip_flag ? "1" : "0");
+
+    
+    TRUE_OR_RETURN(br->ReadUE(&alf_data->alf_chroma_num_alt_filters_minus1));
+    DLOG(INFO) << "## alf_chroma_num_alt_filters_minus1: " << alf_data->alf_chroma_num_alt_filters_minus1;
+    
+    int num_chroma_filters = alf_data->alf_chroma_num_alt_filters_minus1 + 1;
+    int chroma_coeffs = 6;  // from spec
+    
+    for (int f = 0; f < num_chroma_filters; f++) {
+      std::vector<int> coeff_abs_row;
+      std::vector<int> coeff_sign_row;
+      std::vector<int> clip_idx_row;
+      
+      for (int c = 0; c < chroma_coeffs; c++) {
+        int coeff_abs;
+        TRUE_OR_RETURN(br->ReadUE(&coeff_abs));
+        coeff_abs_row.push_back(coeff_abs);
+        
+        int coeff_sign;
+        TRUE_OR_RETURN(br->ReadBits(1, &coeff_sign));
+        coeff_sign_row.push_back(coeff_sign);
+        
+        if (alf_data->alf_chroma_clip_flag) {
+          for( int j = 0; j < 6; j++){
+            int clip_idx;
+            TRUE_OR_RETURN(br->ReadBits(2, &clip_idx));
+            clip_idx_row.push_back(clip_idx);
+          }
+        }
+      }
+
+      alf_data->alf_chroma_coeff_abs.push_back(coeff_abs_row);
+      alf_data->alf_chroma_coeff_sign.push_back(coeff_sign_row);
+      if (alf_data->alf_chroma_clip_flag) {
+        alf_data->alf_chroma_clip_idx.push_back(clip_idx_row);
+      } else {
+        alf_data->alf_chroma_clip_idx.push_back(0);
+      }
+    }
+
+    
+    // Parse Cross-Component filters si présents
+    if (alf_data->alf_cc_cb_filter_signal_flag) {
+      TRUE_OR_RETURN(br->ReadUE(&alf_data->alf_cc_cb_filters_signalled_minus1));
+      DLOG(INFO) << "## alf_data->alf_cc_cb_filters_signalled_minus1: " << alf_data->alf_cc_cb_filters_signalled_minus1;
+
+      int num_cc_cb_filters = alf_data->alf_cc_cb_filters_signalled_minus1 + 1;
+      
+      for (int f = 0; f < num_cc_cb_filters; f++) {
+        std::vector<int> mapped_coeffs;
+        std::vector<int> coeff_signs;
+        
+        for (int c = 0; c < 7; c++) {  // from spec
+          int coeff_abs;
+          TRUE_OR_RETURN(br->ReadBits(3, &coeff_abs));
+          mapped_coeffs.push_back(coeff_abs);
+          if(coeff_abs){
+            int coeff_sign;
+            TRUE_OR_RETURN(br->ReadBits(1, &coeff_sign));
+            coeff_signs.push_back(coeff_sign);
+          } else {
+            coeff_signs.push_back(0);
+          }
+        }
+        
+        alf_data->alf_cc_cb_mapped_coeff_abs.push_back(mapped_coeffs);
+        alf_data->alf_cc_cb_coeff_sign.push_back(coeff_signs);
+      }
+    }
+    
+    if (alf_data->alf_cc_cr_filter_signal_flag) {
+      TRUE_OR_RETURN(br->ReadUE(&alf_data->alf_cc_cr_filters_signalled_minus1));
+      int num_cc_cr_filters = alf_data->alf_cc_cr_filters_signalled_minus1 + 1;
+      DLOG(INFO) << "## alf_data->alf_cc_cr_filters_signalled_minus1 : " << alf_data->alf_cc_cr_filters_signalled_minus1;
+
+      
+      for (int f = 0; f < num_cc_cr_filters; f++) {
+        std::vector<int> mapped_coeffs;
+        std::vector<int> coeff_signs;
+        
+        for (int c = 0; c < 7; c++) {  // from spec
+          int coeff_abs;
+          TRUE_OR_RETURN(br->ReadBits(3, &coeff_abs));
+          mapped_coeffs.push_back(coeff_abs);
+          if (coeff_abs){
+            int coeff_sign;
+            TRUE_OR_RETURN(br->ReadBits(1, &coeff_sign));
+            coeff_signs.push_back(coeff_sign);
+          } else {
+              coeff_signs.push_back(0);
+          }
+        }
+        
+        alf_data->alf_cc_cr_mapped_coeff_abs.push_back(mapped_coeffs);
+        alf_data->alf_cc_cr_coeff_sign.push_back(coeff_signs);
+      }
+    }
+  }
+  
+  return kOk;
+}
+
+
+
+
 H266Parser::Result H266Parser::ParseAps(const Nalu& nalu, int* aps_id, int* aps_type) {
   DCHECK(nalu.type() == Nalu::H266_PREFIX_APS_NUT || 
          nalu.type() == Nalu::H266_SUFFIX_APS_NUT);
-  LOG(INFO) << "Parsing H.266 APS NALU";
+  //7.3.2.6 Adaptation parameter set RBSP syntax
+  LOG(INFO) << "Parsing H.266 APS Adaptation parameter set NALU";
 
   H26xBitReader reader;
   reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
@@ -3140,18 +3421,52 @@ H266Parser::Result H266Parser::ParseAps(const Nalu& nalu, int* aps_id, int* aps_
   *aps_id = -1;
   *aps_type = -1;
   std::unique_ptr<H266Aps> aps(new H266Aps);
+  TRUE_OR_RETURN(pps);
 
-  TRUE_OR_RETURN(br->ReadUE(aps_type));
-  TRUE_OR_RETURN(br->ReadUE(aps_id));
+  TRUE_OR_RETURN(br->ReadUE(&aps->aps_params_type));
+  DLOG(INFO) << "## aps_params_type : " << aps->aps_params_type;
 
-  *aps_id = aps->aps_id;
-  *aps_type = aps->aps_type;
+  TRUE_OR_RETURN(br->ReadUE(&aps->aps_adaptation_parameter_set_id));
+  DLOG(INFO) << "## aps_adaptation_parameter_set_id : " << aps->aps_adaptation_parameter_set_id;
+
+  TRUE_OR_RETURN(br->ReadBool(&aps->aps_chroma_present_flag));
+  DLOG(INFO) << "## aps_chroma_present_flag : " << ( aps->aps_chroma_present_flag ? "1" : "0");
+  if(aps->aps_params_type == NALU::KvvcALFAPS){
+    DLOG(INFO) << " Processing ALF APS";
+    aps->alfd = H266AlfData();
+        TRUE_OR_RETURN(ParseAlfData(br, &aps->alfd.value(), aps->aps_chroma_present_flag));
+
+  } else if(aps->aps_params_type == NALU::KvvcLMCSAPS){
+    DLOG(INFO) << " Processing LMCS APS";
+    aps->lmcsd = H266LmcsData();
+        TRUE_OR_RETURN(ParseLmcsData(br, &aps->lmcsd.value(), aps->aps_chroma_present_flag));    
+    
+
+  } else if(aps->aps_params_type == NALU::KvvcSCALINGAPS){
+    DLOG(INFO) << " Processing SCALING APS";
+    aps->sld = H266Scalinglistdata();
+    TRUE_OR_RETURN(ParseScalingListData(br, &aps->sld.value()));
+
+  } else {
+    DLOG(INFO) << " INVALID APS TYPE";
+  }
+  TRUE_OR_RETURN(br->ReadBool(&aps->aps_extension_flag));
+  DLOG(INFO) << "## aps_extension_flag : " << ( aps->aps_extension_flag ? "1" : "0");
+  while(br->more_rbsp_data()){
+      TRUE_OR_RETURN(br->ReadBool(&aps->aps_extension_data_flag));
+  }
+  OK_OR_RETURN(rbsp_trailing_bits(br));
+
+  *aps_id = aps->aps_adaptation_parameter_set_id;
+  *aps_type = aps->aps_params_type;
   //active_apses_[*aps_id] = std::move(aps);
 
   active_apses_.emplace(*aps_id, std::move(aps));
 
   return kOk;
 }
+
+
 
 H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
                                                   H266PictureHeaderStructure* phs) {
@@ -3470,14 +3785,65 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
 
           if( phs->ph_temporal_mvp_enabled_flag && pps->pps_rpl_info_in_ph_flag && phs->rpl.has_value() ) {
 
-            if( phs->rpl.has_value() && phs->rpl->RplsIdx[1] >= 0 && 
-               phs->rpl->num_ref_entries[ 1 ][ phs->rpl->RplsIdx[ 1 ] ] > 0 ){/// evaluate this value
+            /******* section check before processing  */
+            if(!phs->rpl.has_value()) {
+                DLOG(ERROR) << "rpl not initialized in picture header";
+                return kInvalidStream;
+            }
+        
+            if(!phs->rpl->reference_pic_list.has_value()) {
+                DLOG(ERROR) << "reference_pic_list not initialized";
+                return kInvalidStream;
+            }
+            auto& rpl_ref = phs->rpl->reference_pic_list.value();
+            if(1 >= rpl_ref.num_ref_entries.size() ||  phs->rpl->RplsIdx[1] >= rpl_ref.num_ref_entries[1].size()) {
+                 DLOG(ERROR) << "Invalid reference picture list dimensions";
+                 return kInvalidStream;
+            }
+
+            int num_ref_entries_l1 = rpl_ref.num_ref_entries[1][phs->rpl->RplsIdx[1]];
+
+
+
+
+            /******************************************************* */
+
+
+
+           /*  if( phs->rpl.has_value() && phs->rpl->RplsIdx[1] >= 0 && 
+               phs->rpl->num_ref_entries[ 1 ][ phs->rpl->RplsIdx[ 1 ] ] > 0 ){ */
+            if(num_ref_entries_l1 > 0) {
 
                   TRUE_OR_RETURN(br->ReadBool(&phs->ph_collocated_from_l0_flag));
                   DLOG(INFO) << "## ph_collocated_from_l0_flag : " << ( phs->ph_collocated_from_l0_flag ? "1" : "0");
 
             }
-            if( ( phs->ph_collocated_from_l0_flag &&
+
+            // check for L0
+
+            if(0 >= rpl_ref.num_ref_entries.size() || phs->rpl->RplsIdx[0] >= rpl_ref.num_ref_entries[0].size()) {
+                    DLOG(ERROR) << "Invalid L0 reference picture list dimensions";
+                     return kInvalidStream;
+            }
+        
+           int num_ref_entries_l0 = rpl_ref.num_ref_entries[0][phs->rpl->RplsIdx[0]];
+
+          if((phs->ph_collocated_from_l0_flag && num_ref_entries_l0 > 1) || (!phs->ph_collocated_from_l0_flag && num_ref_entries_l1 > 1)) {
+             TRUE_OR_RETURN(br->ReadUE(&phs->ph_collocated_ref_idx));
+             DLOG(INFO) << "## ph_collocated_ref_idx : " << phs->ph_collocated_ref_idx;
+          }
+
+
+
+
+
+
+
+
+
+
+
+/*             if( ( phs->ph_collocated_from_l0_flag &&
                   phs->rpl.has_value() && 
                   phs->rpl.has_value() && 
                   phs->rpl->RplsIdx[0] >= 0 && 
@@ -3492,6 +3858,8 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
                    DLOG(INFO) << "## ph_collocated_ref_idx  : " << phs->ph_collocated_ref_idx;
 
             }
+ */
+
           }
       }
       if(sps->sps_mmvd_fullpel_only_enabled_flag){
@@ -3500,15 +3868,41 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
 
       }
       bool presenceFlag = false;
+
       if( !pps->pps_rpl_info_in_ph_flag ){
         presenceFlag = true;
+      } else if(phs->rpl.has_value() && phs->rpl->reference_pic_list.has_value()) {
+    
+        auto& rpl_ref = phs->rpl->reference_pic_list.value();
+        
+        // check dims
+        if(1 < rpl_ref.num_ref_entries.size() && 
+          phs->rpl->RplsIdx[1] < rpl_ref.num_ref_entries[1].size()) {
+            
+            if(rpl_ref.num_ref_entries[1][phs->rpl->RplsIdx[1]] > 0) {
+                presenceFlag = true;
+            }
+        }
       }
-      else if ( phs->rpl->num_ref_entries[1][phs->rpl->RplsIdx[1]] > 0 ){
+
+
+
+
+
+      /* else if ( phs->rpl->num_ref_entries[1][phs->rpl->RplsIdx[1]] > 0 ){
         presenceFlag = true;
-      }
+      } */
+
+
+
+
       if( presenceFlag ) {
         TRUE_OR_RETURN(br->ReadBool(&phs->ph_mvd_l1_zero_flag));
         DLOG(INFO) << "## ph_mvd_l1_zero_flag : " << ( phs->ph_mvd_l1_zero_flag ? "1" : "0");
+
+
+
+
 
         if(sps->sps_bdof_control_present_in_ph_flag){
           TRUE_OR_RETURN(br->ReadBool(&phs->ph_bdof_disabled_flag));
@@ -3525,6 +3919,25 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
         DLOG(INFO) << "## ph_prof_disabled_flag : " << ( phs->ph_prof_disabled_flag ? "1" : "0");
 
       }
+
+      /****************** log debug *********************** */
+      DLOG(INFO) << "DEBUG: pps->pps_rpl_info_in_ph_flag = " << pps->pps_rpl_info_in_ph_flag;
+      DLOG(INFO) << "DEBUG: phs->rpl.has_value() = " << phs->rpl.has_value();
+      if(phs->rpl.has_value()) {
+         DLOG(INFO) << "DEBUG: phs->rpl->reference_pic_list.has_value() = " 
+               << phs->rpl->reference_pic_list.has_value();
+        if(phs->rpl->reference_pic_list.has_value()) {
+            auto& rpl = phs->rpl->reference_pic_list.value();
+            DLOG(INFO) << "DEBUG: num_ref_entries.size() = " << rpl.num_ref_entries.size();
+            if(rpl.num_ref_entries.size() > 1) {
+                DLOG(INFO) << "DEBUG: num_ref_entries[1].size() = " << rpl.num_ref_entries[1].size();
+            }
+        }
+      }
+
+      /******************************************** */
+
+
       if( ( pps->pps_weighted_pred_flag || pps->pps_weighted_bipred_flag ) && pps->pps_wp_info_in_ph_flag ){
         phs->p_pwt.emplace();
 
@@ -4505,6 +4918,11 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
     rpl->poc_lsb_lt.clear();
     rpl->delta_poc_msb_cycle_present_flag.clear();
     rpl->delta_poc_msb_cycle_lt.clear();
+    // check reference_pic_list is always init 
+    if(!rpl->reference_pic_list.has_value()) {
+        rpl->reference_pic_list = H266ReferencePicListStruct();
+        rpl->reference_pic_list->is_valid = false; // Marquer comme invalide initialement
+    }
 
 
     //H266ReferencePicListStruct rpl_struct;
@@ -4574,21 +4992,7 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
 
 
         } else {
-            // Parse reference picture list structure
-            //H266ReferencePicListStruct rpl_struct;
-
-            // We need to parse the RPL structure into the appropriate position
-            // Create a temporary struct for parsing
-            /* H266ReferencePicListStruct tmp_rpl_struct;
-
-            DLOG(INFO) <<  "Ref_Pic_List_Struct i:" << i << "sps_num_ref_pic_lists :" << sps.sps_num_ref_pic_lists[i] << " rpl_struct :" << rpl_struct[i];
-            TRUE_OR_RETURN(Ref_Pic_List_Struct(i, sps.sps_num_ref_pic_lists[i], sps, br, &rpl_struct[i]));
-            
-            // Store the parsed structure
-            if(!rpl->reference_pic_list.has_value()) {
-                rpl->reference_pic_list = rpl_struct;
-            }
-             */
+          
              // Parse reference picture list structure
             DLOG(INFO) << "Ref_Pic_List_Struct i:" << i 
                        << " sps_num_ref_pic_lists:" << sps.sps_num_ref_pic_lists[i];
@@ -4828,6 +5232,12 @@ H266Parser::Result H266Parser::Ref_Pic_List(const H266Sps& sps, const H266Pps& p
             }
         }
     }
+
+    if(rpl->reference_pic_list.has_value()) {
+        rpl->reference_pic_list->is_valid = true;
+    }
+
+
 
     
     return kOk;

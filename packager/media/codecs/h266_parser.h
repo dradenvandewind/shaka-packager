@@ -23,6 +23,8 @@ class Nalu;
 
 enum H266SliceType { kVvcBSlice = 0, kVvcPSlice = 1, kVvcISlice = 2 };
 
+enum H266ApsType { KvvcALFAPS = 0, KvvcLMCSAPS = 1, KvvcSCALINGAPS = 2 };
+
 const int kVvcMaxRefPicSetCount = 16;
 
 // H.266 profile_tier_level structure is more complex than H.265
@@ -103,10 +105,14 @@ struct H266AlfData{
   std::vector<std::vector<int>> alf_cc_cr_coeff_sign; 
 };
 
-struct H266AdaptationParameterSetRbsp{
+struct H266Aps{
   //7.3.2.6 Adaptation parameter set RBSP syntax
-  H266AdaptationParameterSetRbsp();
-  ~H266AdaptationParameterSetRbsp();
+  H266Aps() : 
+        alfd(std::nullopt),      
+        lmcsd(std::nullopt),
+        sld(std::nullopt) 
+    {}
+  ~H266Aps();
   uint8_t aps_params_type = 0;
   uint8_t aps_adaptation_parameter_set_id = 0;
   bool aps_chroma_present_flag = false;  
@@ -524,6 +530,7 @@ struct H266RefPicListEntry {
 struct H266ReferencePicListStruct {
   H266ReferencePicListStruct();
   ~H266ReferencePicListStruct();
+   bool is_valid = false; 
 
     //int num_ref_entries = 0;
       // [listIdx][rplsIdx]
@@ -1067,16 +1074,7 @@ struct H266Vps {
   // Incomplete: many more H.266 VPS specific fields...
 };
 
-struct H266Aps {
-  H266Aps();
-  ~H266Aps();
 
-  int aps_id = 0;
-  int aps_type = 0;  // ALF, LMCS, SCALING_LIST
-
-  // Adaptation parameter set type specific data would go here
-  // This is a simplified version
-};
 struct H266PictureHeaderStructure{
   //7.3.2.8 Picture header structure syntax
   
@@ -1429,6 +1427,7 @@ class H266Parser {
   Result ParsePictureHeaderStructure(const Nalu& nalu,
                                                   H266PictureHeaderStructure* phs);
 
+
 #if 0   
 //future update perhaps 
   /// Parses a DCI (Decoding Capability Information) element.
@@ -1459,6 +1458,11 @@ class H266Parser {
   
   /// @return a pointer to the APS with the given ID, or NULL if none exists.
   const H266Aps* GetAps(int aps_id) const;
+
+  Result ParseAlfData(H26xBitReader* br, H266AlfData* alf_data, bool chroma_present);
+  Result ParseLmcsData(H26xBitReader* br, H266LmcsData* lmcs_data, bool chroma_present);
+  Result ParseScalingListData(H26xBitReader* br, H266Scalinglistdata* scaling_data);
+
 
   std::vector<const H266Pps*> GetPpsForSps(int sps_id);
   const H266Pps* GetFirstPpsForSps(int sps_id);
