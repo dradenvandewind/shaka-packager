@@ -62,7 +62,7 @@ struct H266Scalinglistdata{
   std::vector<bool> scaling_list_copy_mode_flag;
   std::vector<bool> scaling_list_pred_mode_flag;
   std::vector<int> scaling_list_pred_id_delta;
-  std::vector<int> scaling_list_dc_coef:
+  std::vector<int> scaling_list_dc_coef;
   std::vector<std::vector<int>> scaling_list_delta_coef;
   std::vector<std::vector<int>> ScalingList;
 
@@ -81,7 +81,7 @@ struct H266LmcsData{
 
    //derived value
    int lmcs_max_bin_idx = 0;
-}:
+};
 
 struct H266AlfData{
   H266AlfData();
@@ -1525,6 +1525,10 @@ class H266Parser {
   std::vector<const H266Vps*> GetVpsFromSps(int sps_id) const;
 
 #endif
+
+  Result ParseAlfData(H26xBitReader* br, H266AlfData* alf_data, bool chroma_present);
+  Result ParseLmcsData(H26xBitReader* br, H266LmcsData* lmcs_data, bool chroma_present);
+  Result ParseScalingListData(H26xBitReader* br, H266Scalinglistdata* scaling_data, bool chroma_present);
 
  Result SpsRangeExtension(H26xBitReader* br,bool extended_precision_flag,
                      H266SpsRangeExtension * sps_sre);
