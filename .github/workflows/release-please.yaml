@@ -111,7 +111,8 @@ jobs:
     if: needs.release.outputs.release_created
     uses: ./.github/workflows/build.yaml
     with:
-      ref: refs/tags/${{ needs.release.outputs.tag_name }}
+      #ref: refs/tags/${{ needs.release.outputs.tag_name }}
+      ref: ${{ needs.release.outputs.tag_name && format('refs/tags/{0}', needs.release.outputs.tag_name) || github.sha }}
       self_hosted: ${{ needs.settings.outputs.self_hosted != '' }}
       debug: ${{ needs.settings.outputs.debug != '' }}
 
