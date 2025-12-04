@@ -3177,14 +3177,17 @@ H266Parser::Result H266Parser::ParseScalingListData(H26xBitReader* br, H266Scali
             int y = DiagScanOrder[i][1];
             if( !( id > 25 && x >= 4 && y >= 4 ) ) {
               int tmp_scaling_list_delta_coef = 0;
+              std::vector<int> tmp_vector;
 
               if(static_cast<size_t>(id) > scaling_data->scaling_list_delta_coef.size()){
                 scaling_data->scaling_list_delta_coef.resize(id + 1);
               }
 
               TRUE_OR_RETURN(br->ReadSE(&tmp_scaling_list_delta_coef));
-              
-              scaling_data->scaling_list_delta_coef.push_back(tmp_scaling_list_delta_coef);
+              tmp_vector.push_back(tmp_scaling_list_delta_coef);
+
+              //scaling_data->scaling_list_delta_coef.push_back(tmp_scaling_list_delta_coef);
+              scaling_data->scaling_list_delta_coef.push_back(tmp_vector);
 
 
 
@@ -3479,7 +3482,7 @@ H266Parser::Result H266Parser::ParseAps(const Nalu& nalu, int* aps_id, int* aps_
 
   DLOG(INFO) << "## aps_params_type : " << aps->aps_params_type;
 
-   int tmp_aps_adaptation_parameter_set_id = 0
+   int tmp_aps_adaptation_parameter_set_id = 0;
   TRUE_OR_RETURN(br->ReadUE(&tmp_aps_adaptation_parameter_set_id));
   aps->aps_adaptation_parameter_set_id = static_cast<uint8_t>(tmp_aps_adaptation_parameter_set_id);
 
