@@ -185,7 +185,7 @@ H266Sps::~H266Sps() {}
 H266Vps::H266Vps() {}
 H266Vps::~H266Vps() {}
 
-H266Aps::H266Aps() {}
+//H266Aps::H266Aps() {}
 H266Aps::~H266Aps() {}
 
 H266PictureHeader::H266PictureHeader() {}
