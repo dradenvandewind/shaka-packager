@@ -35,7 +35,7 @@ jobs:
       self_hosted: ${{ steps.settings.outputs.self_hosted }}
       debug: ${{ steps.settings.outputs.debug }}
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.ERWAN_TOKEN }}
     steps:
       - id: settings
         run: |
