@@ -3,11 +3,19 @@ FROM alpine:3.19 as submodules
 # Install git seulement pour ce stage
 RUN apk add --no-cache git
 
-WORKDIR /shaka-packager
-COPY . .
+#for local build
+##WORKDIR /shaka-packager
+##COPY . .
+#RUN git submodule update --init --recursive
 
 # Initialiser les submodules une seule fois dans un stage séparé
-RUN git submodule update --init --recursive
+RUN git clone https://github.com/dradenvandewind/shaka-packager.git && \
+cd shaka-packager && \
+git checkout vvc_integration && \
+git submodule update --init --recursive
+
+
+
 
 FROM alpine:3.19 as builder
 
@@ -15,7 +23,7 @@ FROM alpine:3.19 as builder
 RUN apk add --no-cache \
         bash curl \
         bsd-compat-headers linux-headers \
-        build-base cmake git ninja python3 curl bash unzip 
+        build-base cmake git ninja python3 curl bash unzip vim nano gdb
 
 WORKDIR /shaka-packager
 
@@ -38,3 +46,14 @@ COPY --from=builder /shaka-packager/build/packager/packager \
 # Copy pyproto directory, which is needed by pssh-box.py script.
 COPY --from=builder /shaka-packager/build/packager/pssh-box-protos \
                     /usr/bin/pssh-box-protos
+
+                    COPY --from=builder /shaka-packager/build/packager/*.266 /home/
+COPY --from=builder /shaka-packager/*.sh /home/
+COPY --from=builder /shaka-packager/*.ts /home/
+COPY --from=builder /shaka-packager/*.py /home/
+
+WORKDIR /home
+
+RUN packager --version && mpd_generator --version
+
+CMD ["/bin/bash"]
