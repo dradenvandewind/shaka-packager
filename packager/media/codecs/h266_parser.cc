@@ -185,7 +185,7 @@ H266Sps::~H266Sps() {}
 H266Vps::H266Vps() {}
 H266Vps::~H266Vps() {}
 
-H266Aps::H266Aps() {}
+//H266Aps::H266Aps() {}
 //H266Aps::~H266Aps() {}
 
 H266PictureHeader::H266PictureHeader() {}
@@ -3178,12 +3178,18 @@ H266Parser::Result H266Parser::ParseScalingListData(H26xBitReader* br, H266Scali
             if( !( id > 25 && x >= 4 && y >= 4 ) ) {
               int tmp_scaling_list_delta_coef = 0;
 
-              if(id > scaling_data->scaling_list_delta_coef.size()){
+              if(static_cast<size_t>(id) > scaling_data->scaling_list_delta_coef.size()){
                 scaling_data->scaling_list_delta_coef.resize(id + 1);
               }
+
               TRUE_OR_RETURN(br->ReadSE(&tmp_scaling_list_delta_coef));
+              
               scaling_data->scaling_list_delta_coef.push_back(tmp_scaling_list_delta_coef);
-              nextCoef += scaling_data->scaling_list_delta_coef[ id ][ i ];
+
+
+
+              nextCoef += tmp_scaling_list_delta_coef;
+              //scaling_data->scaling_list_delta_coef[ id ][ i ];
             }
             if (scaling_data->ScalingList.size() <= static_cast<size_t>(id)) {
                 scaling_data->ScalingList.resize(id + 1);
@@ -3234,7 +3240,7 @@ H266Parser::Result H266Parser::ParseLmcsData(H26xBitReader* br, H266LmcsData* lm
 
     
     bool delta_sign_flag = false;
-    if (delta_abs_cw > 0) {
+    if (tmp_delta_abs_cw > 0) {
       TRUE_OR_RETURN(br->ReadBool(&delta_sign_flag));
     }
     lmcs_data->lmcs_delta_sign_cw_flag.push_back(delta_sign_flag);
@@ -3928,7 +3934,7 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
         
         // check dims
         if(1 < rpl_ref.num_ref_entries.size() && 
-          phs->rpl->RplsIdx[1] < rpl_ref.num_ref_entries[1].size()) {
+          static_cast<size_t>(phs->rpl->RplsIdx[1]) < rpl_ref.num_ref_entries[1].size()) {
             
             if(rpl_ref.num_ref_entries[1][phs->rpl->RplsIdx[1]] > 0) {
                 presenceFlag = true;
