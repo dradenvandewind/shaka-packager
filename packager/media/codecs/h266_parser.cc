@@ -3327,7 +3327,7 @@ H266Parser::Result H266Parser::ParseAlfData(H26xBitReader* br, H266AlfData* alf_
             TRUE_OR_RETURN(br->ReadBits(1, &coeff_sign));  // 1 bit par signe
             //alf_luma_coeff_sign[ sfIdx ][ j ]
             alf_data->alf_luma_coeff_sign.push_back(coeff_sign);
-            DLOG(INFO) << "## alf_data->alf_luma_coeff_sign : " << alf_data->alf_luma_coeff_sign;
+            //DLOG(INFO) << "## alf_data->alf_luma_coeff_sign : " << alf_data->alf_luma_coeff_sign;
           }
         }
     }
@@ -3340,7 +3340,7 @@ H266Parser::Result H266Parser::ParseAlfData(H26xBitReader* br, H266AlfData* alf_
             int clip_idx;
             TRUE_OR_RETURN(br->ReadBits(2, &clip_idx));  // 2 bits par index de clip
             alf_data->alf_luma_clip_idx.push_back(clip_idx);
-            DLOG(INFO) << "## alf_data->alf_luma_clip_idx : " << alf_data->alf_luma_clip_idx;
+           // DLOG(INFO) << "## alf_data->alf_luma_clip_idx : " << alf_data->alf_luma_clip_idx;
 
         }
       }
