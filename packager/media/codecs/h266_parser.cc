@@ -1423,44 +1423,8 @@ for( int i = 0; i < ( sps->sps_num_extra_sh_bytes * 8 ); i++ ){
 #endif
 
 
-#if 0 
-/* H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
-  DCHECK_EQ(Nalu::H266_PPS_NUT, nalu.type());
-  LOG(INFO) << "Parsing H.266 PPS NALU";
+ 
 
-  H26xBitReader reader;
-  reader.Initialize(nalu.data() + nalu.header_size(), nalu.payload_size());
-  H26xBitReader* br = &reader;
-
-  *pps_id = -1;
-  std::unique_ptr<H266Pps> pps(new H266Pps);
-
-  // Parsing minimal des champs essentiels
-  uint32_t temp_pps_id;
-  TRUE_OR_RETURN(br->ReadBits(6, &temp_pps_id));
-  pps->pic_parameter_set_id = static_cast<int>(temp_pps_id);
-
-  uint32_t temp_sps_id;
-  TRUE_OR_RETURN(br->ReadBits(4, &temp_sps_id));
-  pps->seq_parameter_set_id = static_cast<int>(temp_sps_id);
-
-  TRUE_OR_RETURN(br->ReadBool(&pps->pps_mixed_nalu_types_in_pic_flag));
-
-  // Skip tous les champs complexes pour l'instant
-  // Nous les implémenterons progressivement une fois que la base compile
-  
-  // Byte alignment
-  OK_OR_RETURN(ByteAlignment(br));
-
-  *pps_id = pps->pic_parameter_set_id;
-  active_ppses_[*pps_id] = std::move(pps);
-
-  return kOk;
-}
- */
-
-#else 
-//disable all parsesps to build it
 H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   DCHECK_EQ(Nalu::H266_PPS_NUT, nalu.type());
   LOG(INFO) << "Parsing H.266 PPS NALU";
@@ -1572,12 +1536,37 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     DLOG(INFO) << "##  WE NEED ACCESS TO PPS to get : " << pps->seq_parameter_set_id;
 
 
+
   //sps->sps_seq_parameter_set_id
-  H266Sps* sps = GetSps(pps->seq_parameter_set_id);
+/*   H266Sps* sps = GetSps(pps->seq_parameter_set_id);
     if(!sps){
       DLOG(INFO) << "## We don t found sps instance from seq_parameter_set_id :" << pps->seq_parameter_set_id;
     }
     TRUE_OR_RETURN(sps);
+ */
+
+    if (!HasSps(pps->pps_seq_parameter_set_id)) {
+        DLOG(ERROR) << "SPS " << pps->pps_seq_parameter_set_id << " not found";
+        DebugPrintAvailableSets(); 
+        return kInvalidStream;
+    }
+    H266Sps* sps = GetSps(pps->pps_seq_parameter_set_id);
+   if (!sps) {
+     DLOG(ERROR) << "GetSps returned nullptr";
+     return kInvalidStream;
+   }
+   if (!sps) {
+     DLOG(WARNING) << "Trying first available SPS";
+     sps = GetFirstSps();
+     if (!sps) {
+       DLOG(ERROR) << "No SPS available at all";
+       return kInvalidStream;
+     }
+   }
+    TRUE_OR_RETURN(sps);
+
+
+  
 
   
   if(pps->pps_subpic_id_mapping_present_flag){
@@ -2007,7 +1996,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
 
   return kOk;
 }
-#endif 
+ 
 
 H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   DCHECK_EQ(Nalu::H266_SPS_NUT, nalu.type());
@@ -2668,7 +2657,9 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
                   }
                 }
 
-                OK_OR_RETURN(rbsp_trailing_bits(br));
+                //OK_OR_RETURN(rbsp_trailing_bits(br));
+                rbsp_trailing_bits(br);
+                
       
         
   
@@ -5458,8 +5449,36 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(int listIdx, int rplsIdx,
                             H266ReferencePicListStruct* rpls) {
     LOG(INFO) << "Parsing H.266 Reference picture list structure parameters";
 
-    H266Vps *vps = GetVps(sps->sps_video_parameter_set_id);
-    TRUE_OR_RETURN(vps);
+
+/* 
+
+    if (!HasVps(sps->sps_video_parameter_set_id)) {
+        DLOG(ERROR) << "VPS " << sps->sps_video_parameter_set_id << " not found";
+        DebugPrintAvailableSets(); 
+        return kInvalidStream;
+     }
+    H266Vps* vps = GetVps(sps->sps_video_parameter_set_id);
+    if (!vps) {
+       DLOG(ERROR) << "GetSps returned nullptr";
+      return kInvalidStream;
+    }
+    if (!vps) {
+       DLOG(WARNING) << "Trying first available VPS";
+      vps = GetFirstVps();
+      if (!vps) {
+       DLOG(ERROR) << "No VPS available at all";
+       return kInvalidStream;
+     }
+   }
+ */
+
+    //H266Vps *vps = GetVps(sps->sps_video_parameter_set_id);
+    //TRUE_OR_RETURN(vps);
+
+
+
+
+
     //for this moment i don t have stram with vps...
     
     //7.4.3.3 (eq 29  PAGE 97)
