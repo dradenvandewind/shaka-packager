@@ -360,17 +360,70 @@ H266Parser::Result H266Parser::ParseSliceHeader(const Nalu& nalu,
   //const 
   H266Sps* sps = nullptr;
   pps = GetPps(slice_header->phs->ph_pic_parameter_set_id);
+  /*
   if (!pps) {
       LOG(ERROR) << "PPS " << slice_header->phs->ph_pic_parameter_set_id 
                  << " from picture header not found";
       //return kInvalidStream;
   }
+      */
+
+ if (!HasPps(phs->ph_pic_parameter_set_id)) {
+     DLOG(ERROR) << "PPS " << phs->ph_pic_parameter_set_id << " not found";
+     DebugPrintAvailableSets(); 
+     return kInvalidStream;
+ }
+ H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id);
+   if (!pps) {
+     DLOG(ERROR) << "GetPps returned nullptr";
+     return kInvalidStream;
+   }
+   if (!pps) {
+     DLOG(WARNING) << "Trying first available PPS";
+     pps = GetFirstPps();
+     if (!pps) {
+       DLOG(ERROR) << "No PPS available at all";
+       return kInvalidStream;
+     }
+   }
+
+
+
+
+
+
+
+/* 
   sps = GetSps(pps->pps_seq_parameter_set_id);
   if (!sps) {
     LOG(ERROR) << "SPS " << pps->pps_seq_parameter_set_id 
                << " referenced by PPS " << pps->pic_parameter_set_id << " not found";
     //return kInvalidStream;
   }
+
+
+   */
+
+
+ if (!HasSps(pps->pps_seq_parameter_set_id)) {
+     DLOG(ERROR) << "SPS " << pps->pps_seq_parameter_set_id << " not found";
+     DebugPrintAvailableSets(); 
+     return kInvalidStream;
+ }
+ H266Sps* sps = GetSps(phs->ph_pic_parameter_set_id);
+   if (!sps) {
+     DLOG(ERROR) << "GetSps returned nullptr";
+     return kInvalidStream;
+   }
+   if (!sps) {
+     DLOG(WARNING) << "Trying first available SPS";
+     sps = GetFirstSps();
+     if (!sps) {
+       DLOG(ERROR) << "No SPS available at all";
+       return kInvalidStream;
+     }
+   }
+
 
 
 
@@ -1436,24 +1489,6 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
   DLOG(INFO) << "## seq_parameter_set_id : " << pps->seq_parameter_set_id;
 
 
-  // const H266Pps* pps = GetPps(pps->pic_parameter_set_id);
-  //TRUE_OR_RETURN(pps);
-
-  //const H266Sps* sps = GetSps(pps->seq_parameter_set_id);
-
-  //const 
-  //H266Sps* sps = active_spses_[pps->seq_parameter_set_id].get();
-
-  /* H266Sps* sps = GetSps(pps->seq_parameter_set_id);
-
-  // GetSps(pps->seq_parameter_set_id);
-  if(!sps){
-    sps = GetFirstSps();
-  }
-
-  TRUE_OR_RETURN(sps); */
- 
-
 
   bool tmp_pps_mixed_nalu_types_in_pic_flag = false;
   TRUE_OR_RETURN(br->ReadBool(&tmp_pps_mixed_nalu_types_in_pic_flag));
@@ -1564,6 +1599,23 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     /***************************************** */
 
     DLOG(INFO) << "##  WE NEED ACESS TO PPS to get : " << pps->seq_parameter_set_id;
+
+    #if 0
+
+    if ( pps->seq_parameter_set_id > 0){
+      H266Vps* vps = GetVps(pps->seq_parameter_set_id);
+      if(!vps){
+          DLOG(INFO) << "## We don t found vps instance from seq_parameter_set_id :" << pps->seq_parameter_set_id;
+      }
+      TRUE_OR_RETURN(vps);
+      if (vps && (sps->sps_video_parameter_set_id > vps->vps_max_sublayers) ){
+         DLOG(INFO) << "## If sps_video_parameter_set_id is greater than 0, the value of sps_max_sublayers_minus1 shall be in the range of 0 to vps_max_sublayers_minus1, "
+         "inclusive ";
+      }
+    }
+
+
+    #endif 
     
      
    
@@ -1977,6 +2029,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
 
 
   TRUE_OR_RETURN(br->ReadBits(3, &sps->max_sublayers_minus1));
+  sps->max_sublayers = sps->max_sublayers_minus1 + 1;
   TRUE_OR_RETURN(br->ReadBits(2, &sps->sps_chroma_format_idc));
   TRUE_OR_RETURN(br->ReadBits(2, &sps->sps_log2_ctu_size_minus5));
   TRUE_OR_RETURN(br->ReadBool(&sps->sps_ptl_dpb_hrd_params_present_flag));
@@ -2672,7 +2725,7 @@ H266Parser::Result H266Parser::ParseVps(const Nalu& nalu, int* vps_id) {
 
   TRUE_OR_RETURN(br->ReadBits(6, &vps->vps_max_layers_minus1)); 
   TRUE_OR_RETURN(br->ReadBits(3, &vps->vps_max_sublayers_minus1)); 
-
+  vps->vps_max_sublayers = vps->vps_max_layers_minus1 + 1;
   if (vps->vps_max_sublayers_minus1 > 0 && vps->vps_max_sublayers_minus1 >0 ) {
    TRUE_OR_RETURN(br->ReadBool(&vps->vps_default_ptl_dpb_hrd_max_tid_flag));
   }
@@ -3574,21 +3627,69 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
   TRUE_OR_RETURN(br->ReadUE(&tmp_ph_pic_parameter_set_id));
   phs->ph_pic_parameter_set_id = tmp_ph_pic_parameter_set_id;
   DLOG(INFO) << "## phs->ph_pic_parameter_set_id : " << phs->ph_pic_parameter_set_id;
+  DLOG(INFO) << " >> GetPps from ph_pic_parameter_set_id " << phs->ph_pic_parameter_set_id;
 
+  for (const auto& pair : active_ppses_) {
+  DLOG(INFO) << "  - PPS id " << pair.first 
+             << " valid=" << (pair.second != nullptr);
+  }
+
+#if 0
   //const 
   H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id);
+
+  if(!pps){
+    pps = GetFirstPps();
+    LOG(INFO) << "We try another Parse Pps in using GetFirstPps func";
+  }
+
   if (!pps) {
     LOG(ERROR) << "PPS " << phs->ph_pic_parameter_set_id << " not found";
     return kInvalidStream;
   }
+    TRUE_OR_RETURN(pps);
+
+#else
+
+ if (!HasPps(phs->ph_pic_parameter_set_id)) {
+     DLOG(ERROR) << "PPS " << phs->ph_pic_parameter_set_id << " not found";
+     DebugPrintAvailableSets(); 
+     return kInvalidStream;
+ }
+ H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id);
+   if (!pps) {
+     DLOG(ERROR) << "GetPps returned nullptr";
+     return kInvalidStream;
+   }
+   if (!pps) {
+     DLOG(WARNING) << "Trying first available PPS";
+     pps = GetFirstPps();
+     if (!pps) {
+       DLOG(ERROR) << "No PPS available at all";
+       return kInvalidStream;
+     }
+   }
+
+
+
+#endif
+
+
   TRUE_OR_RETURN(pps);
 
  
   LOG(INFO) << "Parsing H.266 Picture Header NALU" << "pps" << pps << "ph_pic_parameter_set_id " << phs->ph_pic_parameter_set_id; 
 
    //const 
+    DLOG(INFO) << " >> GetSps from pps_seq_parameter_set_id " << pps->pps_seq_parameter_set_id;
+
    H266Sps* sps = GetSps(pps->pps_seq_parameter_set_id);
   LOG(INFO) << "Parsing H.266 Picture Header NALU" << "sps  " << sps << "pps_seq_parameter_set_id " << pps->pps_seq_parameter_set_id; 
+  if (!sps){
+    sps = GetFirstSps();
+    LOG(INFO) << "We try another Parse Sps in using GetFirstSps func";
+  }
+  
   if (!sps) {
     LOG(ERROR) << "SPS " << pps->pps_seq_parameter_set_id 
                << " referenced by PPS " << phs->ph_pic_parameter_set_id << " not found";
@@ -4430,23 +4531,69 @@ const H266Aps* H266Parser::GetAps(int aps_id) const {
 
 // ==================== GETTERS NON-CONST ====================
 H266Pps* H266Parser::GetPps(int pps_id) {
-  return active_ppses_[pps_id].get();
+  ////return active_ppses_[pps_id].get();
 
   //auto it = active_ppses_.find(pps_id);
   //return it != active_ppses_.end() ? it->second.get() : nullptr;
+  /* auto it = active_ppses_.find(pps_id);
+  if (it != active_ppses_.end()) {
+    return it->second.get();
+  }
+  DLOG(WARNING) << "PPS with id " << pps_id << " not found";
+  return nullptr; */
+
+   DLOG(INFO) << "GetPps requested for id: " << pps_id;
+  
+  if (active_ppses_.empty()) {
+    DLOG(ERROR) << "No PPS available in parser";
+    return nullptr;
+  }
+  
+  auto it = active_ppses_.find(pps_id);
+  if (it == active_ppses_.end()) {
+    DLOG(ERROR) << "PPS " << pps_id << " not found. Available:";
+    for (const auto& pair : active_ppses_) {
+      DLOG(ERROR) << "  - PPS id " << pair.first;
+    }
+    return nullptr;
+  }
+  
+  if (!it->second) {
+    DLOG(ERROR) << "PPS " << pps_id << " found but pointer is null!";
+    return nullptr;
+  }
+  
+  DLOG(INFO) << "Successfully retrieved PPS " << pps_id;
+  return it->second.get();
+
+
+
+
 }
 
 H266Sps* H266Parser::GetSps(int sps_id) {
   //auto it = active_spses_.find(sps_id);
   //return it != active_spses_.end() ? it->second.get() : nullptr;
-  return active_spses_[sps_id].get();
+  ////return active_spses_[sps_id].get();
+  auto it = active_spses_.find(sps_id);
+  if (it != active_spses_.end()) {
+    return it->second.get();
+  }
+  DLOG(WARNING) << "SPS with id " << sps_id << " not found";
+  return nullptr;
 
 }
 
 H266Vps* H266Parser::GetVps(int vps_id) {
   //auto it = active_vpses_.find(vps_id);
   //return it != active_vpses_.end() ? it->second.get() : nullptr;
-  return active_vpses_[vps_id].get();
+  ////return active_vpses_[vps_id].get();
+  auto it = active_vpses_.find(vps_id);
+  if (it != active_vpses_.end()) {
+    return it->second.get();
+  }
+  DLOG(WARNING) << "VPS with id " << vps_id << " not found";
+  return nullptr;
 }
 
 // ==================== FIRST GETTERS ====================
@@ -6636,6 +6783,35 @@ bool H266Parser::ParseNalUnits(const uint8_t* data,
   DVLOG(2) << "Successfully parsed " << nal_units->size() << " H.266 NAL units";
   return true;
 }
+
+
+
+void H266Parser::DebugPrintAvailableSets() const {
+  DLOG(INFO) << "=== Available Parameter Sets ===";
+  
+  DLOG(INFO) << "VPS (" << active_vpses_.size() << "):";
+  for (const auto& pair : active_vpses_) {
+    DLOG(INFO) << "  - VPS id " << pair.first 
+               << " valid=" << (pair.second != nullptr);
+  }
+  
+  DLOG(INFO) << "SPS (" << active_spses_.size() << "):";
+  for (const auto& pair : active_spses_) {
+    DLOG(INFO) << "  - SPS id " << pair.first 
+               << " valid=" << (pair.second != nullptr)
+               << " vps_id=" << (pair.second ? pair.second->sps_video_parameter_set_id : -1);
+  }
+  
+  DLOG(INFO) << "PPS (" << active_ppses_.size() << "):";
+  for (const auto& pair : active_ppses_) {
+    DLOG(INFO) << "  - PPS id " << pair.first 
+               << " valid=" << (pair.second != nullptr)
+               << " sps_id=" << (pair.second ? pair.second->pps_seq_parameter_set_id : -1);
+  }
+  
+  DLOG(INFO) << "================================";
+}
+
 
 }  // namespace media
 }  // namespace shaka

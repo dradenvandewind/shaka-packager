@@ -648,6 +648,7 @@ struct H266Sps {
   int vps_id = 0;  // H.266 uses vps_id directly in SPS
   int sps_video_parameter_set_id = 0;  // 4 bits
   int max_sublayers_minus1 = 0;// 3 bits
+  int max_sublayers = 0;
   int sps_chroma_format_idc = 1; // default to 4:2:0
   int sps_log2_ctu_size_minus5 = 0; // default to 0 (32x32 CTU) 2 bits
   bool sps_ptl_dpb_hrd_params_present_flag = false;
@@ -945,6 +946,7 @@ struct H266Vps {
   //int vps_max_layers_minus1;
   uint32_t vps_max_layers_minus1 = 0; //6 bits
   int vps_max_sublayers_minus1 = 0; //3 bits
+  int vps_max_sublayers = 0;
   bool vps_default_ptl_dpb_hrd_max_tid_flag = false; //bool
   bool vps_all_independent_layers_flag = false; //bool
 
@@ -1430,6 +1432,8 @@ class H266Parser {
 
   Result ParsePictureHeaderStructure(const Nalu& nalu,
                                                   H266PictureHeaderStructure* phs);
+
+  void DebugPrintAvailableSets() const;
 
 
 #if 0   
