@@ -651,6 +651,9 @@ struct H266Sps {
   int max_sublayers = 0;
   int sps_chroma_format_idc = 1; // default to 4:2:0
   int sps_log2_ctu_size_minus5 = 0; // default to 0 (32x32 CTU) 2 bits
+  // add this slice_header decoding
+  int CtbSizeY = 0;
+  
   bool sps_ptl_dpb_hrd_params_present_flag = false;
   H266ProfileTierLevel sps_profile_level;
   bool sps_gdr_enabled_flag = false;
