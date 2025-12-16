@@ -1034,10 +1034,15 @@ if(pps->NumTileColumns != local_NumTileColumns ){
 
  */
 LOG(INFO) << " Calculating ColWidthVal for Slice Header";
+LOG(INFO) << " PicWidthInCtbsY: " << slice_header->PicWidthInCtbsY;
+
+
 slice_header->ColWidthVal = CalculateColWidthVal(*pps, slice_header->PicWidthInCtbsY);
 
  /***************************************************************************/
  LOG(INFO) << " Deriving Tile Column Boundaries for Slice Header";
+ //LOG(INFO) << " ColWidthVal " << slice_header->ColWidthVal;
+
 
 slice_header->TileColBdVal = DeriveTileColumnBoundaries(NumTileColumns, slice_header->ColWidthVal);
 
@@ -1812,14 +1817,19 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     DLOG(INFO) << "##  WE NEED ACCESS TO PPS to get : " << pps->seq_parameter_set_id;
 
 
-
+#if 0
   //sps->sps_seq_parameter_set_id
-/*   H266Sps* sps = GetSps(pps->seq_parameter_set_id);
+  H266Sps* sps = GetSps(pps->seq_parameter_set_id);
     if(!sps){
       DLOG(INFO) << "## We don t found sps instance from seq_parameter_set_id :" << pps->seq_parameter_set_id;
     }
     TRUE_OR_RETURN(sps);
- */
+ 
+   
+#else 
+ // have a coredump
+    DebugPrintAvailableSets();
+
 
     if (!HasSps(pps->pps_seq_parameter_set_id)) {
         DLOG(ERROR) << "SPS " << pps->pps_seq_parameter_set_id << " not found";
@@ -1840,7 +1850,7 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
      }
    }
     TRUE_OR_RETURN(sps);
-
+#endif 
 
 
 
@@ -1937,6 +1947,8 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     DLOG(INFO) << "## PicHeightInCtbsY : " << PicHeightInCtbsY;
     // Backup for sps and slice_header
     pps->CtbSizeY = CtbSizeY;
+    DLOG(INFO) << "## CtbSizeY from PPS : " << CtbSizeY; 
+
     //pps->CtbSizeY = CtbSizeY;
 
     int remainingWidthInCtbsY = PicWidthInCtbsY;
@@ -2341,8 +2353,24 @@ H266Parser::Result H266Parser::ParsePps(const Nalu& nalu, int* pps_id) {
     }
   }
 } else {
-  int PicWidthInCtbsY = ceil( pps->pps_pic_width_in_luma_samples /  pps->CtbSizeY );
-  int PicHeightInCtbsY = ceil( pps->pps_pic_height_in_luma_samples /  pps->CtbSizeY );
+
+  DLOG(INFO) << "## DebuG pps_pic_width_in_luma_samples :" << pps->pps_pic_width_in_luma_samples;
+  DLOG(INFO) << "## DebuG pps_pic_height_in_luma_samples : " << pps->pps_pic_height_in_luma_samples;
+  DLOG(INFO) << "## DebuG CtbSizeY FROM PPS : " << pps->CtbSizeY;
+  DLOG(INFO) << "## DebuG CtbSizeY FROM SPS : " << sps->CtbSizeY;
+
+  int local_CtbSizeY = std::max(pps->CtbSizeY, sps->CtbSizeY);
+
+  int PicWidthInCtbsY = 0;   
+  int PicHeightInCtbsY = 0;
+  if (local_CtbSizeY > 0) {
+      PicWidthInCtbsY = ceil( pps->pps_pic_width_in_luma_samples /  local_CtbSizeY );
+      PicHeightInCtbsY = ceil( pps->pps_pic_height_in_luma_samples /  local_CtbSizeY );
+  } else {
+      DLOG(ERROR) << "## Error CtbSizeY is zero in both SPS and PPS, cannot compute PicWidthInCtbsY and PicHeightInCtbsY";
+      return kInvalidStream;
+  }
+
 
   pps->pps_num_exp_tile_columns_minus1 = 0;
   pps->pps_tile_column_width_minus1.push_back(PicWidthInCtbsY - 1);
@@ -4033,14 +4061,14 @@ H266Parser::Result H266Parser::ParsePictureHeaderStructure(const Nalu& nalu,
 
 
  //if (!HasPps(phs->ph_pic_parameter_set_id - 1)) {
- if (!HasPps(phs->ph_pic_parameter_set_id )) {
+ if (!HasPps(phs->ph_pic_parameter_set_id -1 )) {
 
      DLOG(ERROR) << "PPS " << phs->ph_pic_parameter_set_id << " not found";
      DebugPrintAvailableSets();
      return kInvalidStream;
  }
-// H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id - 1);
-H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id);
+H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id - 1);
+//H266Pps* pps = GetPps(phs->ph_pic_parameter_set_id);
 
    if (!pps) {
      DLOG(ERROR) << "GetPps returned nullptr";
