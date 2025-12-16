@@ -619,7 +619,7 @@ std::vector<uint32_t> DeriveTileColumnBoundaries(int NumTileColumns,
 
 #endif
 
-
+#if 0
 std::vector<uint32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY,
                                       const std::vector<uint32_t>& TileColBdVal) {
 
@@ -640,6 +640,41 @@ std::vector<uint32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY,
     }
     return ctbToTileColIdx;
 }
+#else
+std::vector<uint32_t> DeriveCtbToTileColRowIdx(int PicWidthInCtbsY,
+                                      const std::vector<uint32_t>& TileColBdVal) {
+    // VALIDATION: Check input parameters
+    if (PicWidthInCtbsY <= 0) {
+        LOG(ERROR) << "Invalid PicWidthInCtbsY: " << PicWidthInCtbsY;
+        return std::vector<uint32_t>();  // Return empty vector
+    }
+    
+    if (TileColBdVal.empty()) {
+        LOG(ERROR) << "TileColBdVal is empty";
+        return std::vector<uint32_t>();  // Return empty vector
+    }
+    
+    // Create output vector (but we'll use push_back instead of pre-allocation)
+    std::vector<uint32_t> ctbToTileColIdx;
+    ctbToTileColIdx.reserve(PicWidthInCtbsY + 1);  // Reserve space for efficiency
+    
+    size_t NumTileColumns = TileColBdVal.size() - 1;
+    uint32_t tileX = 0;
+    
+    for (uint32_t ctbAddrX = 0; ctbAddrX <= static_cast<uint32_t>(PicWidthInCtbsY); ctbAddrX++) {
+        // Check if we should move to next tile
+        if (tileX < NumTileColumns && 
+            static_cast<size_t>(tileX + 1) < TileColBdVal.size() && 
+            ctbAddrX == TileColBdVal[tileX + 1]) {
+            tileX++;
+        }
+        ctbToTileColIdx.push_back(tileX);
+    }
+    
+    return ctbToTileColIdx;
+}
+
+#endif 
 
 // Compute tiles coulumns
 #if 0
@@ -1100,14 +1135,36 @@ slice_header->CtbToTileRowBd.assign(tempRow.begin(), tempRow.end());
 /**********************ctbToTileColIdx eq 18 page 29 *******************************/
 LOG(INFO) << " Deriving ctbToTileColIdx and ctbToTileRowIdx for Slice Header";
 
-slice_header->ctbToTileColIdx = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileColBdVal);
+//slice_header->ctbToTileColIdx = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileColBdVal);
+auto tempColIdx =  DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileColBdVal);
+slice_header->ctbToTileColIdx.assign( tempColIdx.begin(), tempColIdx.end());
+
+
 LOG(INFO) << " Deriving ctbToTileRowIdx for Slice Header";
 
-slice_header->ctbToTileRowIdx = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileRowBdVal);
+//slice_header->ctbToTileRowIdx = DeriveCtbToTileColRowIdx(slice_header->PicWidthInCtbsY, slice_header->TileRowBdVal);
+auto tempRowIdx = DeriveCtbToTileColRowIdx(slice_header->PicHeightInCtbsY, slice_header->TileRowBdVal);
+slice_header->ctbToTileRowIdx.assign(tempRowIdx.begin(), tempRowIdx.end());
 
 slice_header->SubpicWidthInTiles.resize(sps->sps_num_subpics_minus1 + 1);
 slice_header->SubpicHeightInTiles.resize(sps->sps_num_subpics_minus1 + 1);
 slice_header->subpicHeightLessThanOneTileFlag.resize(sps->sps_num_subpics_minus1 + 1);
+
+/***********************************************************************************************/
+
+if (sps->sps_subpic_ctu_top_left_x.size() <= static_cast<size_t>(sps->sps_num_subpics_minus1) ||
+    sps->sps_subpic_width_minus1.size() <= static_cast<size_t>(sps->sps_num_subpics_minus1) ||
+    sps->sps_subpic_ctu_top_left_y.size() <= static_cast<size_t>(sps->sps_num_subpics_minus1) ||
+    sps->sps_subpic_height_minus1.size() <= static_cast<size_t>(sps->sps_num_subpics_minus1)) {
+    
+    LOG(ERROR) << "Subpicture vectors not properly initialized. Sizes: "
+               << "ctu_top_left_x=" << sps->sps_subpic_ctu_top_left_x.size()
+               << ", width_minus1=" << sps->sps_subpic_width_minus1.size()
+               << ", ctu_top_left_y=" << sps->sps_subpic_ctu_top_left_y.size()
+               << ", height_minus1=" << sps->sps_subpic_height_minus1.size()
+               << ", expected at least " << sps->sps_num_subpics_minus1 + 1;
+    return kInvalidStream;
+}
 
 /***************** subpicHeightLessThanOneTileFlag  equqtion 20 page 30 ************************************/
 for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
@@ -2479,6 +2536,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   if(sps->sps_subpic_info_present_flag) {
         TRUE_OR_RETURN(br->ReadUE(&sps->sps_num_subpics_minus1));
         DLOG(INFO) << "## sps_num_subpics_minus1 : " << sps->sps_num_subpics_minus1;
+
         if(sps->sps_num_subpics_minus1 > 0) {
           TRUE_OR_RETURN(br->ReadBool(&sps->sps_independent_subpics_flag));
           DLOG(INFO) << "## sps_independent_subpics_flag : " << (sps->sps_independent_subpics_flag ? "1" : "0");
@@ -2486,7 +2544,28 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
           DLOG(INFO) << "## sps_subpic_same_size_flag : " << ( sps->sps_subpic_same_size_flag ? "1" : "0");
         }
 
+        int tmpWidthVal = ((sps->sps_pic_width_max_in_luma_samples + sps->CtbSizeY -1 ) / sps->CtbSizeY);
+        int tmpHeightVal = (( sps->sps_pic_height_max_in_luma_samples + sps->CtbSizeY -1 ) / sps->CtbSizeY);
+        // todo recheck this section
+
+       int bitWidth = ceil(log2(tmpWidthVal));
+       int bitHeight = ceil(log2(tmpHeightVal));
+
         if(sps->sps_num_subpics_minus1 > 0){
+          int numSubpicCols = 1; //same size sub pic  need to evaluate  later 
+          int num_subpics = sps->sps_num_subpics_minus1 + 1;
+          sps->sps_subpic_ctu_top_left_x.resize(num_subpics);
+          sps->sps_subpic_ctu_top_left_y.resize(num_subpics);
+          sps->sps_subpic_width_minus1.resize(num_subpics);
+          sps->sps_subpic_height_minus1.resize(num_subpics);
+
+          sps->sps_subpic_ctu_top_left_x[0] = 0;
+          sps->sps_subpic_ctu_top_left_y[0] = 0;
+
+
+
+
+          #if 0
             for(int i=0; i<= sps->sps_num_subpics_minus1 ; i++) {
               if(!sps->sps_subpic_same_size_flag && i>0) {
                 /* // define CtbSizeY
@@ -2496,41 +2575,52 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
                 sps->CtbSizeY = CtbSizeY; */
 
 
-                int tmpWidthVal = ((sps->sps_pic_width_max_in_luma_samples + CtbSizeY-1 ) / sps->CtbSizeY);
-                int tmpHeightVal = (( sps->sps_pic_height_max_in_luma_samples + CtbSizeY-1 ) / sps->CtbSizeY);
+           /*      int tmpWidthVal = ((sps->sps_pic_width_max_in_luma_samples + sps->CtbSizeY-1 ) / sps->CtbSizeY);
+                int tmpHeightVal = (( sps->sps_pic_height_max_in_luma_samples + sps->CtbSizeY-1 ) / sps->CtbSizeY);
                 // todo recheck this section
-                int bit_read = ceil(log2(tmpWidthVal));
-
+                int bit_read_WidthVal = ceil(log2(tmpWidthVal));
+                int bit_read_HeightVal = ceil(log2(tmpHeightVal));
+ */
                 u_int tmp_sps_subpic_ctu_top_left_x = 0;
-                if(i>0 && sps->sps_pic_width_max_in_luma_samples > CtbSizeY) {
-                  TRUE_OR_RETURN(br->ReadBits(bit_read,&tmp_sps_subpic_ctu_top_left_x));  // u(v)  NOT SURE
+                if(i>0 && sps->sps_pic_width_max_in_luma_samples > sps->CtbSizeY) {
+                  TRUE_OR_RETURN(br->ReadBits(bitWidth,&tmp_sps_subpic_ctu_top_left_x));  // u(v)  NOT SURE
                   sps->sps_subpic_ctu_top_left_x.push_back(tmp_sps_subpic_ctu_top_left_x);
                   DLOG(INFO) << "## sps_subpic_ctu_top_left_x : " << tmp_sps_subpic_ctu_top_left_x;
                 }
                 int tmp_sps_subpic_ctu_top_left_y = 0;
-                if( i > 0 && sps->sps_pic_height_max_in_luma_samples > CtbSizeY ){
-                  TRUE_OR_RETURN(br->ReadBits(tmpHeightVal,&tmp_sps_subpic_ctu_top_left_y));  // u(v)  NOT SURE
+                if( i > 0 && sps->sps_pic_height_max_in_luma_samples > sps->CtbSizeY ){
+                  TRUE_OR_RETURN(br->ReadBits(bitHeight,&tmp_sps_subpic_ctu_top_left_y));  // u(v)  NOT SURE
                   sps->sps_subpic_ctu_top_left_y.push_back(tmp_sps_subpic_ctu_top_left_y);
                   DLOG(INFO) << "## sps_subpic_ctu_top_left_y : " << tmp_sps_subpic_ctu_top_left_y;
+                } else {
+                  sps->sps_subpic_ctu_top_left_y.push_back(0);
                 }
+
                 int tmp_sps_subpic_width_minus1 = 0;
                 if( i < sps->sps_num_subpics_minus1 && sps->sps_pic_width_max_in_luma_samples > sps->CtbSizeY ){
-                  TRUE_OR_RETURN(br->ReadBits(tmpWidthVal,&tmp_sps_subpic_width_minus1));  // u(v)  NOT SURE
+                  TRUE_OR_RETURN(br->ReadBits(bitWidth,&tmp_sps_subpic_width_minus1));  // u(v)  NOT SURE
                   sps->sps_subpic_width_minus1.push_back(tmp_sps_subpic_width_minus1);
                   DLOG(INFO) << "## sps_subpic_width_minus1 : " << tmp_sps_subpic_width_minus1;
+                } else {
+                  sps->sps_subpic_width_minus1.push_back( tmpWidthVal - sps->sps_subpic_ctu_top_left_x[i] - 1 );
                 }
+
                 int tmp_sps_subpic_height_minus1 = 0;
                 if( i < sps->sps_num_subpics_minus1 && sps->sps_pic_height_max_in_luma_samples > sps->CtbSizeY ){
                   //sps_subpic_height_minus1[
-                  TRUE_OR_RETURN(br->ReadBits(tmpHeightVal,&tmp_sps_subpic_height_minus1));  // u(v)  NOT SURE
+                  TRUE_OR_RETURN(br->ReadBits(bitHeight,&tmp_sps_subpic_height_minus1));  // u(v)  NOT SURE
                   sps->sps_subpic_ctu_top_left_y.push_back(tmp_sps_subpic_height_minus1);
                   DLOG(INFO) << "## sps_subpic_height_minus1 : " << tmp_sps_subpic_height_minus1;
+                } else {
+                  sps->sps_subpic_height_minus1.push_back( tmpHeightVal - sps->sps_subpic_ctu_top_left_y[i] - 1 );
                 }
 
               }
               if( !sps->sps_independent_subpics_flag) {
                 bool tmp_sps_subpic_treated_as_pic_flag;
                 bool tmp_sps_loop_filter_across_subpic_enabled_flag;
+                sps->sps_subpic_treated_as_pic_flag.resize(num_subpics);
+                sps->sps_loop_filter_across_subpic_enabled_flag.resize(num_subpics);
 
               TRUE_OR_RETURN(br->ReadBool(&tmp_sps_subpic_treated_as_pic_flag));
               sps->sps_subpic_treated_as_pic_flag.push_back(tmp_sps_subpic_treated_as_pic_flag);
@@ -2540,6 +2630,110 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
               DLOG(INFO) << "## sps_loop_filter_across_subpic_enabled_flag : " << ( tmp_sps_loop_filter_across_subpic_enabled_flag ? "1" : "0");
               }
             } //for
+            #else
+            //int numSubpicCols = 1;
+
+            for (int i = 0; i <= sps->sps_num_subpics_minus1; i++) {
+
+                  if (!sps->sps_subpic_same_size_flag && i > 0) {
+                      // Lire les positions et dimensions pour chaque sous-image
+                      if (sps->sps_pic_width_max_in_luma_samples > sps->CtbSizeY) {
+                          TRUE_OR_RETURN(br->ReadBits(bitWidth, &sps->sps_subpic_ctu_top_left_x[i]));
+                      } else {
+                          sps->sps_subpic_ctu_top_left_x[i] = 0;
+                      }
+                      
+                      if (sps->sps_pic_height_max_in_luma_samples > sps->CtbSizeY) {
+                          TRUE_OR_RETURN(br->ReadBits(bitHeight, &sps->sps_subpic_ctu_top_left_y[i]));
+                      } else {
+                          sps->sps_subpic_ctu_top_left_y[i] = 0;
+                      }
+                      
+                      if (i < sps->sps_num_subpics_minus1 && sps->sps_pic_width_max_in_luma_samples > sps->CtbSizeY) {
+                          TRUE_OR_RETURN(br->ReadBits(bitWidth, &sps->sps_subpic_width_minus1[i]));
+                      } else {
+                          // Dernière sous-image : calculer la largeur restante
+                          sps->sps_subpic_width_minus1[i] = tmpWidthVal - sps->sps_subpic_ctu_top_left_x[i] - 1;
+                      }
+                      
+                      if (i < sps->sps_num_subpics_minus1 && sps->sps_pic_height_max_in_luma_samples > sps->CtbSizeY) {
+                          TRUE_OR_RETURN(br->ReadBits(bitHeight, &sps->sps_subpic_height_minus1[i]));
+                      } else {
+                          // Dernière sous-image : calculer la hauteur restante
+                          sps->sps_subpic_height_minus1[i] = tmpHeightVal - sps->sps_subpic_ctu_top_left_y[i] - 1;
+                      }
+                  } else if (sps->sps_subpic_same_size_flag) {
+                      if (i == 0) {
+                          // Pour la première sous-image, lire les valeurs
+                          if (sps->sps_pic_width_max_in_luma_samples > sps->CtbSizeY) {
+                              TRUE_OR_RETURN(br->ReadBits(bitWidth, &sps->sps_subpic_ctu_top_left_x[0]));
+                              TRUE_OR_RETURN(br->ReadBits(bitWidth, &sps->sps_subpic_width_minus1[0]));
+                          } else {
+                              sps->sps_subpic_ctu_top_left_x[0] = 0;
+                              sps->sps_subpic_width_minus1[0] = tmpWidthVal - 1;
+                          }
+                          
+                          if (sps->sps_pic_height_max_in_luma_samples > sps->CtbSizeY) {
+                              TRUE_OR_RETURN(br->ReadBits(bitHeight, &sps->sps_subpic_ctu_top_left_y[0]));
+                              TRUE_OR_RETURN(br->ReadBits(bitHeight, &sps->sps_subpic_height_minus1[0]));
+                          } else {
+                              sps->sps_subpic_ctu_top_left_y[0] = 0;
+                              sps->sps_subpic_height_minus1[0] = tmpHeightVal - 1;
+                          }
+                          
+                          // Calculer numSubpicCols pour les sous-images de même taille
+                          numSubpicCols = tmpWidthVal / (sps->sps_subpic_width_minus1[0] + 1);
+                      } else {
+                          // Pour les sous-images suivantes, inférer les valeurs
+                          sps->sps_subpic_ctu_top_left_x[i] = (i % numSubpicCols) * (sps->sps_subpic_width_minus1[0] + 1);
+                          sps->sps_subpic_ctu_top_left_y[i] = (i / numSubpicCols) * (sps->sps_subpic_height_minus1[0] + 1);
+                          sps->sps_subpic_width_minus1[i] = sps->sps_subpic_width_minus1[0];
+                          sps->sps_subpic_height_minus1[i] = sps->sps_subpic_height_minus1[0];
+                      }
+                  } else {
+                      // i = 0 et sps_subpic_same_size_flag = 0
+                      if (sps->sps_pic_width_max_in_luma_samples > sps->CtbSizeY) {
+                          TRUE_OR_RETURN(br->ReadBits(bitWidth, &sps->sps_subpic_ctu_top_left_x[i]));
+                      } else {
+                          sps->sps_subpic_ctu_top_left_x[i] = 0;
+                      }
+                      
+                      if (sps->sps_pic_height_max_in_luma_samples > sps->CtbSizeY) {
+                          TRUE_OR_RETURN(br->ReadBits(bitHeight, &sps->sps_subpic_ctu_top_left_y[i]));
+                      } else {
+                          sps->sps_subpic_ctu_top_left_y[i] = 0;
+                      }
+                      
+                      // Ces valeurs seront lues pour i < sps_num_subpics_minus1
+                      if (i < sps->sps_num_subpics_minus1) {
+                          if (sps->sps_pic_width_max_in_luma_samples > sps->CtbSizeY) {
+                              TRUE_OR_RETURN(br->ReadBits(bitWidth, &sps->sps_subpic_width_minus1[i]));
+                          }
+                          if (sps->sps_pic_height_max_in_luma_samples > sps->CtbSizeY) {
+                              TRUE_OR_RETURN(br->ReadBits(bitHeight, &sps->sps_subpic_height_minus1[i]));
+                          }
+                      } else {
+                          // Dernière sous-image : calculer les dimensions restantes
+                          sps->sps_subpic_width_minus1[i] = tmpWidthVal - sps->sps_subpic_ctu_top_left_x[i] - 1;
+                          sps->sps_subpic_height_minus1[i] = tmpHeightVal - sps->sps_subpic_ctu_top_left_y[i] - 1;
+                      }
+                  }
+                  
+                  // Lire les flags pour chaque sous-image (si nécessaire)
+                  if (!sps->sps_independent_subpics_flag) {
+                      bool tmp_sps_subpic_treated_as_pic_flag = false;
+                      bool tmp_sps_loop_filter_across_subpic_enabled_flag = false;
+                      TRUE_OR_RETURN(br->ReadBool(&tmp_sps_subpic_treated_as_pic_flag));
+                      sps->sps_subpic_treated_as_pic_flag.push_back(tmp_sps_subpic_treated_as_pic_flag);
+                      TRUE_OR_RETURN(br->ReadBool(&tmp_sps_loop_filter_across_subpic_enabled_flag));
+                      sps->sps_loop_filter_across_subpic_enabled_flag.push_back(tmp_sps_loop_filter_across_subpic_enabled_flag);
+                  }
+              }
+
+            #endif
+
+
+
           }
         }//not sure
           TRUE_OR_RETURN(br->ReadUE(&sps->sps_bitdepth_minus8));
