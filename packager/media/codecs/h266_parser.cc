@@ -1166,8 +1166,8 @@ if (sps->sps_subpic_ctu_top_left_x.size() <= static_cast<size_t>(sps->sps_num_su
     return kInvalidStream;
 }
 
-if (sps->subpic_ctu_top_left_x_.empty() || sps->subpic_ctu_top_left_y_.empty() ||
-    sps->subpic_width_minus1_.empty() || sps->subpic_height_minus1_.empty()) {
+if (sps->sps_subpic_ctu_top_left_x.empty() || sps->sps_subpic_ctu_top_left_y.empty() ||
+    sps->sps_subpic_width_minus1.empty() || sps->sps_subpic_height_minus1.empty()) {
   LOG(ERROR) << "Subpicture vectors not initialized";
   return kInvalidStream;  // Or appropriate error code
 }
@@ -2507,7 +2507,7 @@ H266Parser::Result H266Parser::ParseSps(const Nalu& nalu, int* sps_id) {
   DLOG(INFO) << "## sps_ref_pic_resampling_enabled_flag : " << ( sps->sps_ref_pic_resampling_enabled_flag ? "1" : "0");
   if( sps->sps_ref_pic_resampling_enabled_flag) {
     TRUE_OR_RETURN(br->ReadBool(&sps->sps_res_change_in_clvs_allowed_flag));
-    DLOG(INFO) << "## ssps_ref_pic_resampling_enabled_flag : " << ( sps->sps_ref_pic_resampling_enabled_flag ? "1" : "0");
+    DLOG(INFO) << "## sps_ref_pic_resampling_enabled_flag : " << ( sps->sps_ref_pic_resampling_enabled_flag ? "1" : "0");
  }
   TRUE_OR_RETURN(br->ReadUE(&sps->sps_pic_width_max_in_luma_samples));
   DLOG(INFO) << "## sps_pic_width_max_in_luma_samples : " << sps->sps_pic_width_max_in_luma_samples;
@@ -6628,7 +6628,7 @@ H266Parser::Result H266Parser::Ref_Pic_List_Struct(
       int tmp_ilrp_idx = 0;
       TRUE_OR_RETURN(br->ReadUE(&tmp_ilrp_idx));
       entry.ilrp_idx = tmp_ilrp_idx;
-      DLOG(INFO) << "## tmp_ilrp_idx : " << tmp_ilrp_idx;
+      DLOG(INFO) << "## ilrp_idx : " << tmp_ilrp_idx;
 
     }
 
@@ -7397,6 +7397,7 @@ H266Parser::Result H266Parser::ParseProfileTierLevel(bool profile_tier_present,
         uint32_t temp_profile;
         TRUE_OR_RETURN(br->ReadBits(7, &temp_profile));
         ptl->general_profile_idc = static_cast<uint8_t>(temp_profile);
+        DLOG(INFO) << "## ptl->general_profile_idc : " << temp_profile;
 
         bool temp_tier;
         TRUE_OR_RETURN(br->ReadBool(&temp_tier));
