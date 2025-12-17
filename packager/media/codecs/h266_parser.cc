@@ -1166,8 +1166,17 @@ if (sps->sps_subpic_ctu_top_left_x.size() <= static_cast<size_t>(sps->sps_num_su
     return kInvalidStream;
 }
 
+if (sps->subpic_ctu_top_left_x_.empty() || sps->subpic_ctu_top_left_y_.empty() ||
+    sps->subpic_width_minus1_.empty() || sps->subpic_height_minus1_.empty()) {
+  LOG(ERROR) << "Subpicture vectors not initialized";
+  return kInvalidStream;  // Or appropriate error code
+}
+
+
 /***************** subpicHeightLessThanOneTileFlag  equqtion 20 page 30 ************************************/
 for( int i = 0; i <= sps->sps_num_subpics_minus1; i++ ) {
+
+
   int leftX = sps->sps_subpic_ctu_top_left_x[i];
   int rightX = leftX + sps->sps_subpic_width_minus1[i];
 
@@ -1255,18 +1264,7 @@ slice_header->NumSlicesInSubpic.resize(sps->sps_num_subpics_minus1 + 1, 0);
       slice_header->NumSlicesInTile[i] = 1;
     }
 
-    /* if( slice_header->sliceWidthInTiles[ i ] == 1 && slice_header->sliceHeightInTiles[ i ] == 1 ) {
-
-      //eq 21 page 31   no sure to have need all variables for my issue
-      if( pps->pps_num_exp_slices_in_tile[i] == 0 ) {
-
-      } else {
-
-      }
-
-    } */
-
-
+   
   }
 
 }
